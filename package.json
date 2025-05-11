@@ -9,12 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "card": "^2.5.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.10.5",
     "lucide-react": "^0.506.0",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-odometerjs": "^3.1.3",
     "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {

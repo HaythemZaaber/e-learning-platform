@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, useInView, useAnimation } from "framer-motion";
 import { cn } from "@/lib/utils";
+import CounterHead from "@/components/shared/SectionHead";
 
 // Counter data type definitions
 interface CounterItem {
@@ -56,26 +57,6 @@ const CounterValue: React.FC<{ target: number }> = ({ target }) => {
   }, [target]);
 
   return <span className="text-4xl font-bold">{value}</span>;
-};
-
-// Counter Head component
-const CounterHead: React.FC<{
-  tag: string;
-  title: string;
-  subTitle: string;
-  desc: string;
-}> = ({ tag, title, subTitle, desc }) => {
-  return (
-    <div className="text-center max-w-3xl mx-auto mb-12">
-      <span className="inline-block px-4 py-1.5 mb-4 text-sm font-medium bg-indigo-100 text-indigo-800 rounded-full">
-        {tag}
-      </span>
-      <h2 className="text-3xl md:text-4xl font-bold mb-4">
-        {title} <span className="text-indigo-600">{subTitle}</span>
-      </h2>
-      {desc && <p className="text-gray-600">{desc}</p>}
-    </div>
-  );
 };
 
 // Default counter data - customized for your e-learning platform
@@ -138,7 +119,7 @@ const CounterSection: React.FC<CounterSectionProps> = ({
   data = defaultCounterData,
 }) => {
   return (
-    <section className=" bg-gray-50 ">
+    <section>
       <div className="container w-[90vw]">
         {data.counterOne.map((counterData, index) => (
           <div className=" mx-auto px-4" key={index}>

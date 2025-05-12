@@ -3,12 +3,12 @@ import Image from "next/image";
 import banner from "@/public/images/banner.png";
 const HeroSection = () => {
   return (
-    <div className="  text-black bg-accent/30">
+    <div className="  text-black bg-accent/10">
       <div className="grid grid-cols-2 gap-5  items-center w-[90vw] mx-auto py-10">
         <div className="flex-1 flex flex-col gap-5 ">
           {/* hero section content for the right side */}
 
-          <h2 className="leading-12 font-medium">
+          <h2 className="leading-12 font-bold opacity-90">
             Find Expert Teachers Worldwide for Every Passion and School Subject
             — Live or On Your Schedule.
           </h2>

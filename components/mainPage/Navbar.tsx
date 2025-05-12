@@ -9,9 +9,7 @@ const Navbar = () => {
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
-      const viewportHeight = window.innerHeight; 
-
-      console.log("scrollPosition", scrollPosition);
+      const viewportHeight = window.innerHeight;
 
       if (scrollPosition >= viewportHeight) {
         setIsSticky(true);
@@ -30,7 +28,7 @@ const Navbar = () => {
   return (
     <div
       className={cn(
-        "w-full z-50 text-black bg-accent/30",
+        "w-full z-50 text-black bg-accent/10",
         isSticky ? "sticky top-0 bg-white shadow-sm" : "relative"
       )}
     >
@@ -60,7 +58,7 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center">
-            <div className="p-4 mx-5 overflow-hidden w-[45px] h-[45px] hover:w-[270px] bg-primary shadow-[2px_2px_20px_rgba(0,0,0,0.08)] rounded-full flex group items-center hover:duration-300 duration-300">
+            <div className="p-4 mx-5 overflow-hidden w-[45px] h-[45px] hover:w-[270px] bg-gradient-to-r from-primary to-secondary shadow-[2px_2px_20px_rgba(0,0,0,0.08)] rounded-full flex group items-center hover:duration-300 duration-300">
               <div className="flex items-center justify-center fill-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

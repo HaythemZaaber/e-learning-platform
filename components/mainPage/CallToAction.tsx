@@ -11,7 +11,7 @@ export default function CallToAction() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-4xl font-bold mb-4"
+          className="text-4xl font-bold mb-4 text-white"
         >
           Start your learning journey today!
         </motion.h2>
@@ -19,7 +19,7 @@ export default function CallToAction() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="text-lg mb-8"
+          className="text-lg mb-8 text-gray-50"
         >
           Join thousands of learners and teachers worldwide.
         </motion.p>

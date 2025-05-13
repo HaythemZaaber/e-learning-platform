@@ -18,7 +18,7 @@ export default function MainPage() {
       <CounterSection />
       <CoursesSection />
       <TeachersSection />
-      <FeaturedCourses />
+      {/* <FeaturedCourses /> */}
       <WhyChooseUs />
       <TestimonialsSection />
       <CallToAction />

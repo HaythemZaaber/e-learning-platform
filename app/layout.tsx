@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -14,10 +15,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`antialiased   duration-300 `}
-      >
-        {children}
+      <body className={`antialiased   duration-300 `}>
+        {children} <Toaster position="top-center" richColors />
       </body>
     </html>
   );

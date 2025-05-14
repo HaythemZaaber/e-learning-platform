@@ -18,7 +18,7 @@ import {
   Award,
 } from "lucide-react";
 import Image from "next/image";
-import SectionHead from "../shared/SectionHead";
+import SectionHead from "../../shared/SectionHead";
 import {
   DropdownMenu,
   DropdownMenuContent,

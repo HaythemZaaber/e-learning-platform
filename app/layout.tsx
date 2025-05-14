@@ -1,7 +1,8 @@
+// app/layout.tsx
 import type { Metadata } from "next";
-import { Toaster } from "sonner";
-
 import "./globals.css";
+import Navbar from "@/components/layout/Navbar";
+import ReduxProvider from "./ReduxProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -15,8 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`antialiased   duration-300 `}>
-        {children} <Toaster position="top-center" richColors />
+      <body className={`antialiased duration-300`}>
+        <ReduxProvider>
+          <Navbar />
+          <main>{children}</main>
+          {/* Footer would go here */}
+        </ReduxProvider>
       </body>
     </html>
   );

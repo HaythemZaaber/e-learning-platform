@@ -1,19 +1,36 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import banner from "@/public/images/banner.png";
+import { useDispatch } from "react-redux";
+import { setShowNavbarSearch } from "@/redux/slices/search.slice";
 
 const HeroSection: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const dispatch = useDispatch();
+  const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        dispatch(setShowNavbarSearch(!entry.isIntersecting));
+      },
+      { threshold: 0.1, rootMargin: "-100px 0px 0px 0px" }
+    );
+
+    if (observerRef.current) observer.observe(observerRef.current);
+
+    return () => observer.disconnect();
+  }, [setShowNavbarSearch]);
 
   return (
     <section className="w-full bg-gradient-to-br from-primary/5 to-primary/20 overflow-hidden">
@@ -63,7 +80,7 @@ const HeroSection: React.FC = () => {
               transition={{ delay: 0.8, duration: 0.5 }}
               className="flex flex-col sm:flex-row gap-4 mt-4"
             >
-              <div className="relative flex-grow max-w-md">
+              <div ref={observerRef} className="relative flex-grow max-w-md">
                 <Search
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={20}

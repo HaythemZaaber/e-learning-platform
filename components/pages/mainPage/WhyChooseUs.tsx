@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import SectionHead from "../shared/SectionHead";
+import SectionHead from "../../shared/SectionHead";
 
 const colorClasses = {
   blue: "text-blue-500 bg-blue-50",

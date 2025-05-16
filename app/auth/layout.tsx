@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -15,7 +13,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased duration-300`}>
-        <ClientLayout>{children}</ClientLayout>
+        <main>{children}</main>
+        {/* Footer would go here */}
       </body>
     </html>
   );

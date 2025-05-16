@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,10 +67,11 @@ const UserProfileMenu = ({
   userInitials = "US",
   notificationCount = 0,
 }: UserProfileMenuProps) => {
-  // Mock functions for auth state
-  const handleSignIn = () => console.log("Sign in clicked");
-  const handleSignUp = () => console.log("Sign up clicked");
-  const handleSignOut = () => console.log("Sign out clicked");
+  const handleSignIn = () => router.push("/auth/login");
+  const handleSignUp = () => router.push("/auth/signup");
+  const handleSignOut = () => router.push("/auth/login");
+
+  const router = useRouter();
 
   if (isLoggedIn) {
     const profileMenuItems = getProfileMenuItemsByRole(userRole);
@@ -125,7 +127,6 @@ const UserProfileMenu = ({
     );
   }
 
-  // Not logged in - show auth buttons
   return (
     <div className="flex items-center gap-3">
       <motion.div
@@ -136,7 +137,7 @@ const UserProfileMenu = ({
         <Button
           variant="outline"
           size="sm"
-          className="hidden md:inline-flex border-2 border-primary/20 bg-transparent hover:bg-primary/10 hover:border-primary/30 group transition-all duration-300 relative overflow-hidden"
+          className="hidden md:inline-flex border-2 border-primary/20 bg-transparent hover:bg-primary/10 hover:border-primary/30 group transition-all duration-300 relative overflow-hidden cursor-pointer"
           onClick={handleSignUp}
         >
           <span className="relative z-10 flex items-center gap-1">
@@ -168,7 +169,7 @@ const UserProfileMenu = ({
       >
         <Button
           size="sm"
-          className="relative bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 shadow-lg hover:shadow-primary/30 transition-all duration-300 group overflow-hidden"
+          className="relative bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 shadow-lg hover:shadow-primary/30 transition-all duration-300 group overflow-hidden cursor-pointer"
           onClick={handleSignIn}
         >
           <span className="relative z-10 flex items-center gap-1">

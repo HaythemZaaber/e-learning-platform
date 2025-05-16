@@ -283,7 +283,7 @@ export default function CoursesSection() {
 
   return (
     <section className="py-16 bg-gradient-to-br from-white to-gray-50">
-      <div className="container mx-auto px-4">
+      <div className="container w-[90vw]">
         <SectionHead
           tag="DISCOVER YOUR NEXT SKILL"
           title="Explore Our Courses"
@@ -346,7 +346,7 @@ export default function CoursesSection() {
           >
             {filteredCourses.map((course) => (
               <motion.div key={course.id} variants={cardVariants} layout>
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 h-full flex flex-col bg-white rounded-xl">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 h-full flex flex-col bg-white rounded-xl py-0">
                   <div className="relative aspect-video w-full">
                     <Image
                       src={course.image}

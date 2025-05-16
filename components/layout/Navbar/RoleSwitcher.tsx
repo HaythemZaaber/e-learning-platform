@@ -3,7 +3,7 @@
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { switchRole } from "@/redux/slices/auth.slice";
-import { UserRole } from "@/components/layout/Navbar/ClientNavbar";
+import { UserRole } from "@/components/layout/navbar/ClientNavbar";
 import {
   Select,
   SelectContent,

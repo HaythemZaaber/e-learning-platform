@@ -68,7 +68,7 @@ const ClientNavbar = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="w-[90vw] mx-auto px-4 lg:px-8">
+      <div className="w-[90vw] mx-auto">
         <div className="flex items-center justify-between">
           <motion.div
             className="flex items-center"

@@ -1,9 +1,8 @@
 // components/RoleSwitcher.tsx
 "use client";
 
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { switchRole } from "@/redux/slices/auth.slice";
-import { UserRole } from "@/components/layout/navbar/ClientNavbar";
+import { useAuthStore } from "@/store/auth.store";
+
 import {
   Select,
   SelectContent,
@@ -13,25 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserRole } from "./ClientNavbar";  
 
 const RoleSwitcher = () => {
-  const dispatch = useAppDispatch();
-  const role = useAppSelector((state) => state.auth.role);
-
+  const { role, switchRole } = useAuthStore();
   const roles: UserRole[] = ["visitor", "student", "teacher", "parent"];
 
   return (
     <div className="">
       <Select
-        onValueChange={(e) => dispatch(switchRole(e as UserRole))}
+        onValueChange={(e) => switchRole(e as UserRole)}
         value={role}
         defaultValue={role}
       >
-        <SelectTrigger className="">
+        <SelectTrigger className="" >
           <SelectValue placeholder="Select role" />
         </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
+        <SelectContent position="popper">
+          <SelectGroup  >
             <SelectLabel>Role</SelectLabel>
             {roles.map((roleOption) => (
               <SelectItem key={roleOption} value={roleOption}>

@@ -18,7 +18,7 @@ import {
   Award,
 } from "lucide-react";
 import Image from "next/image";
-import SectionHead from "../../shared/SectionHead";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -471,7 +471,8 @@ export default function CoursesSection() {
                       originalPrice={course.originalPrice}
                     />
 
-                    <DropdownMenu>
+                    <DropdownMenu 
+                    modal={false}>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm">
                           Options
@@ -523,4 +524,5 @@ export default function CoursesSection() {
 }
 
 // Import only at the end to prevent cycle
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";import SectionHead from "@/components/shared/SectionHead";
+

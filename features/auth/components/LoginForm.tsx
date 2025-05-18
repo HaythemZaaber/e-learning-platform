@@ -1,17 +1,15 @@
-// components/auth/LoginForm.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 import { FormInput } from "@/components/shared/FormInput";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { FormButton } from "@/components/shared/FormButton";
-
-import { loginSchema } from "@/lib/schemas";
-import Link from "next/link";
-import { AuthSocialButtons } from "./AuthSocialButtons";
 import { AuthFormContainer } from "./AuthFormContainer";
+import { AuthSocialButtons } from "./AuthSocialButtons";
+
 
 export const LoginForm = () => {
   const router = useRouter();
@@ -103,7 +101,7 @@ export const LoginForm = () => {
             />
             <label
               htmlFor="remember-me"
-              className="ml-2 block text-sm text-gray-700"
+              className="ml-2 block text-sm "
             >
               Remember me
             </label>
@@ -119,7 +117,7 @@ export const LoginForm = () => {
           </div>
         </div>
 
-        <FormButton type="submit" isLoading={isLoading} className="w-full">
+        <FormButton type="submit"  isLoading={isLoading} className="w-full">
           Log in
         </FormButton>
       </form>
@@ -129,8 +127,8 @@ export const LoginForm = () => {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">
+          <div className="relative flex justify-center text-sm ">
+            <span className="px-2 py-1 rounded-full bg-black/50  text-white ">
               Or continue with
             </span>
           </div>
@@ -140,7 +138,7 @@ export const LoginForm = () => {
       </div>
 
       <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm ">
           Don't have an account?{" "}
           <Link
             href="/auth/signup"
@@ -152,4 +150,4 @@ export const LoginForm = () => {
       </div>
     </AuthFormContainer>
   );
-};
+}; 

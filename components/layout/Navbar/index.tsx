@@ -1,7 +1,8 @@
 "use client";
 
+import { useAuthStore } from "@/store/auth.store";
 import ClientNavbar, { UserRole } from "./ClientNavbar";
-import { useAppSelector } from "@/redux/hooks";
+
 
 const getUserFromCookies = (
   role: string
@@ -27,7 +28,7 @@ const getUserFromCookies = (
 };
 
 export default function Navbar() {
-  const role = useAppSelector((state) => state.auth.role);
+ const { role } = useAuthStore();
   const user = getUserFromCookies(role);
 
   return (

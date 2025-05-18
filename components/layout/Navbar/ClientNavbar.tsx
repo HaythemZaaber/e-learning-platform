@@ -10,9 +10,8 @@ import NavbarDesktopMenu from "./NavbarDesktopMenu";
 import NavbarSearch from "./NavbarSearch";
 import UserProfileMenu from "./UserProfileMenu";
 import NavbarMobileMenu from "./NavbarMobileMenu";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
 import RoleSwitcher from "./RoleSwitcher";
+import { useSearchStore } from "@/store/search.store";
 
 export type UserRole = "visitor" | "student" | "teacher" | "parent";
 
@@ -32,9 +31,7 @@ const ClientNavbar = ({
   const [isSticky, setIsSticky] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const showNavbarSearch = useSelector(
-    (state: RootState) => state.search.showNavbarSearch
-  );
+  const showNavbarSearch = useSearchStore((state) => state.showNavbarSearch);
 
   const isLoggedIn = userRole !== "visitor";
 

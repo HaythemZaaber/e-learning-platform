@@ -1,4 +1,5 @@
-import { SignupForm } from "@/components/pages/auth/SignupForm";
+import { SignupForm } from "@/features/auth/components/SignupForm";
+import { AuthLayout } from "@/features/auth/components/AuthLayout";
 
 export default async function SignupPage({
   searchParams,
@@ -6,8 +7,8 @@ export default async function SignupPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <AuthLayout>
       <SignupForm />
-    </div>
+    </AuthLayout>
   );
 }

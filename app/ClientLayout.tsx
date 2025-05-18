@@ -2,8 +2,10 @@
 
 import { usePathname } from "next/navigation";
 
-import ReduxProvider from "./ReduxProvider";
+
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/features/mainPage/components/Footer";
+import { Toaster } from "sonner";
 
 export default function ClientLayout({
   children,
@@ -14,10 +16,11 @@ export default function ClientLayout({
   const isAuthPage = pathname?.startsWith("/auth");
 
   return (
-    <ReduxProvider>
+    <>
       {!isAuthPage && <Navbar />}
       {children}
-      {/* Footer would go here */}
-    </ReduxProvider>
+     <Toaster position="top-center" richColors />
+      {!isAuthPage && <Footer />}
+    </>
   );
 }

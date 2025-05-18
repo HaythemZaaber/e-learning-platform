@@ -16,7 +16,7 @@ export const AuthFormContainer = ({
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg"
+    className="w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg "
   >
     <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">
       {title}

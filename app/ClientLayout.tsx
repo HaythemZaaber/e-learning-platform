@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Navbar from "@/components/layout/navbar";
+
 import ReduxProvider from "./ReduxProvider";
+import Navbar from "@/components/layout/Navbar";
 
 export default function ClientLayout({
   children,

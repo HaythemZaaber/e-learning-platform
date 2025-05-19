@@ -12,24 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserRole } from "./ClientNavbar";  
+import { UserRole } from "./ClientNavbar";
 
 const RoleSwitcher = () => {
   const { role, switchRole } = useAuthStore();
   const roles: UserRole[] = ["visitor", "student", "teacher", "parent"];
 
   return (
-    <div className="">
+    <div className="hidden sm:block">
       <Select
         onValueChange={(e) => switchRole(e as UserRole)}
         value={role}
         defaultValue={role}
       >
-        <SelectTrigger className="" >
+        <SelectTrigger className="">
           <SelectValue placeholder="Select role" />
         </SelectTrigger>
         <SelectContent position="popper">
-          <SelectGroup  >
+          <SelectGroup>
             <SelectLabel>Role</SelectLabel>
             {roles.map((roleOption) => (
               <SelectItem key={roleOption} value={roleOption}>

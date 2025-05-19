@@ -1,4 +1,7 @@
+import NavbarBrand from "@/components/layout/navbar/NavbarBrand";
+import { AuthLayout } from "@/components/layout/auth/AuthLayout";
 import type { Metadata } from "next";
+import AuthNavbarBrand from "@/components/layout/auth/AuthNavbarBrand";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -13,7 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased duration-300`}>
-        <main>{children}</main>
+        <AuthNavbarBrand />
+        <AuthLayout>
+          <main>{children}</main>
+        </AuthLayout>
         {/* Footer would go here */}
       </body>
     </html>

@@ -14,7 +14,7 @@ const NavbarBrand = () => {
       <span className="font-bold text-2xl bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
         ELearning
       </span>
-    </motion.div>
+    </motion.div>     
   );
 };
 

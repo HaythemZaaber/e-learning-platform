@@ -8,13 +8,19 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import banner from "@/public/images/banner.png";
 import { useSearchStore } from "@/store/search.store";
-import { HeroSearch } from "./search/HeroSearch";
-import { HeroImage } from "./hero/HeroImage";
-import { AnimatedWrapper, fadeInLeft, fadeIn } from "./animations/AnimatedWrapper";
+import {
+  AnimatedWrapper,
+  fadeInLeft,
+  fadeIn,
+} from "../animations/AnimatedWrapper";
+import { HeroImage } from "./HeroImage";
+import { HeroSearch } from "./HeroSearch";
 
 const HeroSection: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const setShowNavbarSearch = useSearchStore((state) => state.setShowNavbarSearch);
+  const setShowNavbarSearch = useSearchStore(
+    (state) => state.setShowNavbarSearch
+  );
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,7 +45,10 @@ const HeroSection: React.FC = () => {
       <div className="container w-[90vw]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}
-          <AnimatedWrapper animation={fadeInLeft} className="flex flex-col gap-6">
+          <AnimatedWrapper
+            animation={fadeInLeft}
+            className="flex flex-col gap-6"
+          >
             <AnimatedWrapper
               animation={fadeIn}
               className="inline-flex items-center px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium w-fit"
@@ -65,7 +74,10 @@ const HeroSection: React.FC = () => {
 
             <HeroSearch />
 
-            <AnimatedWrapper animation={fadeIn} className="flex items-center gap-4 mt-4">
+            <AnimatedWrapper
+              animation={fadeIn}
+              className="flex items-center gap-4 mt-4"
+            >
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4].map((i) => (
                   <div

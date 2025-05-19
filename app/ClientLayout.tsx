@@ -2,10 +2,9 @@
 
 import { usePathname } from "next/navigation";
 
-
-import Navbar from "@/components/layout/Navbar";
 import Footer from "@/features/mainPage/components/Footer";
 import { Toaster } from "sonner";
+import Navbar from "@/components/layout/navbar";
 
 export default function ClientLayout({
   children,
@@ -19,7 +18,7 @@ export default function ClientLayout({
     <>
       {!isAuthPage && <Navbar />}
       {children}
-     <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors />
       {!isAuthPage && <Footer />}
     </>
   );

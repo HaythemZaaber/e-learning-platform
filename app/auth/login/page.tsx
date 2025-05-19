@@ -1,5 +1,5 @@
 import { LoginForm } from "@/features/auth/components/LoginForm";
-import { AuthLayout } from "@/features/auth/components/AuthLayout";
+import { AuthLayout } from "@/components/layout/auth/AuthLayout";
 
 export default async function LoginPage({
   searchParams,
@@ -7,8 +7,8 @@ export default async function LoginPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   return (
-    <AuthLayout>
-      <LoginForm />
-    </AuthLayout>
+    // <AuthLayout>
+    <LoginForm />
+    // </AuthLayout>
   );
 }

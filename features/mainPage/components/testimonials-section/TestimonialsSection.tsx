@@ -26,7 +26,7 @@ export default function TestimonialsSection() {
 
   return (
     <section
-      className="py-20 bg-gradient-to-b from-white to-primary/10"
+      className="py-16 sm:py-24 bg-gradient-to-b from-white to-primary/10"
       ref={ref}
     >
       <div className="max-w-6xl mx-auto px-6">

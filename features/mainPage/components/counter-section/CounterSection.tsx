@@ -16,9 +16,9 @@ const CounterSection: React.FC<CounterSectionProps> = ({
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl opacity-70" />
       <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl opacity-70" />
 
-      <div className="container">
+      <div className="container w-[90vw] mx-auto">
         {data.counterOne.map((counterData, index) => (
-          <div className="w-[90vw] mx-auto" key={index}>
+          <div className="" key={index}>
             {head && (
               //   <div className="mb-16 text-center">
               //     <div className="inline-flex items-center px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium mb-4">

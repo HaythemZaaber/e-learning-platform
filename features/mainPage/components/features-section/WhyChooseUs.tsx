@@ -17,7 +17,10 @@ export default function WhyChooseUs() {
     featureCategories.find((cat) => cat.id === selectedTab)?.features || [];
 
   return (
-    <section className="bg-gradient-to-b from-white to-primary/5" ref={ref}>
+    <section
+      className="py-5 bg-gradient-to-b from-white to-primary/5"
+      ref={ref}
+    >
       <div className="container w-[90vw] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

@@ -3,7 +3,7 @@ import CounterSection from "@/features/mainPage/components/counter-section/Count
 import CoursesSection from "@/features/mainPage/components/courses-section/CoursesSection";
 
 import FaqSection from "@/features/mainPage/components/FaqSection";
-import FeaturedCourses from "@/features/mainPage/components/FeaturedCourses";
+
 import WhyChooseUs from "@/features/mainPage/components/features-section/WhyChooseUs";
 
 import HeroSection from "@/features/mainPage/components/hero-section/HeroSection";
@@ -17,7 +17,6 @@ export default function MainPage() {
       <CounterSection />
       <CoursesSection />
       <TeachersSection />
-      {/* <FeaturedCourses /> */}
       <WhyChooseUs />
       <TestimonialsSection />
       <CallToAction />

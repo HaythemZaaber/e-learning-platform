@@ -4,11 +4,11 @@ import CoursesSection from "@/features/mainPage/components/courses-section/Cours
 
 import FaqSection from "@/features/mainPage/components/FaqSection";
 import FeaturedCourses from "@/features/mainPage/components/FeaturedCourses";
+import WhyChooseUs from "@/features/mainPage/components/features-section/WhyChooseUs";
 
 import HeroSection from "@/features/mainPage/components/hero-section/HeroSection";
 import TeachersSection from "@/features/mainPage/components/teacher-section/TeachersSection";
-import TestimonialsSection from "@/features/mainPage/components/TestimoialsSection";
-import WhyChooseUs from "@/features/mainPage/components/WhyChooseUs";
+import TestimonialsSection from "@/features/mainPage/components/testimonials-section/TestimonialsSection";
 
 export default function MainPage() {
   return (

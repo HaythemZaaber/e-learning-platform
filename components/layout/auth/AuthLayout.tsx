@@ -9,7 +9,7 @@ interface AuthLayoutProps {
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden pt-8 sm:pt-0">
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-400 via-indigo-500 to-blue-500"></div>
 
       {/* Animated gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_70%)]"></div>

@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Course } from "../../features/mainPage/types/courses";
+import { Course } from "../../features/mainPage/types/coursesTypes";
 import { cn } from "@/lib/utils";
 
 interface CourseCardProps {

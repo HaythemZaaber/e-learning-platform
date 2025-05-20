@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Star, ChevronRight } from "lucide-react";
-import { Course, Category } from "../../types/courses";
+import { Course, Category } from "../../types/coursesTypes";
 import { CourseCard } from "../../../../components/shared/CourseCard";
 import { cn } from "@/lib/utils";
 import {

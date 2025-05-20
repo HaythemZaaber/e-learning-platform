@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import SectionHead from "../../shared/SectionHead";
+import SectionHead from "@/components/shared/SectionHead";
 
 const colorClasses = {
   blue: "text-blue-500 bg-blue-50",
@@ -241,20 +241,12 @@ export default function WhyChooseUs() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <Badge
-            variant="outline"
-            className="mb-4 py-1 px-4 bg-indigo-100 text-indigo-800 border-indigo-200"
-          >
-            <Check size={14} className="mr-1" /> Avantages
-          </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
-            Pourquoi <span className="text-indigo-600">choisir</span> notre
-            plateforme ?
-          </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Découvrez les nombreux avantages qui font de notre plateforme le
-            choix idéal pour votre parcours d'apprentissage.
-          </p>
+          <SectionHead
+            tag="WHY CHOOSE US"
+            title="Why Choose Us"
+            subTitle="The Perfect Choice for Your Learning Journey"
+            desc="Discover the many benefits that make our platform the ideal choice for your learning journey."
+          />
         </motion.div>
 
         <motion.div

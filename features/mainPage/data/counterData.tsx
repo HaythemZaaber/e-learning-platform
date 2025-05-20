@@ -1,5 +1,5 @@
 import { Sparkles, TrendingUp, BarChart3, Users } from "lucide-react";
-import { CounterData } from "../types/counter";
+import { CounterData } from "../types/counterTypes";
 
 export const defaultCounterData = {
   counterOne: [

@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Bookmark } from "lucide-react";
 import Image from "next/image";
-import { Teacher } from "../../../types/teacher";
+import { Teacher } from "../../../types/teacherTypes";
 
 interface TeacherCardProps {
   teacher: Teacher;
@@ -12,7 +12,7 @@ interface TeacherCardProps {
 
 export function TeacherCard({ teacher, isSaved, onSave }: TeacherCardProps) {
   return (
-    <Card className="rounded-2xl shadow-md overflow-hidden h-full border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+    <Card className="rounded-2xl pt-0 shadow-md overflow-hidden h-full border border-gray-100 hover:shadow-xl transition-shadow duration-300">
       <div className="relative">
         <Image
           src={teacher.image}

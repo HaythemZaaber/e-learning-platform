@@ -1,4 +1,4 @@
-import { Teacher } from "../types/teacher";
+import { Teacher } from "../types/teacherTypes";
 import course from "@/public/images/courses/course.jpg";
 
 export const teachers: Teacher[] = [
@@ -34,4 +34,14 @@ export const teachers: Teacher[] = [
     availability: "Mon, Tue, Thu",
     featured: true,
   },
+  // {
+  //   id: 4,
+  //   name: "James Wilson",
+  //   subject: "Chemistry",
+  //   rating: 2.6,
+  //   image: course,
+  //   bio: "Passionate chemistry educator with industry experience. Specializes in organic chemistry and lab techniques.",
+  //   achievements: ["Industry Research Award", "Certified Science Educator"],
+  //   availability: "Wed, Thu, Fri",
+  // },
 ];

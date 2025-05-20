@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Course } from "../../types/courses";
+import { Course } from "../../types/coursesTypes";
 
 // Animation variants
 const containerVariants = {

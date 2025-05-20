@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, ArrowRight, Bookmark } from "lucide-react";
 import Image from "next/image";
-import { Teacher } from "../../../types/teacher";
+import { Teacher } from "../../../types/teacherTypes";
 
 interface FeaturedTeacherProps {
   teacher: Teacher;

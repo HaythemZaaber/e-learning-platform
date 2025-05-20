@@ -10,7 +10,6 @@ import { FormButton } from "@/components/shared/FormButton";
 import { AuthFormContainer } from "./AuthFormContainer";
 import { AuthSocialButtons } from "./AuthSocialButtons";
 
-
 export const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,10 +98,7 @@ export const LoginForm = () => {
               type="checkbox"
               className="h-4 w-4 text-primary focus:ring-primary/50 border-gray-300 rounded"
             />
-            <label
-              htmlFor="remember-me"
-              className="ml-2 block text-sm "
-            >
+            <label htmlFor="remember-me" className="ml-2 block text-sm ">
               Remember me
             </label>
           </div>
@@ -117,7 +113,7 @@ export const LoginForm = () => {
           </div>
         </div>
 
-        <FormButton type="submit"  isLoading={isLoading} className="w-full">
+        <FormButton type="submit" isLoading={isLoading} className="w-full">
           Log in
         </FormButton>
       </form>
@@ -128,7 +124,7 @@ export const LoginForm = () => {
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm ">
-            <span className="px-2 py-1 rounded-full bg-black/50  text-white ">
+            <span className="px-2 py-1 rounded-full bg-black/50 font-semibold text-white ">
               Or continue with
             </span>
           </div>
@@ -150,4 +146,4 @@ export const LoginForm = () => {
       </div>
     </AuthFormContainer>
   );
-}; 
+};

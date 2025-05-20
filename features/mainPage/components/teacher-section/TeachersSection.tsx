@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useInView } from "react-intersection-observer";
-import { teachers } from "../../data/teachers";
+import { teachers } from "../../data/teachersData";
 import { TeacherCard } from "./components/TeacherCard";
 import { FeaturedTeacher } from "./components/FeaturedTeacher";
 import { AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   slideIn,
   fadeInUpStagger,
 } from "../animations/TeacherAnimations";
+import SectionHead from "@/components/shared/SectionHead";
 
 export default function TeachersHeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -41,10 +42,11 @@ export default function TeachersHeroSection() {
 
   return (
     <MotionSection
-      className="py-20 bg-gradient-to-b from-indigo-50 to-white"
+      className="py-16 sm:py-24 bg-gradient-to-b from-white to-primary/5"
       ref={ref}
       initial="initial"
       animate={inView ? "animate" : "initial"}
+      transition={{ duration: 0.5 }}
       variants={fadeIn}
     >
       <div className="max-w-6xl mx-auto px-4">
@@ -52,9 +54,10 @@ export default function TeachersHeroSection() {
           initial="initial"
           animate={inView ? "animate" : "initial"}
           variants={fadeInUp}
+          transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <Badge
+          {/* <Badge
             variant="outline"
             className="mb-4 py-1 px-4 bg-indigo-100 text-indigo-800 border-indigo-200"
           >
@@ -67,13 +70,20 @@ export default function TeachersHeroSection() {
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Connect with expert educators who are passionate about helping you
             achieve your academic goals and unlock your full potential.
-          </p>
+          </p> */}
+          <SectionHead
+            tag="LEARN FROM WORLD-CLASS TEACHERS"
+            title="Learn From "
+            subTitle="World-Class Teachers"
+            desc="Connect with expert educators who are passionate about helping you achieve your academic goals and unlock your full potential."
+          />
         </MotionDiv>
 
         <MotionDiv
           initial="initial"
           animate={inView ? "animate" : "initial"}
           variants={fadeIn}
+          transition={{ duration: 0.5 }}
           className="mb-16"
         >
           <AnimatePresence mode="wait">
@@ -83,6 +93,7 @@ export default function TeachersHeroSection() {
               animate="animate"
               exit="exit"
               variants={slideIn}
+              transition={{ duration: 0.5 }}
             >
               <FeaturedTeacher
                 teacher={teachers[activeIndex]}
@@ -113,7 +124,7 @@ export default function TeachersHeroSection() {
               initial="initial"
               animate={inView ? "animate" : "initial"}
               variants={fadeInUpStagger}
-              transition={{ delay: i * 0.1 + 0.3 }}
+              transition={{ duration: 0.2, delay: i * 0.01 }}
               whileHover={{ y: -8, transition: { duration: 0.2 } }}
               className="h-full"
             >
@@ -130,10 +141,10 @@ export default function TeachersHeroSection() {
           initial="initial"
           animate={inView ? "animate" : "initial"}
           variants={fadeInUp}
-          transition={{ delay: 0.6 }}
+          transition={{ duration: 0.7, delay: 0.6 }}
           className="text-center mt-12"
         >
-          <Button variant="outline" size="lg" className="mx-auto">
+          <Button size="lg" className="mx-auto">
             View All Teachers <ArrowRight size={16} className="ml-2" />
           </Button>
         </MotionDiv>

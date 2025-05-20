@@ -14,6 +14,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useInView } from "react-intersection-observer";
+import SectionHead from "@/components/shared/SectionHead";
 
 // Define TypeScript interface for testimonial data
 interface Testimonial {
@@ -126,7 +127,10 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section className="py-20 bg-gradient-to-b from-blue-50 to-white" ref={ref}>
+    <section
+      className="py-20 bg-gradient-to-b from-white to-primary/10"
+      ref={ref}
+    >
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -134,19 +138,12 @@ export default function TestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <Badge
-            variant="outline"
-            className="mb-4 py-1 px-4 bg-blue-100 text-blue-800 border-blue-200"
-          >
-            <MessageCircle size={14} className="mr-1" /> Témoignages
-          </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
-            Ce que <span className="text-blue-600">disent</span> nos apprenants
-          </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Découvrez comment notre plateforme a transformé leur façon
-            d'apprendre et les a aidés à atteindre leurs objectifs académiques.
-          </p>
+          <SectionHead
+            tag="TESTIMONIALS"
+            title="What Our Students Say"
+            subTitle="Hear from our valued learners"
+            desc="Discover why our students choose us for their learning journey."
+          />
         </motion.div>
 
         {/* Featured Testimonial */}

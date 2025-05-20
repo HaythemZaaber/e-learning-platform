@@ -9,7 +9,7 @@ import {
   PulseWrapper,
   CounterText,
 } from "@/features/mainPage/components/animations/counterAnimations";
-import { CounterItem } from "../../types/counter";
+import { CounterItem } from "../../types/counterTypes";
 
 interface CounterCardProps {
   item: CounterItem;

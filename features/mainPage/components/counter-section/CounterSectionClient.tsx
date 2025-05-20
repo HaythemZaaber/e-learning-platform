@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useAnimation, useInView } from "framer-motion";
-import { CounterItem } from "../../types/counter";
+import { CounterItem } from "../../types/counterTypes";
 
 import { CounterContainer } from "../animations/counterAnimations";
 import CounterCard from "./CounterCard";

@@ -1,6 +1,6 @@
 import React from "react";
-import { CoursesSectionProps } from "../../types/courses";
-import { coursesData, categories } from "../../data/courses";
+import { CoursesSectionProps } from "../../types/coursesTypes";
+import { coursesData, categories } from "../../data/coursesData";
 import SectionHead from "@/components/shared/SectionHead";
 import { CoursesSectionClient } from "./CoursesSectionClient";
 
@@ -19,7 +19,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   //         );
 
   return (
-    <section className="py-10 bg-gradient-to-br from-white to-gray-50">
+    <section className="py-10 bg-gradient-to-b from-white to-primary/5">
       <div className="container w-[90vw]">
         <SectionHead
           tag="DISCOVER YOUR NEXT SKILL"

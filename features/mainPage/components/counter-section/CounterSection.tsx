@@ -1,8 +1,9 @@
 import React from "react";
-import { CounterSectionProps } from "../../types/counter";
-import { defaultCounterData } from "../../data/counter";
+import { CounterSectionProps } from "../../types/counterTypes";
+import { defaultCounterData } from "../../data/counterData";
 
 import { CounterSectionClient } from "./CounterSectionClient";
+import SectionHead from "@/components/shared/SectionHead";
 
 const CounterSection: React.FC<CounterSectionProps> = ({
   isDesc = true,
@@ -19,24 +20,30 @@ const CounterSection: React.FC<CounterSectionProps> = ({
         {data.counterOne.map((counterData, index) => (
           <div className="w-[90vw] mx-auto" key={index}>
             {head && (
-              <div className="mb-16 text-center">
-                <div className="inline-flex items-center px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium mb-4">
-                  {counterData.tag}
-                </div>
+              //   <div className="mb-16 text-center">
+              //     <div className="inline-flex items-center px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium mb-4">
+              //       {counterData.tag}
+              //     </div>
 
-                <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                  {counterData.title}
-                  <span className="block text-accent mt-2">
-                    {counterData.subTitle}
-                  </span>
-                </h2>
+              //     <h2 className="text-3xl md:text-4xl font-bold mb-2">
+              //       {counterData.title}
+              //       <span className="block text-accent mt-2">
+              //         {counterData.subTitle}
+              //       </span>
+              //     </h2>
 
-                {isDesc && (
-                  <p className="max-w-2xl mx-auto mt-4 text-gray-600">
-                    {counterData.desc}
-                  </p>
-                )}
-              </div>
+              //     {isDesc && (
+              //       <p className="max-w-2xl mx-auto mt-4 text-gray-600">
+              //         {counterData.desc}
+              //       </p>
+              //     )}
+              //   </div>
+              <SectionHead
+                tag={counterData.tag}
+                title={counterData.title}
+                subTitle={counterData.subTitle}
+                desc={counterData.desc}
+              />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">

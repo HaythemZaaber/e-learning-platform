@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import course from "@/public/images/courses/course.jpg";
+import { Course } from "../types/coursesTypes";
 
 export const categories = [
   { name: "All", icon: <BookOpen className="h-4 w-4" /> },
@@ -24,7 +25,7 @@ export const coursesData = [
     category: "Programming",
     teacher: "Jane Doe",
     teacherRole: "Senior Developer",
-    teacherAvatar: "/images/avatars/teacher1.jpg",
+    teacherAvatar: course,
     rating: 4.8,
     ratingCount: 1248,
     duration: "12h 30m",
@@ -48,7 +49,7 @@ export const coursesData = [
     category: "Mathematics",
     teacher: "John Smith",
     teacherRole: "Math Professor",
-    teacherAvatar: "/images/avatars/teacher2.jpg",
+    teacherAvatar: course,
     rating: 4.6,
     ratingCount: 856,
     duration: "10h 15m",
@@ -72,7 +73,7 @@ export const coursesData = [
     category: "Languages",
     teacher: "Emma Brown",
     teacherRole: "Language Expert",
-    teacherAvatar: "/images/avatars/teacher3.jpg",
+    teacherAvatar: course,
     rating: 4.9,
     ratingCount: 2035,
     duration: "8h 45m",
@@ -96,7 +97,7 @@ export const coursesData = [
     category: "Programming",
     teacher: "Michael Chen",
     teacherRole: "Data Scientist",
-    teacherAvatar: "/images/avatars/teacher4.jpg",
+    teacherAvatar: course,
     rating: 4.7,
     ratingCount: 1532,
     duration: "15h 20m",
@@ -120,7 +121,7 @@ export const coursesData = [
     category: "Science",
     teacher: "Sarah Johnson",
     teacherRole: "Chemistry Professor",
-    teacherAvatar: "/images/avatars/teacher5.jpg",
+    teacherAvatar: course,
     rating: 4.5,
     ratingCount: 782,
     duration: "11h 45m",
@@ -144,7 +145,7 @@ export const coursesData = [
     category: "More",
     teacher: "David Wilson",
     teacherRole: "Marketing Director",
-    teacherAvatar: "/images/avatars/teacher6.jpg",
+    teacherAvatar: course,
     rating: 4.8,
     ratingCount: 2145,
     duration: "9h 30m",

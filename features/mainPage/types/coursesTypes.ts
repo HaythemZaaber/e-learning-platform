@@ -7,7 +7,7 @@ export interface Course {
   category: string;
   teacher: string;
   teacherRole: string;
-  teacherAvatar: string;
+  teacherAvatar: StaticImageData;
   rating: number;
   ratingCount: number;
   duration: string;

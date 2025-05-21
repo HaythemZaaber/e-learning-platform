@@ -186,6 +186,7 @@ const CourseFilters = ({
                 key="search-input"
                 initial={{ opacity: 0, width: "100%" }}
                 animate={{ opacity: 1, width: "100%" }}
+
                 exit={{ opacity: 0 }}
                 className="flex items-center w-full sm:w-[300px]"
               >
@@ -217,7 +218,7 @@ const CourseFilters = ({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsSearchOpen(true)}
-                className="bg-secondary p-2 rounded-md hover:bg-secondary/80 transition-colors"
+                className="bg-primary p-2 rounded-md hover:bg-primary/80 text-white transition-colors"
                 aria-label="Search courses"
               >
                 <Search className="h-5 w-5" />
@@ -255,7 +256,7 @@ const CourseFilters = ({
             )}
           </AnimatePresence>
 
-          <Select value={sortBy} onValueChange={onSortChange}>
+          <Select value={sortBy} onValueChange={onSortChange} >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>

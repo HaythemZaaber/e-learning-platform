@@ -26,8 +26,10 @@ export default function CoursesPage() {
           Discover a wide range of courses taught by expert instructors
         </motion.p>
       </div>
-      
+      <div className=' w-[90%] mx-auto'>
+ 
       <CoursesGrid courses={courses} />
+      </div>
     </div>
   );
 }

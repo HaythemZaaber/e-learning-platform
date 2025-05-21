@@ -77,9 +77,9 @@ const CoursesGrid = ({ courses }: CoursesGridProps) => {
 
       <CourseFilters
         categories={categories}
-        selectedCategories={[filters.category || "All"]}
+        selectedCategories={filters.categories || []}
         onCategoriesChange={(categories: string[]) =>
-          updateFilter({ category: categories[0] })
+          updateFilter({ categories })
         }
         showFeatured={filters.showFeatured || false}
         onFeaturedChange={(showFeatured) => updateFilter({ showFeatured })}

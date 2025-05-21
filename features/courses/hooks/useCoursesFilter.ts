@@ -5,7 +5,7 @@ import { Course, CourseFilters } from '../types/course';
 
 export const useCoursesFilter = (courses: Course[]) => {
   const [filters, setFilters] = useState<CourseFilters>({
-    category: 'All',
+    categories: [],
     priceRange: [0, 200],
     level: 'All Levels',
     duration: 'any',
@@ -49,8 +49,8 @@ export const useCoursesFilter = (courses: Course[]) => {
     let result = [...courses];
 
     // Category filter
-    if (filters.category && filters.category !== 'All') {
-      result = result.filter(course => course.category === filters.category);
+    if (filters.categories && filters.categories.length > 0) {
+      result = result.filter(course => filters.categories!.includes(course.category));
     }
 
     // Price range filter
@@ -129,7 +129,7 @@ export const useCoursesFilter = (courses: Course[]) => {
 
   const resetFilters = () => {
     setFilters({
-      category: 'All',
+      categories: [],
       priceRange: [0, 200],
       level: 'All Levels',
       duration: 'any',

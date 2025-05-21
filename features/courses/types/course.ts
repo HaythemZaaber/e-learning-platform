@@ -35,7 +35,7 @@ export interface CourseCategory {
 }
 
 export interface CourseFilters {
-  category?: string;
+  categories?: string[];
   priceRange?: [number, number];
   level?: CourseLevel;
   duration?: string;

@@ -1,28 +1,43 @@
 import { ReactNode } from "react";
 import { StaticImageData } from "next/image";
 
+export type CourseLevel =
+  | "All Levels"
+  | "Beginner"
+  | "Intermediate"
+  | "Advanced";
+
+export type CourseBadgeColor =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "success"
+  | "warning"
+  | "error"
+  | "info";
+
 export interface Course {
-  id: number;
+  id: string;
   title: string;
+  description: string;
+  image: StaticImageData;
   category: string;
-  teacher: string;
-  teacherRole: string;
-  teacherAvatar: StaticImageData;
+  level: CourseLevel;
   rating: number;
   ratingCount: number;
+  price: number;
+  originalPrice?: number;
   duration: string;
   lessons: number;
   students: number;
-  level: string;
-  image: StaticImageData;
-  price: number;
-  originalPrice: number;
-  badge: string;
-  badgeColor: string;
-  description: string;
-  lastUpdated: string;
-  tags: string[];
-  featured: boolean;
+  teacher: string;
+  teacherRole: string;
+  teacherAvatar: StaticImageData;
+  badge?: string;
+  badgeColor?: CourseBadgeColor;
+  featured?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Category {

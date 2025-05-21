@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Star, ChevronRight } from "lucide-react";
+import { Star, ChevronRight, Link } from "lucide-react";
 import { Course, Category } from "../../types/coursesTypes";
 import { CourseCard } from "../../../../components/shared/CourseCard";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   initialShowFeatured,
   initialSelectedCategory,
 }) => {
-  const [savedCourses, setSavedCourses] = useState<number[]>([]);
+  const [savedCourses, setSavedCourses] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showFeatured, setShowFeatured] = useState(initialShowFeatured);
   const [selectedCategory, setSelectedCategory] = useState(
@@ -38,7 +38,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     setIsLoaded(true);
   }, []);
 
-  const toggleSavedCourse = (id: number) => {
+  const toggleSavedCourse = (id: string) => {
     setSavedCourses((prev) =>
       prev.includes(id)
         ? prev.filter((courseId) => courseId !== id)
@@ -61,11 +61,6 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
       : selectedCategory === "All"
       ? courses
       : courses.filter((course) => course.category === selectedCategory);
-
-  console.log("filteredCourses", filteredCourses);
-  console.log("selectedCategory", selectedCategory);
-  console.log("showFeatured", showFeatured);
-  console.log("courses", courses);
 
   return (
     <>
@@ -139,10 +134,12 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
       )}
 
       <BrowseButtonWrapper>
-        <Button size="lg" className="bg-accent hover:bg-accent/90 px-8">
-          Browse All Courses
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
+        <Link href="/courses">
+          <Button size="lg" className="bg-accent hover:bg-accent/90 px-8">
+            Browse All Courses
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </Link>
       </BrowseButtonWrapper>
     </>
   );

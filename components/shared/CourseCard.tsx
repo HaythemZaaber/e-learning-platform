@@ -191,7 +191,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
 
       {/* Content Section */}
-      <CardContent className="p-5 flex-grow flex flex-col">
+      <CardContent className="p-5 py-2 flex-grow flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <Badge
@@ -253,7 +253,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </CardContent>
 
       {/* Footer */}
-      <CardFooter className="p-5 py-2 border-t border-gray-100 flex justify-between flex-wrap gap-4 items-center">
+      <CardFooter className="p-5 py-0 border-t border-gray-100 flex justify-between flex-wrap gap-4 items-center">
         <PriceDisplay
           price={course.price}
           originalPrice={course.originalPrice}

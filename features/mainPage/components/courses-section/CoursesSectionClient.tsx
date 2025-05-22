@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Star, ChevronRight, Link } from "lucide-react";
+import { Star, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { Course, Category } from "../../types/coursesTypes";
 import { CourseCard } from "../../../../components/shared/CourseCard";
 import { cn } from "@/lib/utils";
@@ -117,6 +118,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               course={course}
               isSaved={savedCourses.includes(course.id)}
               onToggleSave={toggleSavedCourse}
+              viewMode="grid"
             />
           </CourseCardWrapper>
         ))}
@@ -134,7 +136,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
       )}
 
       <BrowseButtonWrapper>
-        <Link href="/courses">
+        <Link href="/courses" className="inline-block">
           <Button size="lg" className="bg-accent hover:bg-accent/90 px-8">
             Browse All Courses
             <ChevronRight className="h-4 w-4 ml-1" />

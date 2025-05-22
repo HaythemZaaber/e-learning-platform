@@ -1,8 +1,19 @@
-import { StaticImageData } from 'next/image';
+import { StaticImageData } from "next/image";
 
-export type CourseLevel = 'All Levels' | 'Beginner' | 'Intermediate' | 'Advanced';
+export type CourseLevel =
+  | "All Levels"
+  | "Beginner"
+  | "Intermediate"
+  | "Advanced";
 
-export type CourseBadgeColor = 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'error' | 'info';
+export type CourseBadgeColor =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "success"
+  | "warning"
+  | "error"
+  | "info";
 
 export interface Course {
   id: string;
@@ -37,10 +48,10 @@ export interface CourseCategory {
 export interface CourseFilters {
   categories?: string[];
   priceRange?: [number, number];
-  level?: CourseLevel;
-  duration?: string;
-  rating: number;
+  levels?: CourseLevel[];
+  durations?: string[];
+  ratings?: number[];
   showFeatured?: boolean;
   search?: string;
-  sortBy?: 'newest' | 'popular' | 'rating' | 'price-low' | 'price-high';
+  sortBy?: "newest" | "popular" | "rating" | "price-low" | "price-high";
 }

@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { Course, CourseFilters } from '../types/course';
+import { useState, useEffect, useMemo } from "react";
+import { Course, CourseFilters } from "../types/courseTypes";
 
 export const useCoursesFilter = (courses: Course[]) => {
   const [filters, setFilters] = useState<CourseFilters>({
     categories: [],
     priceRange: [0, 200],
-    level: 'All Levels',
-    duration: 'any',
-    rating: 0,
+    levels: [],
+    durations: [],
+    ratings: [],
     showFeatured: false,
-    search: '',
-    sortBy: 'newest',
+    search: "",
+    sortBy: "newest",
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -36,9 +36,9 @@ export const useCoursesFilter = (courses: Course[]) => {
     }, {} as Record<string, number>);
 
     return [
-      { id: 'all', name: 'All', count: courses.length },
+      { id: "all", name: "All", count: courses.length },
       ...Object.entries(categoryMap).map(([name, count]) => ({
-        id: name.toLowerCase().replace(/\s+/g, '-'),
+        id: name.toLowerCase().replace(/\s+/g, "-"),
         name,
         count,
       })),
@@ -50,48 +50,60 @@ export const useCoursesFilter = (courses: Course[]) => {
 
     // Category filter
     if (filters.categories && filters.categories.length > 0) {
-      result = result.filter(course => filters.categories!.includes(course.category));
+      // If "All" is selected, don't filter by category
+      if (!filters.categories.includes("All")) {
+        result = result.filter((course) =>
+          filters.categories!.includes(course.category)
+        );
+      }
     }
 
     // Price range filter
     if (filters.priceRange) {
       result = result.filter(
-        course => 
-          course.price >= filters.priceRange![0] && 
+        (course) =>
+          course.price >= filters.priceRange![0] &&
           course.price <= filters.priceRange![1]
       );
     }
 
     // Level filter
-    if (filters.level && filters.level !== 'All Levels') {
-      result = result.filter(course => course.level === filters.level);
+    if (filters.levels && filters.levels.length > 0) {
+      result = result.filter((course) =>
+        filters.levels!.includes(course.level)
+      );
     }
 
     // Duration filter
-    if (filters.duration && filters.duration !== 'any') {
-      const [min, max] = filters.duration.split('-').map(Number);
-      result = result.filter(course => {
-        const duration = parseInt(course.duration.split(' ')[0]);
-        if (filters.duration === '10+') return duration >= 10;
-        return duration >= min && duration <= max;
+    if (filters.durations && filters.durations.length > 0) {
+      result = result.filter((course) => {
+        const duration = parseInt(course.duration.split(" ")[0]);
+        return filters.durations!.some((d) => {
+          if (d === "any") return true;
+          if (d === "10+") return duration >= 10;
+          const [min, max] = d.split("-").map(Number);
+          return duration >= min && duration <= max;
+        });
       });
     }
 
     // Rating filter
-    if (filters.rating > 0) {
-      result = result.filter(course => course.rating >= filters.rating);
+    if (filters.ratings && filters.ratings.length > 0) {
+      result = result.filter((course) =>
+        filters.ratings!.some((rating) => course.rating >= rating)
+      );
     }
 
     // Featured filter
     if (filters.showFeatured) {
-      result = result.filter(course => course.featured);
+      result = result.filter((course) => course.featured);
     }
 
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(
-        course =>
+        (course) =>
           course.title.toLowerCase().includes(searchLower) ||
           course.description.toLowerCase().includes(searchLower) ||
           course.teacher.toLowerCase().includes(searchLower) ||
@@ -102,19 +114,19 @@ export const useCoursesFilter = (courses: Course[]) => {
     // Sort
     if (filters.sortBy) {
       switch (filters.sortBy) {
-        case 'newest':
+        case "newest":
           result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
           break;
-        case 'popular':
+        case "popular":
           result.sort((a, b) => b.students - a.students);
           break;
-        case 'rating':
+        case "rating":
           result.sort((a, b) => b.rating - a.rating);
           break;
-        case 'price-low':
+        case "price-low":
           result.sort((a, b) => a.price - b.price);
           break;
-        case 'price-high':
+        case "price-high":
           result.sort((a, b) => b.price - a.price);
           break;
       }
@@ -124,19 +136,19 @@ export const useCoursesFilter = (courses: Course[]) => {
   }, [courses, filters]);
 
   const updateFilter = (newFilters: Partial<CourseFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
   const resetFilters = () => {
     setFilters({
       categories: [],
       priceRange: [0, 200],
-      level: 'All Levels',
-      duration: 'any',
-      rating: 0,
+      levels: [],
+      durations: [],
+      ratings: [],
       showFeatured: false,
-      search: '',
-      sortBy: 'newest',
+      search: "",
+      sortBy: "newest",
     });
   };
 

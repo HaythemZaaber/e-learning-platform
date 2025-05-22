@@ -1,4 +1,4 @@
-import { Course } from "../types/course";
+import { Course } from "../types/courseTypes";
 import course from "@/public/images/courses/course.jpg";
 import math from "@/public/images/courses/math.jpg";
 import programming from "@/public/images/courses/programming.jpg";

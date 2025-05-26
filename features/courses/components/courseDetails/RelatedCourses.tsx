@@ -1,28 +1,30 @@
-"use client"
-import React from "react"
-import { CourseCard } from "@/components/shared/CourseCard"
-import { Course } from "@/features/courses/types/courseTypes"
-import { StaticImageData } from "next/image"
-import placeholderImage from "@/public/images/courses/course.jpg"
+"use client";
+import React from "react";
+import { CourseCard } from "@/components/shared/CourseCard";
+import { Course } from "@/features/courses/types/courseTypes";
+import { StaticImageData } from "next/image";
+import placeholderImage from "@/public/images/courses/course.jpg";
 
 interface RelatedCoursesProps {
-  instructorName: string
+  instructorName: string;
 }
 
 export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
-  const [savedCourses, setSavedCourses] = React.useState<Set<string>>(new Set())
+  const [savedCourses, setSavedCourses] = React.useState<Set<string>>(
+    new Set()
+  );
 
   const handleToggleSave = (courseId: string) => {
     setSavedCourses((prev) => {
-      const newSet = new Set(prev)
+      const newSet = new Set(prev);
       if (newSet.has(courseId)) {
-        newSet.delete(courseId)
+        newSet.delete(courseId);
       } else {
-        newSet.add(courseId)
+        newSet.add(courseId);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
   const courses: Course[] = [
     {
@@ -46,7 +48,7 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
       badgeColor: "primary",
       featured: true,
       createdAt: new Date("2024-01-01"),
-      updatedAt: new Date("2024-03-15")
+      updatedAt: new Date("2024-03-15"),
     },
     {
       id: "2",
@@ -69,7 +71,7 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
       badgeColor: "warning",
       featured: false,
       createdAt: new Date("2024-02-15"),
-      updatedAt: new Date("2024-03-10")
+      updatedAt: new Date("2024-03-10"),
     },
     {
       id: "3",
@@ -92,15 +94,16 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
       badgeColor: "primary",
       featured: true,
       createdAt: new Date("2024-01-15"),
-      updatedAt: new Date("2024-03-05")
+      updatedAt: new Date("2024-03-05"),
     },
-  ]
+  ];
 
   return (
     <div className="mt-12">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">
-          More Courses By <span className="text-blue-600">{instructorName}</span>
+          More Courses By{" "}
+          <span className="text-blue-600">{instructorName}</span>
         </h2>
         <a href="#" className="text-sm text-blue-600">
           View All Courses
@@ -109,9 +112,9 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.slice(0, 2).map((course) => (
-          <CourseCard 
-            key={course.id} 
-            course={course} 
+          <CourseCard
+            key={course.id}
+            course={course}
             isSaved={savedCourses.has(course.id)}
             onToggleSave={handleToggleSave}
             viewMode="grid"
@@ -119,14 +122,14 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
         ))}
       </div>
 
-      <div className="mt-12 bg-blue-50 py-4 px-6 rounded-lg">
+      <div className="mt-12 ">
         <h2 className="text-xl font-bold mb-4">Related Courses</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <CourseCard 
-              key={course.id} 
-              course={course} 
+            <CourseCard
+              key={course.id}
+              course={course}
               isSaved={savedCourses.has(course.id)}
               onToggleSave={handleToggleSave}
               viewMode="grid"
@@ -135,5 +138,5 @@ export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,29 +1,38 @@
-import { Star, Clock, Users, Globe, Award, ChevronRight, Calendar, BookOpen } from "lucide-react"
+import {
+  Star,
+  Clock,
+  Users,
+  Globe,
+  Award,
+  ChevronRight,
+  Calendar,
+  BookOpen,
+} from "lucide-react";
 
 interface CourseHeaderProps {
   course: {
-    id: string
-    title: string
-    subtitle: string
+    id: string;
+    title: string;
+    subtitle: string;
     instructor: {
-      name: string
-      avatar?: string
-      rating?: number
-      reviews?: number
-      students?: number
-      courses?: number
-    }
-    rating: number
-    reviews: number
-    students: number
-    lastUpdated: string
-    level: string
-    duration: string
-    language: string
-    tags?: string[]
-    price?: number
-    discountPrice?: number
-  }
+      name: string;
+      avatar?: string;
+      rating?: number;
+      reviews?: number;
+      students?: number;
+      courses?: number;
+    };
+    rating: number;
+    reviews: number;
+    students: number;
+    lastUpdated: string;
+    level: string;
+    duration: string;
+    language: string;
+    tags?: string[];
+    price?: number;
+    discountPrice?: number;
+  };
 }
 
 export function CourseHeader({ course }: CourseHeaderProps) {
@@ -51,20 +60,20 @@ export function CourseHeader({ course }: CourseHeaderProps) {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
 
   const renderStars = (rating: number) => {
     return [...Array(5)].map((_, i) => {
-      const filled = i < Math.floor(rating)
-      const halfFilled = i === Math.floor(rating) && rating % 1 >= 0.5
-      
+      const filled = i < Math.floor(rating);
+      const halfFilled = i === Math.floor(rating) && rating % 1 >= 0.5;
+
       return (
         <Star
           key={i}
@@ -76,32 +85,44 @@ export function CourseHeader({ course }: CourseHeaderProps) {
               : "fill-slate-600 text-slate-600"
           }`}
         />
-      )
-    })
-  }
+      );
+    });
+  };
 
   const getBestseller = () => {
     // Simple logic: if discount price is significantly lower or high student count
-    return course.students > 5000 || (course.discountPrice && course.price && course.discountPrice < course.price * 0.3)
-  }
+    return (
+      course.students > 5000 ||
+      (course.discountPrice &&
+        course.price &&
+        course.discountPrice < course.price * 0.3)
+    );
+  };
 
   return (
-    <div className="bg-gradient-to-br from-secondary to-primary text-white py-12 relative overflow-hidden">
+    <div className="bg-gradient-to-r from-blue-800 to-purple-600 text-white py-12 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(var(--secondary-rgb),0.4),transparent_50%)] pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.1),transparent_50%)] pointer-events-none"></div>
-      
+
       <div className="px-5 relative">
         {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-slate-300 mb-6" aria-label="Breadcrumb">
-          <a href="/" className="hover:text-white transition-colors">Home</a>
+        <nav
+          className="flex items-center gap-2 text-sm text-slate-300 mb-6"
+          aria-label="Breadcrumb"
+        >
+          <a href="/" className="hover:text-white transition-colors">
+            Home
+          </a>
           <ChevronRight className="w-4 h-4" />
-          <a href="/courses" className="hover:text-white transition-colors">Courses</a>
+          <a href="/courses" className="hover:text-white transition-colors">
+            Courses
+          </a>
           {course.tags && course.tags.length > 0 && (
             <>
               <ChevronRight className="w-4 h-4" />
-              <a 
-                href={`/categories/${course.tags[0].toLowerCase()}`} 
+              <a
+                href={`/categories/${course.tags[0].toLowerCase()}`}
                 className="hover:text-white transition-colors"
               >
                 {course.tags[0]}
@@ -120,7 +141,10 @@ export function CourseHeader({ course }: CourseHeaderProps) {
               </span>
             )}
             {course.tags?.map((tag) => (
-              <span key={tag} className="bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1 rounded-full text-xs font-medium">
+              <span
+                key={tag}
+                className="bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1 rounded-full text-xs font-medium"
+              >
                 {tag}
               </span>
             ))}
@@ -145,7 +169,7 @@ export function CourseHeader({ course }: CourseHeaderProps) {
                 ({formatNumber(course.reviews)} reviews)
               </button>
             </div>
-            
+
             <div className="flex items-center gap-1 text-slate-300">
               <Users className="w-4 h-4" />
               <span>{formatNumber(course.students)} students</span>
@@ -157,8 +181,8 @@ export function CourseHeader({ course }: CourseHeaderProps) {
             <span className="text-slate-300">Created by</span>
             <div className="flex items-center gap-2">
               {course.instructor.avatar && (
-                <img 
-                  src={course.instructor.avatar} 
+                <img
+                  src={course.instructor.avatar}
                   alt={course.instructor.name}
                   className="w-8 h-8 rounded-full border-2 border-slate-600 object-cover"
                 />
@@ -186,17 +210,17 @@ export function CourseHeader({ course }: CourseHeaderProps) {
               <Calendar className="w-4 h-4" />
               <span>{course.lastUpdated}</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <BookOpen className="w-4 h-4" />
               <span>{course.level}</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               <span>{course.duration}</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Globe className="w-4 h-4" />
               <span>{course.language}</span>
@@ -207,10 +231,17 @@ export function CourseHeader({ course }: CourseHeaderProps) {
           <div className="flex lg:hidden items-center gap-4 mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
             {course.discountPrice && course.price ? (
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">${course.discountPrice}</span>
-                <span className="text-lg text-slate-400 line-through">${course.price}</span>
+                <span className="text-2xl font-bold">
+                  ${course.discountPrice}
+                </span>
+                <span className="text-lg text-slate-400 line-through">
+                  ${course.price}
+                </span>
                 <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                  {Math.round(((course.price - course.discountPrice) / course.price) * 100)}% OFF
+                  {Math.round(
+                    ((course.price - course.discountPrice) / course.price) * 100
+                  )}
+                  % OFF
                 </span>
               </div>
             ) : course.price ? (
@@ -223,7 +254,7 @@ export function CourseHeader({ course }: CourseHeaderProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Example usage for demo
@@ -231,10 +262,12 @@ export default function CourseHeaderDemo() {
   const sampleCourse = {
     id: "python-course-2024",
     title: "Difficult Things About Education.",
-    subtitle: "Master Python by building 100 projects in 100 days. Learn data science, automation, build websites, games and apps!",
+    subtitle:
+      "Master Python by building 100 projects in 100 days. Learn data science, automation, build websites, games and apps!",
     instructor: {
       name: "Fred Geer",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
       rating: 4.8,
       reviews: 1024,
       students: 10000,
@@ -250,7 +283,7 @@ export default function CourseHeaderDemo() {
     price: 75,
     discountPrice: 15.99,
     tags: ["Development", "Programming"],
-  }
+  };
 
-  return <CourseHeader course={sampleCourse} />
+  return <CourseHeader course={sampleCourse} />;
 }

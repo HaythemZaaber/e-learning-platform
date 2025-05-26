@@ -4,7 +4,7 @@ export function CourseRequirements() {
     "Be able to use Python for data science and machine learning",
     "Learn to use Python professionally",
     "Master Python features by building 100 projects",
-  ]
+  ];
 
   return (
     <div className="mt-8">
@@ -18,5 +18,5 @@ export function CourseRequirements() {
         ))}
       </ul>
     </div>
-  )
+  );
 }

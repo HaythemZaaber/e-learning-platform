@@ -55,29 +55,42 @@ export default function CourseDetailsPage({
           />
 
           <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>
-                  Become an advanced, confident, and modern Python programmer
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>
-                  Build 100+ projects including a portfolio of Python projects
-                </span>
-              </li>
-            </ul>
+            <div id="overview-section">
+              <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✓</span>
+                  <span>
+                    Become an advanced, confident, and modern Python programmer
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✓</span>
+                  <span>
+                    Build 100+ projects including a portfolio of Python projects
+                  </span>
+                </li>
+              </ul>
+            </div>
 
-            <CourseContent />
-            <CourseRequirements />
-            <CourseDescription />
+            <div id="content-section">
+              <CourseContent />
+            </div>
+
+            <div id="details-section">
+              <CourseRequirements />
+              <CourseDescription />
+            </div>
           </div>
 
-          <InstructorCard instructor={courseData.instructor} />
-          <ReviewSection rating={courseData.rating} />
+          <div id="instructor-section">
+            <InstructorCard instructor={courseData.instructor} />
+          </div>
+
+          <div id="review-section">
+            <ReviewSection rating={courseData.rating} />
+          </div>
+
           <RelatedCourses instructorName={courseData.instructor.name} />
         </div>
 

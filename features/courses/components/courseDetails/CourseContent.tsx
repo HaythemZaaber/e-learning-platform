@@ -1,15 +1,17 @@
-"use client"
+"use client";
 
-import { ChevronDown, ChevronUp, Play } from "lucide-react"
-import { useState } from "react"
-import Link from "next/link"
+import { ChevronDown, ChevronUp, Play } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
 
 export function CourseContent() {
-  const [expandedSection, setExpandedSection] = useState<string | null>("intro")
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "intro"
+  );
 
   const toggleSection = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id)
-  }
+    setExpandedSection(expandedSection === id ? null : id);
+  };
 
   const sections = [
     {
@@ -17,9 +19,24 @@ export function CourseContent() {
       title: "Intro to Python and Modules",
       duration: "45 mins",
       lectures: [
-        { title: "Course Intro", duration: "5 mins", type: "video", id: "course-intro" },
-        { title: "Python Basics", duration: "15 mins", type: "video", id: "python-basics" },
-        { title: "Setup Your First Project", duration: "25 mins", type: "video", id: "setup-project" },
+        {
+          title: "Course Intro",
+          duration: "5 mins",
+          type: "video",
+          id: "course-intro",
+        },
+        {
+          title: "Python Basics",
+          duration: "15 mins",
+          type: "video",
+          id: "python-basics",
+        },
+        {
+          title: "Setup Your First Project",
+          duration: "25 mins",
+          type: "video",
+          id: "setup-project",
+        },
       ],
     },
     {
@@ -27,10 +44,30 @@ export function CourseContent() {
       title: "Course Fundamentals",
       duration: "1h 30min",
       lectures: [
-        { title: "Variables and Data Types", duration: "20 mins", type: "video", id: "variables" },
-        { title: "Control Flow", duration: "25 mins", type: "video", id: "control-flow" },
-        { title: "Functions", duration: "25 mins", type: "video", id: "functions" },
-        { title: "Error Handling", duration: "20 mins", type: "video", id: "error-handling" },
+        {
+          title: "Variables and Data Types",
+          duration: "20 mins",
+          type: "video",
+          id: "variables",
+        },
+        {
+          title: "Control Flow",
+          duration: "25 mins",
+          type: "video",
+          id: "control-flow",
+        },
+        {
+          title: "Functions",
+          duration: "25 mins",
+          type: "video",
+          id: "functions",
+        },
+        {
+          title: "Error Handling",
+          duration: "20 mins",
+          type: "video",
+          id: "error-handling",
+        },
       ],
     },
     {
@@ -38,13 +75,33 @@ export function CourseContent() {
       title: "10 Things To Know About Education!",
       duration: "2h 45min",
       lectures: [
-        { title: "Education Basics", duration: "30 mins", type: "video", id: "education-basics" },
-        { title: "Learning Strategies", duration: "45 mins", type: "video", id: "learning-strategies" },
-        { title: "Teaching Methods", duration: "50 mins", type: "video", id: "teaching-methods" },
-        { title: "Assessment Techniques", duration: "40 mins", type: "video", id: "assessment-techniques" },
+        {
+          title: "Education Basics",
+          duration: "30 mins",
+          type: "video",
+          id: "education-basics",
+        },
+        {
+          title: "Learning Strategies",
+          duration: "45 mins",
+          type: "video",
+          id: "learning-strategies",
+        },
+        {
+          title: "Teaching Methods",
+          duration: "50 mins",
+          type: "video",
+          id: "teaching-methods",
+        },
+        {
+          title: "Assessment Techniques",
+          duration: "40 mins",
+          type: "video",
+          id: "assessment-techniques",
+        },
       ],
     },
-  ]
+  ];
 
   return (
     <div className="mt-8">
@@ -62,11 +119,19 @@ export function CourseContent() {
               onClick={() => toggleSection(section.id)}
             >
               <div className="flex items-center gap-2">
-                {expandedSection === section.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {expandedSection === section.id ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
                 <span className="font-medium">{section.title}</span>
-                <span className="text-sm text-gray-500">• {section.duration}</span>
+                <span className="text-sm text-gray-500">
+                  • {section.duration}
+                </span>
               </div>
-              <div className="text-sm text-gray-500">{section.lectures.length} lectures</div>
+              <div className="text-sm text-gray-500">
+                {section.lectures.length} lectures
+              </div>
             </button>
 
             {expandedSection === section.id && (
@@ -81,7 +146,9 @@ export function CourseContent() {
                       <Play size={14} />
                       <span>{lecture.title}</span>
                     </div>
-                    <span className="text-sm text-gray-500">{lecture.duration}</span>
+                    <span className="text-sm text-gray-500">
+                      {lecture.duration}
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -90,5 +157,5 @@ export function CourseContent() {
         ))}
       </div>
     </div>
-  )
+  );
 }

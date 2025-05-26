@@ -27,6 +27,7 @@ import {
 import { Course } from "../../features/mainPage/types/coursesTypes";
 import { cn } from "@/lib/utils";
 import { CourseBadgeColor } from "@/features/mainPage/types/coursesTypes";
+import { useRouter } from "next/navigation";
 
 interface CourseCardProps {
   course: Course;
@@ -121,6 +122,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   viewMode,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const router = useRouter();
+
+  const handleViewDetails = () => {
+    router.push(`/courses/${course.id}`);
+  };
 
   const GridView = () => (
     <Card
@@ -270,7 +276,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleViewDetails}>
                 <Eye className="h-4 w-4 mr-2" />
                 View Details
               </DropdownMenuItem>
@@ -449,7 +455,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleViewDetails}>
                     <Eye className="h-4 w-4 mr-2" />
                     View Details
                   </DropdownMenuItem>

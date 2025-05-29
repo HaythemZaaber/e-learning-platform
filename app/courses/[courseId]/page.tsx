@@ -47,7 +47,7 @@ export default function CourseDetailsPage({
     <div className="bg-gray-50 min-h-screen">
       <CourseHeader course={courseData} />
 
-      <div className="container w-[90%] grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container pt-5 w-[90%] grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <CourseNavigation
             activeSection={activeSection}

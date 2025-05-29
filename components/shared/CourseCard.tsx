@@ -131,7 +131,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const GridView = () => (
     <Card
       className={cn(
-        "overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md h-full flex flex-col bg-white rounded-xl group",
+        "overflow-hidden pt-0 hover:shadow-xl transition-all duration-300 border-0 shadow-md h-full  flex flex-col bg-white rounded-xl group",
         className
       )}
     >
@@ -220,7 +220,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           {course.title}
         </h3>
 
-        <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow">
+        <p className="text-gray-600 text-sm line-clamp-3  mb-4 flex-grow">
           {course.description}
         </p>
 

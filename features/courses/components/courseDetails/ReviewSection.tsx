@@ -78,7 +78,8 @@ export function ReviewSection({ rating }: ReviewSectionProps) {
       </div>
 
       <div className="mt-8">
-        <h3 className="font-medium mb-4">Featured review</h3>
+         <h2 className="text-xl font-bold mb-4">Featured review</h2>
+        {/* <h3 className="font-medium mb-4">Featured review</h3> */}
 
         <div className="space-y-6">
           {reviews.map((review) => (
@@ -95,7 +96,7 @@ export function ReviewSection({ rating }: ReviewSectionProps) {
                 </div>
 
                 <div className="flex-1">
-                  <h4 className="font-medium">{review.name}</h4>
+                  <h4 className="font-semibold text-base">{review.name}</h4>
 
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex">

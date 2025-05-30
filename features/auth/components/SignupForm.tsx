@@ -129,7 +129,7 @@ export const SignupForm = () => {
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 py-1 rounded-full bg-black/50 font-semibold  text-white ">
+            <span className="px-2 py-1 rounded-full bg-gradient-to-r from-black/50 via-black to-black/50 font-semibold  text-white ">
               Or continue with
             </span>
           </div>

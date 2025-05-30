@@ -108,7 +108,7 @@ export function CourseContent() {
       <h2 className="text-xl font-bold mb-4">Course Content</h2>
       <div className="text-sm text-gray-600 mb-4 flex justify-between">
         <span>3 sections • 11 lectures • 4h 45m total length</span>
-        <button className="text-blue-600">Expand all sections</button>
+        <button className="text-primary hover:underline cursor-pointer">Expand all sections</button>
       </div>
 
       <div className="space-y-3">
@@ -119,11 +119,13 @@ export function CourseContent() {
               onClick={() => toggleSection(section.id)}
             >
               <div className="flex items-center gap-2">
-                {expandedSection === section.id ? (
-                  <ChevronUp size={16} />
-                ) : (
-                  <ChevronDown size={16} />
-                )}
+                <div className="transition-transform duration-300">
+                  {expandedSection === section.id ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </div>
                 <span className="font-medium">{section.title}</span>
                 <span className="text-sm text-gray-500">
                   • {section.duration}
@@ -134,25 +136,33 @@ export function CourseContent() {
               </div>
             </button>
 
-            {expandedSection === section.id && (
-              <div className="divide-y">
-                {section.lectures.map((lecture, idx) => (
-                  <Link
-                    key={idx}
-                    href={`/courses/course-id/lessons/${lecture.id}`}
-                    className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Play size={14} />
-                      <span>{lecture.title}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {lecture.duration}
-                    </span>
-                  </Link>
-                ))}
+            <div
+              className={`grid transition-all duration-300 ease-in-out ${
+                expandedSection === section.id
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="divide-y">
+                  {section.lectures.map((lecture, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/courses/course-id/lessons/${lecture.id}`}
+                      className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Play size={14} />
+                        <span>{lecture.title}</span>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {lecture.duration}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         ))}
       </div>

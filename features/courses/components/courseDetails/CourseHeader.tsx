@@ -8,6 +8,8 @@ import {
   Calendar,
   BookOpen,
 } from "lucide-react";
+import instructor from "@/public/images/courses/course.jpg"
+import Image from "next/image";
 
 interface CourseHeaderProps {
   course: {
@@ -181,10 +183,10 @@ export function CourseHeader({ course }: CourseHeaderProps) {
             <span className="text-slate-300">Created by</span>
             <div className="flex items-center gap-2">
               {course.instructor.avatar && (
-                <img
-                  src={course.instructor.avatar}
+                <Image
+                  src={instructor}
                   alt={course.instructor.name}
-                  className="w-8 h-8 rounded-full border-2 border-slate-600 object-cover"
+                  className="w-10 h-10 rounded-full border-2 border-slate-600 object-cover"
                 />
               )}
               <div>

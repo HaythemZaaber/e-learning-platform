@@ -1,7 +1,8 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, School } from "lucide-react";
+import { ArrowRight,  School } from "lucide-react";
+import Link from "next/link";
 
 export default function CallToAction() {
   return (
@@ -29,9 +30,11 @@ export default function CallToAction() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <Button className="text-lg px-6 py-4 ">
+            <Link href="/courses" >
+            <Button className="text-lg px-6 py-4 cursor-pointer hover:bg-primary/80 ">
               <ArrowRight className="mr-2" /> Browse Courses
             </Button>
+            </Link>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

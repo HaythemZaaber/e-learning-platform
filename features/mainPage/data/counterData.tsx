@@ -4,13 +4,13 @@ import { CounterData } from "../types/counterTypes";
 export const defaultCounterData = {
   counterOne: [
     {
-      tag: "POURQUOI NOUS CHOISIR",
-      title: "Une Plateforme Innovante",
-      subTitle: "Pour Tous les Savoirs",
-      desc: "Notre plateforme d'e-learning offre un environnement où chaque individu peut enseigner et apprendre en toute confiance grâce à un système avancé de vérification des formateurs.",
+      tag: "WHY CHOOSE US",
+      title: "An Innovative Platform",
+      subTitle: "For All Knowledge",
+      desc: "Our e-learning platform provides an environment where every individual can teach and learn with confidence thanks to an advanced instructor verification system.",
       body: [
         {
-          text: "Apprenants Actifs",
+          text: "Active Learners",
           num: 5000,
           img: "/images/icons/counter-01.png",
           top: true,
@@ -18,7 +18,7 @@ export const defaultCounterData = {
           icon: <Users className="h-6 w-6" />,
         },
         {
-          text: "Cours Disponibles",
+          text: "Available Courses",
           num: 800,
           img: "/images/icons/counter-02.png",
           top: false,
@@ -26,7 +26,7 @@ export const defaultCounterData = {
           icon: <BarChart3 className="h-6 w-6" />,
         },
         {
-          text: "Formateurs Certifiés",
+          text: "Certified Instructors",
           num: 1200,
           img: "/images/icons/counter-03.png",
           top: true,
@@ -34,7 +34,7 @@ export const defaultCounterData = {
           icon: <Sparkles className="h-6 w-6" />,
         },
         {
-          text: "Domaines d'Expertise",
+          text: "Expertise Domains",
           num: 100,
           img: "/images/icons/counter-04.png",
           top: false,

@@ -17,33 +17,33 @@ export default function FaqSection() {
   const faqItems = [
     {
       id: "item-1",
-      question: "Qui peut devenir formateur sur la plateforme ?",
+      question: "Who can become an instructor on the platform?",
       answer:
-        "Toute personne disposant d'une expertise vérifiable dans un domaine spécifique peut s'inscrire comme formateur, après validation de son profil. Nous évaluons les qualifications, l'expérience et les certifications avant d'approuver un nouveau formateur.",
+        "Anyone with verifiable expertise in a specific field can register as an instructor after profile validation. We assess qualifications, experience, and certifications before approving new instructors.",
     },
     {
       id: "item-2",
-      question: "Est-ce que les cours sont payants ?",
+      question: "Are the courses paid?",
       answer:
-        "Certains cours sont gratuits, d'autres sont payants selon le modèle choisi par le formateur. Vous pouvez filtrer les cours par tarif. Nous offrons également des abonnements mensuels pour un accès illimité à certains contenus premium.",
+        "Some courses are free, while others are paid based on the pricing model chosen by the instructor. You can filter courses by price. We also offer monthly subscriptions for unlimited access to certain premium content.",
     },
     {
       id: "item-3",
-      question: "Comment les paiements sont-ils sécurisés ?",
+      question: "How are payments secured?",
       answer:
-        "Les paiements sont traités via Stripe, un système de paiement sécurisé de niveau 1 PCI DSS. Vous pouvez choisir entre paiement avant ou après la session selon les préférences du formateur. Toutes les transactions sont cryptées et protégées.",
+        "Payments are processed via Stripe, a PCI DSS Level 1 secure payment system. You can choose between payment before or after the session based on the instructor's preferences. All transactions are encrypted and protected.",
     },
     {
       id: "item-4",
-      question: "Y a-t-il des cours pour enfants ?",
+      question: "Are there courses for children?",
       answer:
-        "Oui, notre section Junior propose des cours spécialement adaptés aux jeunes apprenants avec contrôle parental. Tous nos formateurs pour enfants sont certifiés et passent des vérifications de casier judiciaire.",
+        "Yes, our Junior section offers courses specially adapted for young learners with parental controls. All our children's instructors are certified and undergo background checks.",
     },
     {
       id: "item-5",
-      question: "Puis-je obtenir un certificat après un cours ?",
+      question: "Can I get a certificate after completing a course?",
       answer:
-        "La plupart de nos cours payants offrent des certificats de complétion reconnus par l'industrie. Ces certificats peuvent être partagés directement sur LinkedIn ou téléchargés au format PDF.",
+        "Most of our paid courses offer industry-recognized completion certificates. These certificates can be shared directly on LinkedIn or downloaded as PDFs.",
     },
   ];
 
@@ -98,7 +98,7 @@ export default function FaqSection() {
           viewport={{ once: true }}
           className="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600"
         >
-          Questions fréquentes
+          Frequently Asked Questions
         </motion.h2>
 
         <motion.div
@@ -164,7 +164,7 @@ export default function FaqSection() {
           className="mt-12 text-center"
         >
           <p className="text-gray-600 mb-6">
-            Vous ne trouvez pas la réponse à votre question ?
+            Can't find the answer to your question?
           </p>
 
           <ContactTeam />

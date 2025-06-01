@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSearchStore } from "@/store/search.store";
 import { AnimatedWrapper, fadeInUp } from "../animations/AnimatedWrapper";
+import Link from "next/link";
 
 export function HeroSearch() {
   const setShowNavbarSearch = useSearchStore((state) => state.setShowNavbarSearch);
@@ -36,12 +37,14 @@ export function HeroSearch() {
           className="pl-10 pr-4 py-6 w-full rounded-lg border border-gray-200 focus:border-accent focus:ring-accent"
         />
       </div>
+      <Link href="/courses">
       <Button
         className="bg-accent hover:bg-accent/90 text-white font-medium px-8 py-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-accent/25"
         size="lg"
-      >
+        >
         Explore Courses
       </Button>
+        </Link>
     </AnimatedWrapper>
   );
 } 

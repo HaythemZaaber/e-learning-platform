@@ -1,6 +1,6 @@
 import React from "react";
 import { CoursesSectionProps } from "../../types/coursesTypes";
-import { coursesData, categories } from "../../data/coursesData";
+import { coursesData, categories } from "../../../../data/coursesData";
 import SectionHead from "@/components/shared/SectionHead";
 import { CoursesSectionClient } from "./CoursesSectionClient";
 

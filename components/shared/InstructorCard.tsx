@@ -4,14 +4,14 @@ import { Star, Heart, Calendar, Users, Play, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import type { Instructor } from "@/lib/data/instructorsData"
+import type { Instructor } from "@/data/instructorsData"
 
 interface EnhancedInstructorCardProps {
   instructor: Instructor
   view?: "grid" | "list"
 }
 
-export function EnhancedInstructorCard({ instructor, view = "grid" }: EnhancedInstructorCardProps) {
+export function InstructorCard({ instructor, view = "grid" }: EnhancedInstructorCardProps) {
   const {
     id,
     name,
@@ -34,11 +34,11 @@ export function EnhancedInstructorCard({ instructor, view = "grid" }: EnhancedIn
 
   if (view === "list") {
     return (
-      <Card className="overflow-hidden">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative">
-              <div className="w-20 h-20 md:w-28 md:h-28 relative rounded-full overflow-hidden">
+      <Card className="overflow-hidden  ">
+        <CardContent className="p-0 ">
+          <div className="flex gap-4 ">
+            <div className="relative ">
+              <div className="w-20 h-20  md:w-28 md:h-28 relative rounded-full overflow-hidden">
                 <Image src={avatar || "/placeholder.svg"} alt={name} fill className="object-cover" />
               </div>
               {isOnline && (
@@ -102,7 +102,7 @@ export function EnhancedInstructorCard({ instructor, view = "grid" }: EnhancedIn
   }
 
   return (
-    <Card className="group overflow-hidden h-full hover:shadow-lg transition-all duration-300 cursor-pointer">
+    <Card className="group overflow-hidden h-full hover:shadow-lg transition-all duration-300 cursor-pointer pt-0">
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
           src={avatar || "/placeholder.svg"}

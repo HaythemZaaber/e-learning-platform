@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
-import type { Category } from "@/lib/data/instructorsData"
+import type { Category } from "@/data/instructorsData"
 
 const categories: Category[] = [
   "Programming",
@@ -57,11 +57,11 @@ const sessionTypes = [
   { id: "large-group", label: "Large Group (6+)" },
 ]
 
-interface EnhancedFilterSidebarProps {
+interface FilterSidebarProps {
   onFilterChange?: (filters: any) => void
 }
 
-export function EnhancedFilterSidebar({ onFilterChange }: EnhancedFilterSidebarProps) {
+export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedExperience, setSelectedExperience] = useState<string[]>([])
   const [selectedRatings, setSelectedRatings] = useState<string[]>([])
@@ -478,7 +478,7 @@ export function EnhancedFilterSidebar({ onFilterChange }: EnhancedFilterSidebarP
       {/* Mobile Filter Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="lg:hidden">
+          <Button variant="outline" className="lg:hidden  absolute fixed ">
             Filters
             {totalFilters > 0 && (
               <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
@@ -491,7 +491,7 @@ export function EnhancedFilterSidebar({ onFilterChange }: EnhancedFilterSidebarP
           <SheetHeader>
             <SheetTitle>Filters</SheetTitle>
           </SheetHeader>
-          <div className="mt-6">
+          <div className="mt-6 p-5">
             <FilterContent />
           </div>
         </SheetContent>

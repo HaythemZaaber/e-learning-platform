@@ -5,9 +5,9 @@ import { Grid, List, ChevronDown, Calendar, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { EnhancedInstructorCard } from "@/components/shared/InstructorCard"
-import { EnhancedFilterSidebar } from "@/features/instructors/components/FilterSidebar"
-import { instructors } from "@/lib/data/instructorsData"
+import { InstructorCard } from "@/components/shared/InstructorCard"
+import { FilterSidebar } from "@/features/instructors/components/FilterSidebar"
+import { instructors } from "@/data/instructorsData"
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -73,12 +73,12 @@ export default function InstructorsPage() {
         </div>
       </div>
 
-      <div className="flex">
-        <EnhancedFilterSidebar />
+      <div className="flex w-[93vw] mx-auto">
+        <FilterSidebar />
 
         <div className="flex-1">
           <div className="border-b">
-            <div className="container py-4">
+            <div className="container py-4 px-5">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="text-sm text-muted-foreground">
                   Showing {sortedInstructors.length} of {instructors.length} instructors
@@ -129,17 +129,17 @@ export default function InstructorsPage() {
             </div>
           </div>
 
-          <div className="container py-8">
+          <div className="container py-8 px-5">
             {view === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {sortedInstructors.map((instructor) => (
-                  <EnhancedInstructorCard key={instructor.id} instructor={instructor} view="grid" />
+                  <InstructorCard key={instructor.id} instructor={instructor} view="grid" />
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
                 {sortedInstructors.map((instructor) => (
-                  <EnhancedInstructorCard key={instructor.id} instructor={instructor} view="list" />
+                  <InstructorCard key={instructor.id} instructor={instructor} view="list" />
                 ))}
               </div>
             )}

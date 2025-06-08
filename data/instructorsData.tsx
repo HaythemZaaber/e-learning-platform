@@ -1,3 +1,7 @@
+import { StaticImageData } from "next/image"
+import course from "@/public/images/courses/course.jpg"
+
+
 export type CourseLevel = "Beginner" | "Intermediate" | "Advanced" | "All Levels"
 export type Category =
   | "Programming"
@@ -32,7 +36,7 @@ export type Course = {
 export type Review = {
   id: string
   name: string
-  avatar: string
+  avatar: StaticImageData | string
   date: string
   rating: number
   text: string
@@ -108,7 +112,7 @@ export interface Instructor  {
       id: string
   name: string
   title: string
-  avatar: string
+  avatar: StaticImageData | string
   coverImage?: string
   bio: string
   shortBio: string
@@ -178,7 +182,7 @@ export const instructors: Instructor[] = [
     id: "1",
     name: "Dr. Sarah Johnson",
     title: "Lead Data Science Instructor",
-    avatar: "/placeholder.svg?height=400&width=400",
+    avatar: course,
     coverImage: "/placeholder.svg?height=600&width=1200",
     bio: "Dr. Sarah Johnson is a data science expert with over 10 years of experience in machine learning and statistical analysis. She has worked with leading tech companies before transitioning to full-time teaching. Her approach combines theoretical concepts with practical, hands-on applications that prepare students for real-world challenges.",
     shortBio: "Data science expert with 10+ years of experience in machine learning and AI.",
@@ -255,7 +259,7 @@ export const instructors: Instructor[] = [
       {
         id: "r1",
         name: "Michael T.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-12-15",
         rating: 5,
         text: "Dr. Johnson's course was transformative for my career. The hands-on projects helped me build a strong portfolio that impressed employers.",
@@ -264,7 +268,7 @@ export const instructors: Instructor[] = [
       {
         id: "r2",
         name: "Priya S.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-11-02",
         rating: 5,
         text: "Incredible depth of knowledge and excellent teaching style. Complex topics were broken down beautifully.",
@@ -273,7 +277,7 @@ export const instructors: Instructor[] = [
       {
         id: "r3",
         name: "David K.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-10-18",
         rating: 4,
         text: "Great course content, though some sections could use more examples. Overall very satisfied with what I learned.",
@@ -430,7 +434,7 @@ export const instructors: Instructor[] = [
     id: "2",
     name: "Prof. David Chen",
     title: "UX/UI Design Expert",
-    avatar: "/placeholder.svg?height=400&width=400",
+    avatar: course,
     bio: "Professor Chen brings 15 years of industry experience in UX/UI design to his teaching. Previously a lead designer at major tech companies, he specializes in user-centered design principles and modern interface trends. His courses combine design theory with practical skills valued by today's employers.",
     shortBio: "UX/UI design expert with 15+ years of industry experience at major tech companies.",
     rating: 4.8,
@@ -489,7 +493,7 @@ export const instructors: Instructor[] = [
       {
         id: "r4",
         name: "Jessica L.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-12-01",
         rating: 5,
         text: "Professor Chen's design bootcamp completely changed my approach to UI/UX. I landed a job within a month of completing the course!",
@@ -498,7 +502,7 @@ export const instructors: Instructor[] = [
       {
         id: "r5",
         name: "Ryan M.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-10-15",
         rating: 4,
         text: "Thorough and well-structured course. The design principles I learned are applicable across many tools, not just those covered in the course.",
@@ -633,7 +637,7 @@ export const instructors: Instructor[] = [
     id: "3",
     name: "Maria Rodriguez",
     title: "Full Stack Web Developer",
-    avatar: "/placeholder.svg?height=400&width=400",
+    avatar: course,
     bio: "Maria is a full stack developer with 8 years of experience building web applications. She has worked with startups and large enterprises, specializing in JavaScript frameworks and responsive design. Her teaching emphasizes practical skills and project-based learning.",
     shortBio: "Full stack developer teaching modern web technologies with 8 years of industry experience.",
     rating: 4.7,
@@ -688,7 +692,7 @@ export const instructors: Instructor[] = [
       {
         id: "r6",
         name: "Thomas H.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-11-28",
         rating: 5,
         text: "Maria's JavaScript course is incredibly comprehensive. I went from knowing almost nothing to building complete applications.",
@@ -697,7 +701,7 @@ export const instructors: Instructor[] = [
       {
         id: "r7",
         name: "Sarah P.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-09-20",
         rating: 4,
         text: "The MERN stack course was challenging but rewarding. Maria explains complex concepts very clearly.",
@@ -832,7 +836,7 @@ export const instructors: Instructor[] = [
     id: "4",
     name: "Robert Williams",
     title: "Digital Marketing Specialist",
-    avatar: "/placeholder.svg?height=400&width=400",
+    avatar: course,
     bio: "Robert has over 12 years of experience in digital marketing, working with both Fortune 500 companies and small businesses. He specializes in SEO, content marketing, and social media strategy. His courses focus on actionable techniques that deliver measurable results.",
     shortBio: "Digital marketing expert with 12+ years working with companies of all sizes.",
     rating: 4.6,
@@ -890,7 +894,7 @@ export const instructors: Instructor[] = [
       {
         id: "r8",
         name: "Laura J.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-11-05",
         rating: 5,
         text: "Robert's SEO course gave me practical skills I could apply immediately to my company's website. We've seen a 40% increase in organic traffic!",
@@ -899,7 +903,7 @@ export const instructors: Instructor[] = [
       {
         id: "r9",
         name: "Daniel M.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-10-12",
         rating: 4,
         text: "Comprehensive content marketing course with lots of practical examples. Robert clearly knows his stuff.",
@@ -1034,7 +1038,7 @@ export const instructors: Instructor[] = [
     id: "5",
     name: "Dr. James Peterson",
     title: "Music Theory & Composition Instructor",
-    avatar: "/placeholder.svg?height=400&width=400",
+    avatar: course,
     bio: "Dr. Peterson holds a doctorate in Music Composition and has taught at prestigious conservatories for over 20 years. He has composed for orchestras worldwide and specializes in classical and contemporary composition. His teaching emphasizes both theoretical foundations and creative expression.",
     shortBio: "Accomplished composer and music educator with 20+ years of teaching experience.",
     rating: 4.9,
@@ -1093,7 +1097,7 @@ export const instructors: Instructor[] = [
       {
         id: "r10",
         name: "Rebecca A.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-12-10",
         rating: 5,
         text: "Dr. Peterson's music theory course transformed my understanding of composition. His approach makes complex concepts accessible.",
@@ -1102,7 +1106,7 @@ export const instructors: Instructor[] = [
       {
         id: "r11",
         name: "Jason K.",
-        avatar: "/placeholder.svg?height=100&width=100",
+        avatar: course,
         date: "2023-11-14",
         rating: 5,
         text: "The composition masterclass is outstanding. Dr. Peterson provides detailed feedback that has significantly improved my work.",
@@ -1236,7 +1240,7 @@ export const instructors: Instructor[] = [
 //     id: "6",
 //     name: "Emily Wong",
 //     title: "Language Learning Specialist",
-//     avatar: "/placeholder.svg?height=400&width=400",
+//     avatar: course,
 //     bio: "Emily is a polyglot who speaks seven languages fluently. With a background in linguistics and education, she has developed a unique methodology for accelerated language acquisition. Her courses focus on practical communication skills and cultural understanding.",
 //     shortBio: "Polyglot language instructor specializing in accelerated learning methods.",
 //     rating: 4.8,

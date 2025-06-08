@@ -244,3 +244,6 @@ export const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
     </div>
   );
 };
+
+
+

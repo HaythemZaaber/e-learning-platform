@@ -18,6 +18,7 @@ import {
   fadeInUpStagger,
 } from "../animations/TeacherAnimations";
 import SectionHead from "@/components/shared/SectionHead";
+import Link from "next/link";
 
 export default function TeachersHeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -144,9 +145,11 @@ export default function TeachersHeroSection() {
           transition={{ duration: 0.7, delay: 0.6 }}
           className="text-center mt-12"
         >
+          <Link href="/instructors">
           <Button size="lg" className="mx-auto">
             View All Teachers <ArrowRight size={16} className="ml-2" />
           </Button>
+          </Link>
         </MotionDiv>
       </div>
     </MotionSection>

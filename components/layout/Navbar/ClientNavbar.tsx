@@ -61,7 +61,6 @@ const ClientNavbar = ({
           ? "sticky top-0 bg-white/95 backdrop-blur-sm shadow-md py-3"
           : "relative  bg-primary/10  py-4"
       )}
-      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >

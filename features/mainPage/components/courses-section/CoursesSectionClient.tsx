@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Star, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { Course, Category } from "../../types/coursesTypes";
+
 import { CourseCard } from "../../../../components/shared/CourseCard";
 import { cn } from "@/lib/utils";
 import {
@@ -14,9 +14,10 @@ import {
   EmptyStateWrapper,
   BrowseButtonWrapper,
 } from "../animations/courseAnimations";
+import { Course, CourseCategory } from "@/types/courseTypes";
 
 interface CoursesSectionClientProps {
-  categories: Category[];
+  categories: CourseCategory[];
   courses: Course[];
   initialShowFeatured: boolean;
   initialSelectedCategory: string;

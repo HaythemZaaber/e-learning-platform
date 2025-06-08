@@ -4,52 +4,41 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   ArrowRight,
-  BookOpen, 
-  Users, 
+  BookOpen,
+  Users,
   MessageCircle,
   CheckCircle,
   Play,
   Lock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Lecture {
-  id: string;
-  title: string;
-  duration: string;
-  videoUrl: string;
-  isCompleted: boolean;
-  isLocked: boolean;
-  type: 'video' | 'quiz' | 'reading';
-}
-
-interface Section {
-  id: string;
-  title: string;
-  lectures: Lecture[];
-}
+import { coursesData } from "@/data/coursesData";
+import { CourseLecture, CourseSection, Course } from "@/types/courseTypes";
 
 // Mock VideoPlayer component - replace with your actual component
-const VideoPlayer = ({ 
-  src, 
-  title, 
-  onProgress, 
-  onComplete 
-}: { 
-  src: string; 
-  title: string; 
+const VideoPlayer = ({
+  src,
+  title,
+  onProgress,
+  onComplete,
+}: {
+  src: string;
+  title: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
 }) => (
-  <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-    <video 
-      className="w-full h-full" 
-      controls 
+  <div
+    className="relative bg-black rounded-lg overflow-hidden"
+    style={{ aspectRatio: "16/9" }}
+  >
+    <video
+      className="w-full h-full"
+      controls
       src={src}
       onTimeUpdate={(e) => {
         const video = e.currentTarget;
@@ -76,87 +65,24 @@ export default function LessonPage({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [watchProgress, setWatchProgress] = useState(0);
 
-  // Mock course data
-  const courseData = {
-    id: params.courseId,
-    title: "Difficult Things About Education",
-    sections: [
-      {
-        id: "intro",
-        title: "Intro to Python and Modules",
-        lectures: [
-          {
-            id: "course-intro",
-            title: "Course Intro",
-            duration: "5:30",
-            isCompleted: true,
-            isLocked: false,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-          },
-          {
-            id: "python-basics",
-            title: "Python Basics",
-            duration: "15:20",
-            isCompleted: true,
-            isLocked: false,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-          },
-          {
-            id: "setup-project",
-            title: "Setup Your First Project",
-            duration: "25:45",
-            isCompleted: false,
-            isLocked: false,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-          },
-        ],
-      },
-      {
-        id: "fundamentals",
-        title: "Python Fundamentals",
-        lectures: [
-          {
-            id: "variables",
-            title: "Variables and Data Types",
-            duration: "20:30",
-            isCompleted: false,
-            isLocked: false,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-          },
-          {
-            id: "control-flow",
-            title: "Control Flow",
-            duration: "25:15",
-            isCompleted: false,
-            isLocked: false,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-          },
-          {
-            id: "functions",
-            title: "Functions",
-            duration: "18:45",
-            isCompleted: false,
-            isLocked: true,
-            type: "video" as const,
-            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-          },
-        ],
-      },
-    ] as Section[],
-  };
-
   // Find current lecture
-  const allLectures = courseData.sections.flatMap(section => section.lectures);
-  const currentLecture = allLectures.find(lecture => lecture.id === params.lessonId);
-  const currentIndex = allLectures.findIndex(lecture => lecture.id === params.lessonId);
-  
-  const nextLecture = currentIndex < allLectures.length - 1 ? allLectures[currentIndex + 1] : null;
-  const previousLecture = currentIndex > 0 ? allLectures[currentIndex - 1] : null;
+  const allLectures =
+    (coursesData as Course[])
+      .find((course) => course.id === params.courseId)
+      ?.sections.flatMap((section: CourseSection) => section.lectures) || [];
+  const currentLecture = allLectures.find(
+    (lecture) => lecture.id === params.lessonId
+  );
+  const currentIndex = allLectures.findIndex(
+    (lecture) => lecture.id === params.lessonId
+  );
+
+  const nextLecture =
+    currentIndex < allLectures.length - 1
+      ? allLectures[currentIndex + 1]
+      : null;
+  const previousLecture =
+    currentIndex > 0 ? allLectures[currentIndex - 1] : null;
 
   if (!currentLecture) {
     return (
@@ -183,7 +109,7 @@ export default function LessonPage({
     }
   };
 
-  const handleLectureSelect = (lecture: Lecture) => {
+  const handleLectureSelect = (lecture: CourseLecture) => {
     if (!lecture.isLocked) {
       router.push(`/courses/${params.courseId}/learn/${lecture.id}`);
     }
@@ -199,7 +125,7 @@ export default function LessonPage({
     }
   };
 
-  const LectureIcon = ({ lecture }: { lecture: Lecture }) => {
+  const LectureIcon = ({ lecture }: { lecture: CourseLecture }) => {
     if (lecture.isCompleted) {
       return <CheckCircle className="w-4 h-4 text-green-500" />;
     }
@@ -226,7 +152,13 @@ export default function LessonPage({
                 </Button>
               </Link>
               <div>
-                <h1 className="text-lg font-semibold">{courseData.title}</h1>
+                <h1 className="text-lg font-semibold">
+                  {
+                    (coursesData as Course[]).find(
+                      (course) => course.id === params.courseId
+                    )?.title
+                  }
+                </h1>
                 <p className="text-sm text-gray-600">{currentLecture.title}</p>
               </div>
             </div>
@@ -240,13 +172,17 @@ export default function LessonPage({
                 <Users className="w-4 h-4 mr-2" />
                 Q&A
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className="lg:hidden"
               >
-                {sidebarCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {sidebarCollapsed ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -255,11 +191,15 @@ export default function LessonPage({
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        <div className={`grid gap-6 ${sidebarCollapsed ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
+        <div
+          className={`grid gap-6 ${
+            sidebarCollapsed ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-4"
+          }`}
+        >
           {/* Video Player */}
-          <div className={sidebarCollapsed ? 'col-span-1' : 'lg:col-span-3'}>
+          <div className={sidebarCollapsed ? "col-span-1" : "lg:col-span-3"}>
             <VideoPlayer
-              src={currentLecture.videoUrl}
+              src={currentLecture.videoUrl || ""}
               title={currentLecture.title}
               onProgress={setWatchProgress}
               onComplete={handleVideoComplete}
@@ -303,9 +243,10 @@ export default function LessonPage({
             <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-4">About This Lesson</h2>
               <p className="text-gray-700 mb-4">
-                In this lesson, we'll dive deep into {currentLecture.title.toLowerCase()}. 
-                This foundational concept will help you understand the core principles 
-                that you'll use throughout the rest of the course.
+                In this lesson, we'll dive deep into{" "}
+                {currentLecture.title.toLowerCase()}. This foundational concept
+                will help you understand the core principles that you'll use
+                throughout the rest of the course.
               </p>
 
               <div className="space-y-3">
@@ -325,36 +266,40 @@ export default function LessonPage({
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm p-4 sticky top-16">
                 <h3 className="font-semibold mb-4">Course Content</h3>
-                
+
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {courseData.sections.map((section) => (
-                    <div key={section.id}>
-                      <h4 className="font-medium text-sm text-gray-900 mb-2">
-                        {section.title}
-                      </h4>
-                      <div className="space-y-1">
-                        {section.lectures.map((lecture) => (
-                          <div
-                            key={lecture.id}
-                            onClick={() => handleLectureSelect(lecture)}
-                            className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer transition-colors ${
-                              lecture.id === currentLecture.id
-                                ? 'bg-blue-50 text-blue-700'
-                                : lecture.isLocked
-                                ? 'text-gray-400 cursor-not-allowed'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            <LectureIcon lecture={lecture} />
-                            <div className="flex-1 min-w-0">
-                              <p className="truncate">{lecture.title}</p>
-                              <p className="text-xs text-gray-500">{lecture.duration}</p>
+                  {(coursesData as Course[])
+                    .find((course) => course.id === params.courseId)
+                    ?.sections.map((section) => (
+                      <div key={section.id}>
+                        <h4 className="font-medium text-sm text-gray-900 mb-2">
+                          {section.title}
+                        </h4>
+                        <div className="space-y-1">
+                          {section.lectures.map((lecture) => (
+                            <div
+                              key={lecture.id}
+                              onClick={() => handleLectureSelect(lecture)}
+                              className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer transition-colors ${
+                                lecture.id === currentLecture.id
+                                  ? "bg-blue-50 text-blue-700"
+                                  : lecture.isLocked
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "hover:bg-gray-50"
+                              }`}
+                            >
+                              <LectureIcon lecture={lecture} />
+                              <div className="flex-1 min-w-0">
+                                <p className="truncate">{lecture.title}</p>
+                                <p className="text-xs text-gray-500">
+                                  {lecture.duration}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
 
                 {/* Progress Summary */}
@@ -364,14 +309,19 @@ export default function LessonPage({
                     <div className="flex justify-between text-xs text-gray-600">
                       <span>Completed</span>
                       <span>
-                        {allLectures.filter(l => l.isCompleted).length} / {allLectures.length}
+                        {allLectures.filter((l) => l.isCompleted).length} /{" "}
+                        {allLectures.length}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${(allLectures.filter(l => l.isCompleted).length / allLectures.length) * 100}%` 
+                        style={{
+                          width: `${
+                            (allLectures.filter((l) => l.isCompleted).length /
+                              allLectures.length) *
+                            100
+                          }%`,
                         }}
                       ></div>
                     </div>
@@ -380,11 +330,19 @@ export default function LessonPage({
 
                 {/* Quick Actions */}
                 <div className="mt-4 space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                  >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Download Resources
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                  >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Ask Question
                   </Button>

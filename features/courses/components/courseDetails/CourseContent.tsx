@@ -108,7 +108,11 @@ export function CourseContent() {
       <h2 className="text-xl font-bold mb-4">Course Content</h2>
       <div className="text-sm text-gray-600 mb-4 flex justify-between">
         <span>3 sections • 11 lectures • 4h 45m total length</span>
-        <button className="text-primary hover:underline cursor-pointer">Expand all sections</button>
+        <Link href="/courses/course-id/learn">
+          <button className="text-primary hover:underline cursor-pointer">
+            Expand all sections
+          </button>
+        </Link>
       </div>
 
       <div className="space-y-3">
@@ -148,7 +152,7 @@ export function CourseContent() {
                   {section.lectures.map((lecture, idx) => (
                     <Link
                       key={idx}
-                      href={`/courses/course-id/lessons/${lecture.id}`}
+                      href={`/courses/course-id/learn/${lecture.id}`}
                       className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-2">

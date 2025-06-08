@@ -24,10 +24,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Course } from "../../features/mainPage/types/coursesTypes";
+
 import { cn } from "@/lib/utils";
 import { CourseBadgeColor } from "@/features/mainPage/types/coursesTypes";
 import { useRouter } from "next/navigation";
+import { Course } from "@/types/courseTypes";
 
 interface CourseCardProps {
   course: Course;
@@ -191,7 +192,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <div className="absolute bottom-3 right-3">
           <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs">
             <Clock className="h-3 w-3 mr-1" />
-            {course.duration}
+            {course.totalDuration}
           </Badge>
         </div>
       </div>
@@ -225,14 +226,18 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </p>
 
         {/* Stats */}
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+        <div className="flex items-center text-xs text-gray-500 mb-4">
           <div className="flex items-center">
-            <BookOpen className="h-4 w-4 mr-1" />
-            <span>{course.lessons} lessons</span>
+            <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+            <span>{course.totalSections} sections</span>
+          </div>
+          <div className="flex items-center">
+            <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+            <span>{course.totalLectures} lectures</span>
           </div>
           <div className="flex items-center">
             <Users className="h-4 w-4 mr-1" />
-            <span>{course.students.toLocaleString()}</span>
+            <span>{course.totalStudents?.toLocaleString()}</span>
           </div>
         </div>
 
@@ -240,8 +245,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <div className="flex items-center mb-4">
           <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
             <Image
-              src={course.teacherAvatar || "/api/placeholder/32/32"}
-              alt={course.teacher}
+              src={course.instructor?.avatar || "/api/placeholder/32/32"}
+              alt={course.instructor?.name}
               width={32}
               height={32}
               className="object-cover"
@@ -249,10 +254,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           </div>
           <div className="ml-2 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {course.teacher}
+              {course.instructor?.name}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {course.teacherRole}
+              {course.instructor?.role}
             </p>
           </div>
         </div>
@@ -382,7 +387,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 </Badge>
                 <Badge variant="outline" className="text-xs">
                   <Clock className="h-3 w-3 mr-1" />
-                  {course.duration}
+                  {course.totalDuration}
                 </Badge>
               </div>
               <div className="flex items-center">
@@ -407,11 +412,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
               <div className="flex items-center">
                 <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
-                <span>{course.lessons} lessons</span>
+                <span>{course.totalSections} sections</span>
+              </div>
+              <div className="flex items-center">
+                <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+                <span>{course.totalLectures} lectures</span>
               </div>
               <div className="flex items-center">
                 <Users className="h-4 w-4 mr-2 text-green-500" />
-                <span>{course.students.toLocaleString()} students</span>
+                <span>{course.totalStudents?.toLocaleString()} students</span>
               </div>
               <div className="flex items-center">
                 <Award className="h-4 w-4 mr-2 text-yellow-500" />
@@ -423,16 +432,20 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             <div className="flex items-center mb-4">
               <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                 <Image
-                  src={course.teacherAvatar || "/api/placeholder/40/40"}
-                  alt={course.teacher}
+                  src={course.instructor?.avatar || "/api/placeholder/40/40"}
+                  alt={course.instructor?.name}
                   width={40}
                   height={40}
                   className="object-cover"
                 />
               </div>
               <div className="ml-3">
-                <p className="font-medium text-gray-900">{course.teacher}</p>
-                <p className="text-sm text-gray-500">{course.teacherRole}</p>
+                <p className="font-medium text-gray-900">
+                  {course.instructor?.name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {course.instructor?.role}
+                </p>
               </div>
             </div>
           </div>

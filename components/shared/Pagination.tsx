@@ -82,7 +82,7 @@ export const Pagination = ({
                   className={`rounded-xl min-w-10 ${
                     currentPage === page
                       ? "bg-blue-600 hover:bg-blue-700"
-                      : "hover:bg-blue-50"
+                      : "hover:bg-blue-50 hover:text-black"
                   }`}
                 >
                   {page}

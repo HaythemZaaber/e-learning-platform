@@ -15,7 +15,7 @@ const NavbarSearch = ({ isExpanded, setIsExpanded }: NavbarSearchProps) => {
   return (
     <motion.div
       className={cn(
-        "flex items-center bg-white rounded-full overflow-hidden border",
+        " items-center bg-white rounded-full overflow-hidden border hidden sm:flex",
         "transition-all duration-300 ease-in-out",
         "hover:shadow-md hover:border-accent/50",
         isExpanded ? "border-accent shadow-lg" : "border-gray-200 shadow-sm"

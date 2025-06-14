@@ -1,18 +1,11 @@
 import Image from "next/image"
 import { Star } from "lucide-react"
+import { Instructor } from "@/data/instructorsData"
 
-interface InstructorCardProps {
-  instructor: {
-    name: string
-    avatar: string
-    rating: number
-    reviews: number
-    students: number
-    courses: number
-  }
-}
 
-export function InstructorCard({ instructor }: InstructorCardProps) {
+
+
+export function InstructorCard({ instructor }: { instructor: Instructor }) {
   return (
     <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-xl font-bold mb-4">Instructor</h2>
@@ -44,9 +37,9 @@ export function InstructorCard({ instructor }: InstructorCardProps) {
           </div>
 
           <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-            <span>{instructor.reviews} Reviews</span>
-            <span>{instructor.students} Students</span>
-            <span>{instructor.courses} Courses</span>
+            <span>{instructor.reviewsCount} Reviews</span>
+            <span>{instructor.studentsCount} Students</span>
+            <span>{instructor.coursesCount} Courses</span>
           </div>
 
           <p className="mt-3 text-gray-700">

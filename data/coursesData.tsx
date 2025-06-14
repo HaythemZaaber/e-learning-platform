@@ -16,7 +16,8 @@ import programming from "@/public/images/courses/programming.jpg";
 import math from "@/public/images/courses/math.jpg";
 import design from "@/public/images/courses/design.jpg";
 import marketing from "@/public/images/courses/marketing.jpg";
-import { Course, CourseCategory, CourseInstructor } from "../types/courseTypes";
+import { Course, CourseCategory } from "@/types/courseTypes";
+import { Instructor } from "./instructorsData";
 
 // Categories
 export const categories: CourseCategory[] = [
@@ -69,68 +70,38 @@ export const categories: CourseCategory[] = [
     icon: <Camera className="h-4 w-4" />,
     description: "Photography techniques and editing",
   },
+  {
+    id: "business",
+    name: "Business",
+    slug: "business",
+    icon: <BarChart3 className="h-4 w-4" />,
+    description: "Business and entrepreneurship",
+  },
+  {
+    id: "language",
+    name: "Language",
+    slug: "language",
+    icon: <BookOpen className="h-4 w-4" />,
+    description: "Learn new languages",
+  },
+  {
+    id: "music",
+    name: "Music",
+    slug: "music",
+    icon: <Camera className="h-4 w-4" />,
+    description: "Music theory and instruments",
+  },
+  {
+    id: "more",
+    name: "More",
+    slug: "more",
+    icon: <MoreHorizontal className="h-4 w-4" />,
+    description: "More categories",
+  },
 ];
 
-// Instructors
-export const instructors: CourseInstructor[] = [
-  {
-    id: "sarah-johnson",
-    name: "Sarah Johnson",
-    role: "Senior Full-Stack Developer",
-    avatar: course,
-    bio: "Sarah has 8+ years of experience in web development, working with companies like Google and Microsoft. She's passionate about teaching and has helped over 50,000+ students master web development.",
-    rating: 4.9,
-    totalReviews: 2340,
-    totalStudents: 52000,
-    totalCourses: 12,
-    expertise: ["JavaScript", "React", "Node.js", "Python", "AWS"],
-    socialLinks: {
-      linkedin: "https://linkedin.com/in/sarahjohnson",
-      twitter: "https://twitter.com/sarahcodes",
-      website: "https://sarahjohnson.dev",
-    },
-  },
-  {
-    id: "michael-chen",
-    name: "Michael Chen",
-    role: "Lead Data Scientist",
-    avatar: course,
-    bio: "Michael is a Lead Data Scientist with PhD in Machine Learning. He has worked at top tech companies and published 20+ research papers in AI and ML.",
-    rating: 4.8,
-    totalReviews: 1876,
-    totalStudents: 35000,
-    totalCourses: 8,
-    expertise: [
-      "Python",
-      "Machine Learning",
-      "Deep Learning",
-      "TensorFlow",
-      "PyTorch",
-    ],
-    socialLinks: {
-      linkedin: "https://linkedin.com/in/michaelchen",
-      website: "https://michaelchen.ai",
-    },
-  },
-  {
-    id: "emma-roberts",
-    name: "Emma Roberts",
-    role: "Senior UX Designer",
-    avatar: course,
-    bio: "Emma is a Senior UX Designer with 6+ years at top design agencies. She specializes in user research, design systems, and has worked with Fortune 500 companies.",
-    rating: 4.7,
-    totalReviews: 1254,
-    totalStudents: 28000,
-    totalCourses: 6,
-    expertise: [
-      "UI/UX Design",
-      "Figma",
-      "Design Systems",
-      "User Research",
-      "Prototyping",
-    ],
-  },
-];
+// Import instructors from instructorsData
+import { instructors } from "./instructorsData";
 
 // Comprehensive Course Data
 export const coursesData: Course[] = [
@@ -166,6 +137,7 @@ export const coursesData: Course[] = [
 
     // Pricing
     price: 89.99,
+    discountPrice: 79.99,
     originalPrice: 129.99,
     currency: "USD",
 
@@ -185,8 +157,19 @@ export const coursesData: Course[] = [
     bestseller: true,
     trending: false,
 
-    // Instructor
+    // Instructor - Reference to full instructor data
     instructor: instructors[0],
+
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
 
     // Content Structure
     sections: [
@@ -405,6 +388,7 @@ export const coursesData: Course[] = [
 
     // Pricing
     price: 94.99,
+    discountPrice: 84.99,
     originalPrice: 189.99,
     currency: "USD",
 
@@ -420,12 +404,22 @@ export const coursesData: Course[] = [
     // Badge & Features
     badge: "Hot & New",
     badgeColor: "error",
-    featured: true,
+    featured: false,
     bestseller: false,
     trending: true,
 
-    // Instructor
+    // Instructor - Reference to full instructor data
     instructor: instructors[1],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
 
     // Content Structure (simplified for example)
     sections: [
@@ -519,6 +513,624 @@ export const coursesData: Course[] = [
     articles: 8,
     quizzes: 12,
     assignments: 15,
+  },
+
+  {
+    id: "3",
+    slug: "ui-ux-design-masterclass",
+    title: "UI/UX Design Masterclass",
+    subtitle: "Learn Modern Design Principles and Create Beautiful Interfaces",
+    description:
+      "Master the art of UI/UX design with this comprehensive course. Learn design principles, user research, wireframing, prototyping, and more. Create stunning interfaces that users love.",
+    shortDescription:
+      "Master UI/UX design principles and create beautiful interfaces",
+    image: design,
+    previewVideo:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    category: "Design",
+    subcategory: "UI/UX Design",
+    tags: ["UI Design", "UX Design", "Figma", "Prototyping", "User Research"],
+    price: 99.99,
+    discountPrice: 89.99,
+    originalPrice: 149.99,
+    currency: "USD",
+    rating: 4.8,
+    ratingCount: 1567,
+    totalStudents: 12800,
+    totalDuration: "42 hours",
+    totalLectures: 198,
+    totalSections: 14,
+    level: "All Levels",
+    badge: "Bestseller",
+    badgeColor: "success",
+    featured: true,
+    bestseller: true,
+    trending: true,
+    instructor: instructors[2],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
+    sections: [
+      {
+        id: "design-fundamentals",
+        title: "Design Fundamentals",
+        description: "Learn the core principles of design",
+        duration: "6h 30m",
+        isLocked: false,
+        order: 1,
+        lectures: [
+          {
+            id: "design-principles",
+            title: "Core Design Principles",
+            duration: "45:20",
+            type: "video",
+            isCompleted: false,
+            isLocked: false,
+            isFree: true,
+            videoUrl:
+              "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          },
+        ],
+      },
+    ],
+    requirements: [
+      "No prior design experience needed",
+      "A computer with internet connection",
+      "Figma (free version)",
+      "Passion for design",
+    ],
+    whatYoullLearn: [
+      "Master UI/UX design principles",
+      "Create wireframes and prototypes",
+      "Conduct user research",
+      "Design responsive interfaces",
+      "Build a professional design portfolio",
+    ],
+    targetAudience: [
+      "Aspiring UI/UX designers",
+      "Graphic designers looking to expand skills",
+      "Web developers wanting to learn design",
+      "Anyone interested in digital design",
+    ],
+    language: "English",
+    hasSubtitles: true,
+    subtitleLanguages: ["English", "Spanish"],
+    hasCertificate: true,
+    hasLifetimeAccess: true,
+    hasMobileAccess: true,
+    reviews: [
+      {
+        id: "review-4",
+        userId: "user-4",
+        userName: "Lisa Chen",
+        userAvatar: "/avatars/lisa.jpg",
+        rating: 5,
+        title: "Transformative design course!",
+        comment:
+          "Emma's teaching style is incredible. I went from knowing nothing about design to creating professional interfaces.",
+        createdAt: new Date("2023-12-05"),
+        helpful: 28,
+        verified: true,
+      },
+    ],
+    status: "published",
+    createdAt: new Date("2023-04-15"),
+    updatedAt: new Date("2023-12-10"),
+    publishedAt: new Date("2023-04-20"),
+    metaTitle: "UI/UX Design Masterclass - Learn Modern Design Principles",
+    metaDescription:
+      "Master UI/UX design with this comprehensive course. Learn design principles, user research, and create beautiful interfaces.",
+    downloadableResources: 42,
+    codingExercises: 0,
+    articles: 15,
+    quizzes: 10,
+    assignments: 12,
+  },
+
+  {
+    id: "4",
+    slug: "digital-marketing-complete-course",
+    title: "Complete Digital Marketing Course",
+    subtitle: "Master SEO, Social Media, Content Marketing & More",
+    description:
+      "Learn everything you need to know about digital marketing. From SEO and social media to content marketing and analytics. Build a comprehensive marketing strategy and grow your business online.",
+    shortDescription:
+      "Master digital marketing strategies and grow your business online",
+    image: marketing,
+    previewVideo:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    category: "Marketing",
+    subcategory: "Digital Marketing",
+    tags: [
+      "SEO",
+      "Social Media",
+      "Content Marketing",
+      "Analytics",
+      "Email Marketing",
+    ],
+    price: 79.99,
+    discountPrice: 69.99,
+    originalPrice: 129.99,
+    currency: "USD",
+    rating: 4.7,
+    ratingCount: 1245,
+    totalStudents: 9800,
+    totalDuration: "36 hours",
+    totalLectures: 168,
+    totalSections: 12,
+    level: "All Levels",
+    badge: "Popular",
+    badgeColor: "info",
+    featured: true,
+    bestseller: false,
+    trending: true,
+    instructor: instructors[3],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
+    sections: [
+      {
+        id: "marketing-fundamentals",
+        title: "Digital Marketing Fundamentals",
+        description: "Learn the basics of digital marketing",
+        duration: "5h 45m",
+        isLocked: false,
+        order: 1,
+        lectures: [
+          {
+            id: "marketing-intro",
+            title: "Introduction to Digital Marketing",
+            duration: "35:15",
+            type: "video",
+            isCompleted: false,
+            isLocked: false,
+            isFree: true,
+            videoUrl:
+              "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          },
+        ],
+      },
+    ],
+    requirements: [
+      "No prior marketing experience needed",
+      "Basic computer skills",
+      "Internet connection",
+      "Interest in digital marketing",
+    ],
+    whatYoullLearn: [
+      "Master SEO and content marketing",
+      "Create effective social media strategies",
+      "Run successful email campaigns",
+      "Analyze marketing data",
+      "Build a complete marketing strategy",
+    ],
+    targetAudience: [
+      "Marketing professionals",
+      "Business owners",
+      "Entrepreneurs",
+      "Anyone interested in digital marketing",
+    ],
+    language: "English",
+    hasSubtitles: true,
+    subtitleLanguages: ["English"],
+    hasCertificate: true,
+    hasLifetimeAccess: true,
+    hasMobileAccess: true,
+    reviews: [
+      {
+        id: "review-5",
+        userId: "user-5",
+        userName: "John Smith",
+        userAvatar: "/avatars/john.jpg",
+        rating: 5,
+        title: "Excellent marketing course!",
+        comment:
+          "Robert's course helped me grow my business significantly. The SEO section alone was worth the price.",
+        createdAt: new Date("2023-11-28"),
+        helpful: 22,
+        verified: true,
+      },
+    ],
+    status: "published",
+    createdAt: new Date("2023-05-10"),
+    updatedAt: new Date("2023-12-05"),
+    publishedAt: new Date("2023-05-15"),
+    metaTitle: "Complete Digital Marketing Course - Master Online Marketing",
+    metaDescription:
+      "Learn digital marketing from scratch. Master SEO, social media, content marketing, and analytics to grow your business online.",
+    downloadableResources: 35,
+    codingExercises: 0,
+    articles: 20,
+    quizzes: 15,
+    assignments: 10,
+  },
+
+  {
+    id: "5",
+    slug: "advanced-mathematics-masterclass",
+    title: "Advanced Mathematics Masterclass",
+    subtitle: "Master Calculus, Linear Algebra, and Mathematical Analysis",
+    description:
+      "Dive deep into advanced mathematical concepts. This comprehensive course covers calculus, linear algebra, differential equations, and mathematical analysis. Perfect for students and professionals looking to strengthen their mathematical foundation.",
+    shortDescription: "Master advanced mathematical concepts and applications",
+    image: math,
+    previewVideo:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    category: "Mathematics",
+    subcategory: "Advanced Math",
+    tags: [
+      "Calculus",
+      "Linear Algebra",
+      "Differential Equations",
+      "Mathematical Analysis",
+    ],
+    price: 99.99,
+    discountPrice: 89.99,
+    originalPrice: 159.99,
+    currency: "USD",
+    rating: 4.9,
+    ratingCount: 987,
+    totalStudents: 7500,
+    totalDuration: "48 hours",
+    totalLectures: 210,
+    totalSections: 15,
+    level: "Advanced",
+    badge: "Popular",
+    badgeColor: "info",
+    featured: true,
+    bestseller: false,
+    trending: true,
+    instructor: instructors[4],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
+    sections: [
+      {
+        id: "calculus-fundamentals",
+        title: "Calculus Fundamentals",
+        description: "Master the basics of calculus",
+        duration: "8h 30m",
+        isLocked: false,
+        order: 1,
+        lectures: [
+          {
+            id: "calculus-intro",
+            title: "Introduction to Calculus",
+            duration: "45:20",
+            type: "video",
+            isCompleted: false,
+            isLocked: false,
+            isFree: true,
+            videoUrl:
+              "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          },
+        ],
+      },
+    ],
+    requirements: [
+      "Basic mathematics knowledge",
+      "Understanding of algebra and trigonometry",
+      "Dedication to learning complex concepts",
+      "Scientific calculator",
+    ],
+    whatYoullLearn: [
+      "Master calculus concepts and applications",
+      "Understand linear algebra and matrices",
+      "Solve differential equations",
+      "Apply mathematical analysis techniques",
+      "Develop problem-solving skills",
+    ],
+    targetAudience: [
+      "Mathematics students",
+      "Engineering students",
+      "Physics students",
+      "Anyone interested in advanced mathematics",
+    ],
+    language: "English",
+    hasSubtitles: true,
+    subtitleLanguages: ["English", "Spanish"],
+    hasCertificate: true,
+    hasLifetimeAccess: true,
+    hasMobileAccess: true,
+    reviews: [
+      {
+        id: "review-6",
+        userId: "user-6",
+        userName: "Michael Brown",
+        userAvatar: "/avatars/michael.jpg",
+        rating: 5,
+        title: "Excellent math course!",
+        comment:
+          "The explanations are crystal clear. I finally understand complex mathematical concepts.",
+        createdAt: new Date("2023-12-15"),
+        helpful: 19,
+        verified: true,
+      },
+    ],
+    status: "published",
+    createdAt: new Date("2023-06-10"),
+    updatedAt: new Date("2023-12-20"),
+    publishedAt: new Date("2023-06-15"),
+    metaTitle:
+      "Advanced Mathematics Masterclass - Master Complex Math Concepts",
+    metaDescription:
+      "Learn advanced mathematics including calculus, linear algebra, and mathematical analysis with this comprehensive course.",
+    downloadableResources: 50,
+    codingExercises: 0,
+    articles: 25,
+    quizzes: 20,
+    assignments: 15,
+  },
+
+  {
+    id: "6",
+    slug: "professional-photography-course",
+    title: "Professional Photography Course",
+    subtitle: "Master Camera Settings, Composition, and Photo Editing",
+    description:
+      "Learn professional photography from scratch. This course covers camera settings, composition techniques, lighting, and photo editing. Perfect for beginners and intermediate photographers looking to improve their skills.",
+    shortDescription: "Master professional photography and photo editing",
+    image: course,
+    previewVideo:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    category: "Photography",
+    subcategory: "Digital Photography",
+    tags: [
+      "Camera Settings",
+      "Composition",
+      "Lighting",
+      "Photo Editing",
+      "Adobe Lightroom",
+    ],
+    price: 79.99,
+    discountPrice: 69.99,
+    originalPrice: 119.99,
+    currency: "USD",
+    rating: 4.8,
+    ratingCount: 1123,
+    totalStudents: 8900,
+    totalDuration: "40 hours",
+    totalLectures: 180,
+    totalSections: 12,
+    level: "All Levels",
+    badge: "Bestseller",
+    badgeColor: "success",
+    featured: true,
+    bestseller: true,
+    trending: false,
+    instructor: instructors[5],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
+    sections: [
+      {
+        id: "camera-basics",
+        title: "Camera Basics and Settings",
+        description: "Learn essential camera settings and controls",
+        duration: "6h 45m",
+        isLocked: false,
+        order: 1,
+        lectures: [
+          {
+            id: "camera-intro",
+            title: "Introduction to Camera Settings",
+            duration: "40:15",
+            type: "video",
+            isCompleted: false,
+            isLocked: false,
+            isFree: true,
+            videoUrl:
+              "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          },
+        ],
+      },
+    ],
+    requirements: [
+      "Any camera (DSLR, mirrorless, or smartphone)",
+      "Basic computer skills",
+      "Adobe Lightroom (free trial available)",
+      "Passion for photography",
+    ],
+    whatYoullLearn: [
+      "Master camera settings and controls",
+      "Understand composition techniques",
+      "Learn lighting and exposure",
+      "Edit photos professionally",
+      "Build a photography portfolio",
+    ],
+    targetAudience: [
+      "Beginner photographers",
+      "Intermediate photographers",
+      "Photo enthusiasts",
+      "Anyone interested in photography",
+    ],
+    language: "English",
+    hasSubtitles: true,
+    subtitleLanguages: ["English", "Spanish", "French"],
+    hasCertificate: true,
+    hasLifetimeAccess: true,
+    hasMobileAccess: true,
+    reviews: [
+      {
+        id: "review-7",
+        userId: "user-7",
+        userName: "Sarah Wilson",
+        userAvatar: "/avatars/sarah.jpg",
+        rating: 5,
+        title: "Amazing photography course!",
+        comment:
+          "The instructor explains everything so clearly. My photos have improved dramatically.",
+        createdAt: new Date("2023-12-10"),
+        helpful: 27,
+        verified: true,
+      },
+    ],
+    status: "published",
+    createdAt: new Date("2023-07-10"),
+    updatedAt: new Date("2023-12-15"),
+    publishedAt: new Date("2023-07-15"),
+    metaTitle: "Professional Photography Course - Master Camera and Editing",
+    metaDescription:
+      "Learn professional photography from scratch. Master camera settings, composition, and photo editing with this comprehensive course.",
+    downloadableResources: 45,
+    codingExercises: 0,
+    articles: 18,
+    quizzes: 12,
+    assignments: 10,
+  },
+
+  {
+    id: "7",
+    slug: "business-analytics-course",
+    title: "Business Analytics and Data Visualization",
+    subtitle:
+      "Master Data Analysis, Business Intelligence, and Visualization Tools",
+    description:
+      "Learn to analyze business data and create compelling visualizations. This course covers data analysis, business intelligence, and visualization tools like Tableau and Power BI. Perfect for business professionals and analysts.",
+    shortDescription: "Master business analytics and data visualization",
+    image: programming,
+    previewVideo:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    category: "Data Science",
+    subcategory: "Business Analytics",
+    tags: [
+      "Data Analysis",
+      "Business Intelligence",
+      "Tableau",
+      "Power BI",
+      "Excel",
+    ],
+    price: 89.99,
+    discountPrice: 79.99,
+    originalPrice: 139.99,
+    currency: "USD",
+    rating: 4.7,
+    ratingCount: 876,
+    totalStudents: 7200,
+    totalDuration: "35 hours",
+    totalLectures: 165,
+    totalSections: 10,
+    level: "Intermediate",
+    badge: "Hot & New",
+    badgeColor: "error",
+    featured: true,
+    bestseller: false,
+    trending: true,
+    instructor: instructors[6],
+    // Course Progress
+    progress: {
+      completedLectures: 0,
+      totalLectures: 234,
+      completedSections: [],
+      lastWatchedLecture: undefined,
+      timeSpent: 0,
+      completionPercentage: 0,
+      certificateEarned: false,
+    },
+    sections: [
+      {
+        id: "analytics-fundamentals",
+        title: "Business Analytics Fundamentals",
+        description: "Learn the basics of business analytics",
+        duration: "5h 30m",
+        isLocked: false,
+        order: 1,
+        lectures: [
+          {
+            id: "analytics-intro",
+            title: "Introduction to Business Analytics",
+            duration: "35:20",
+            type: "video",
+            isCompleted: false,
+            isLocked: false,
+            isFree: true,
+            videoUrl:
+              "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          },
+        ],
+      },
+    ],
+    requirements: [
+      "Basic Excel knowledge",
+      "Understanding of business concepts",
+      "Computer with internet connection",
+      "Interest in data analysis",
+    ],
+    whatYoullLearn: [
+      "Master data analysis techniques",
+      "Create business intelligence reports",
+      "Use Tableau and Power BI",
+      "Visualize data effectively",
+      "Make data-driven decisions",
+    ],
+    targetAudience: [
+      "Business professionals",
+      "Data analysts",
+      "Managers",
+      "Anyone interested in business analytics",
+    ],
+    language: "English",
+    hasSubtitles: true,
+    subtitleLanguages: ["English"],
+    hasCertificate: true,
+    hasLifetimeAccess: true,
+    hasMobileAccess: true,
+    reviews: [
+      {
+        id: "review-8",
+        userId: "user-8",
+        userName: "David Lee",
+        userAvatar: "/avatars/david.jpg",
+        rating: 5,
+        title: "Great business analytics course!",
+        comment:
+          "The course helped me improve my data analysis skills significantly. Highly recommended!",
+        createdAt: new Date("2023-12-05"),
+        helpful: 15,
+        verified: true,
+      },
+    ],
+    status: "published",
+    createdAt: new Date("2023-08-10"),
+    updatedAt: new Date("2023-12-10"),
+    publishedAt: new Date("2023-08-15"),
+    metaTitle:
+      "Business Analytics Course - Master Data Analysis and Visualization",
+    metaDescription:
+      "Learn business analytics and data visualization. Master tools like Tableau and Power BI to make data-driven decisions.",
+    downloadableResources: 40,
+    codingExercises: 0,
+    articles: 15,
+    quizzes: 10,
+    assignments: 8,
   },
 ];
 

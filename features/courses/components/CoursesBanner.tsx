@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Users, Star, Award } from "lucide-react";
-import { courses } from "../data/coursesData";
-import { Course } from "../types/courseTypes";
+import { coursesData } from "@/data/coursesData";
+import { Course } from "@/types/courseTypes";
 
 // Define banner animation variants
 const bannerVariants = {
@@ -19,21 +19,21 @@ const bannerVariants = {
 const CoursesBanner = () => {
   // Calculate course statistics
   const courseStats = useMemo(() => {
-    const totalStudents = courses.reduce(
-      (sum: number, course: Course) => sum + (course.students || 0),
+    const totalStudents = coursesData.reduce(
+      (sum: number, course: Course) => sum + (course.totalStudents || 0),
       0
     );
     const avgRating =
-      courses.reduce(
+      coursesData.reduce(
         (sum: number, course: Course) => sum + (course.rating || 0),
         0
-      ) / courses.length;
-    const featuredCount = courses.filter(
+      ) / coursesData.length;
+    const featuredCount = coursesData.filter(
       (course: Course) => course.featured
     ).length;
 
     return {
-      totalCourses: courses.length,
+      totalCourses: coursesData.length,
       totalStudents,
       avgRating: avgRating.toFixed(1),
       featuredCount,

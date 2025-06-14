@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-import { Menu, X } from "lucide-react";
+import { Menu, MessageSquareText, X } from "lucide-react";
 import NavbarBrand from "./NavbarBrand";
 import NavbarDesktopMenu from "./NavbarDesktopMenu";
 import NavbarSearch from "./NavbarSearch";
@@ -12,6 +12,8 @@ import UserProfileMenu from "./UserProfileMenu";
 import NavbarMobileMenu from "./NavbarMobileMenu";
 import RoleSwitcher from "./RoleSwitcher";
 import { useSearchStore } from "@/store/search.store";
+import { AiAssistant } from "@/components/shared/AiAssistant";
+import { Button } from "@/components/ui/button";
 
 export type UserRole = "visitor" | "student" | "teacher" | "parent";
 
@@ -20,6 +22,7 @@ export interface NavbarProps {
   userName?: string;
   userInitials?: string;
   notificationCount?: number;
+  onAiAssistantToggle?: () => void;
 }
 
 const ClientNavbar = ({
@@ -27,6 +30,7 @@ const ClientNavbar = ({
   userName = "",
   userInitials = "",
   notificationCount = 0,
+  onAiAssistantToggle = () => {},
 }: NavbarProps) => {
   const [isSticky, setIsSticky] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -80,7 +84,7 @@ const ClientNavbar = ({
           </motion.div>
 
           <motion.div
-            className="flex items-center gap-3"
+            className="flex items-center gap-3 "
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
@@ -91,6 +95,18 @@ const ClientNavbar = ({
                 setIsExpanded={setIsSearchExpanded}
               />
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={onAiAssistantToggle}
+            >
+              <MessageSquareText className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                AI
+              </span>
+              <span className="sr-only">Open AI Assistant</span>
+            </Button>
 
             <RoleSwitcher />
 

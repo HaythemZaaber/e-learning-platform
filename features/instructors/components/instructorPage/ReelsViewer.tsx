@@ -39,7 +39,7 @@ export function ReelsViewer({
           try {
             await videoElement.play()
           } catch (error) {
-            if (error.name !== "AbortError") {
+            if (error instanceof Error && error.name !== "AbortError") {
               console.error("Video playback error:", error)
               setIsPlaying(false)
             }

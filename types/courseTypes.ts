@@ -1,5 +1,6 @@
 // types/courseTypes.ts
 import { StaticImageData } from "next/image";
+import { Instructor } from "@/data/instructorsData";
 
 export type CourseLevel =
   | "Beginner"
@@ -21,23 +22,19 @@ export type LectureType =
   | "resource";
 export type CourseStatus = "draft" | "published" | "archived";
 
-export interface CourseInstructor {
-  id: string;
-  name: string;
-  role: string;
-  avatar: StaticImageData | string;
-  bio: string;
-  rating: number;
-  totalReviews: number;
-  totalStudents: number;
-  totalCourses: number;
-  expertise: string[];
-  socialLinks?: {
-    linkedin?: string;
-    twitter?: string;
-    website?: string;
-  };
+export interface CourseFilters {
+  categories?: string[];
+  priceRange?: [number, number];
+  levels?: CourseLevel[];
+  durations?: string[];
+  ratings?: number[];
+  showFeatured?: boolean;
+  search?: string;
+  sortBy?: "newest" | "popular" | "rating" | "price-low" | "price-high";
 }
+
+// Use the Instructor type from instructorsData
+export type CourseInstructor = Instructor;
 
 export interface CourseLecture {
   id: string;
@@ -117,6 +114,7 @@ export interface Course {
 
   // Pricing
   price: number;
+  discountPrice?: number;
   originalPrice?: number;
   currency: string;
 

@@ -1,24 +1,16 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Grid2X2, List, Search, Filter, TrendingUp, Clock } from "lucide-react";
+import { Search, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-import { Course } from "../types/courseTypes";
-import { CourseLevel } from "../types/courseTypes";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { CourseCard } from "@/components/shared/CourseCard";
-import CourseFilters from "./CourseFilters";
 import { useCoursesFilter } from "../hooks/useCoursesFilter";
 import { useSavedCourses } from "../hooks/useSavedCourses";
 import { Pagination } from "@/components/shared/Pagination";
 import CourseSearchAndFilters from "./CourseSearchAndFilters";
+import {coursesData} from "@/data/coursesData"
 
-interface CoursesGridProps {
-  courses: Course[];
-}
 
 const ITEMS_PER_PAGE = 5;
 
@@ -43,7 +35,7 @@ const cardVariants = {
   },
 };
 
-const CoursesGrid = ({ courses }: CoursesGridProps) => {
+const CoursesGrid = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -58,7 +50,7 @@ const CoursesGrid = ({ courses }: CoursesGridProps) => {
     updateFilter,
     resetFilters,
     isLoaded,
-  } = useCoursesFilter(courses);
+  } = useCoursesFilter(coursesData);
 
   // Quick search functionality
   const searchFilteredCourses = useMemo(() => {
@@ -67,7 +59,7 @@ const CoursesGrid = ({ courses }: CoursesGridProps) => {
     return filteredCourses.filter(
       (course) =>
         course.title.toLowerCase().includes(quickSearch.toLowerCase()) ||
-        course.teacher.toLowerCase().includes(quickSearch.toLowerCase()) ||
+        course.instructor.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
         course.category.toLowerCase().includes(quickSearch.toLowerCase())
     );
   }, [filteredCourses, quickSearch]);

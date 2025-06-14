@@ -10,34 +10,12 @@ import {
 } from "lucide-react";
 import instructor from "@/public/images/courses/course.jpg"
 import Image from "next/image";
+import { Course } from "@/types/courseTypes";
 
-interface CourseHeaderProps {
-  course: {
-    id: string;
-    title: string;
-    subtitle: string;
-    instructor: {
-      name: string;
-      avatar?: string;
-      rating?: number;
-      reviews?: number;
-      students?: number;
-      courses?: number;
-    };
-    rating: number;
-    reviews: number;
-    students: number;
-    lastUpdated: string;
-    level: string;
-    duration: string;
-    language: string;
-    tags?: string[];
-    price?: number;
-    discountPrice?: number;
-  };
-}
 
-export function CourseHeader({ course }: CourseHeaderProps) {
+
+
+export function CourseHeader({ course }: { course: Course }) {
   if (!course) {
     return (
       <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12">
@@ -94,9 +72,9 @@ export function CourseHeader({ course }: CourseHeaderProps) {
   const getBestseller = () => {
     // Simple logic: if discount price is significantly lower or high student count
     return (
-      course.students > 5000 ||
-      (course.discountPrice &&
-        course.price &&
+      course.totalStudents > 5000 ||
+      (course.price &&
+        course.discountPrice &&
         course.discountPrice < course.price * 0.3)
     );
   };
@@ -168,13 +146,13 @@ export function CourseHeader({ course }: CourseHeaderProps) {
               </div>
               <span className="font-semibold text-lg">{course.rating}</span>
               <button className="text-blue-300 hover:text-blue-200 cursor-pointer transition-colors underline-offset-2 hover:underline">
-                ({formatNumber(course.reviews)} reviews)
+                ({formatNumber(course.ratingCount)} reviews)
               </button>
             </div>
 
             <div className="flex items-center gap-1 text-slate-300">
               <Users className="w-4 h-4" />
-              <span>{formatNumber(course.students)} students</span>
+              <span>{formatNumber(course.totalStudents)} students</span>
             </div>
           </div>
 
@@ -197,8 +175,8 @@ export function CourseHeader({ course }: CourseHeaderProps) {
                   <div className="flex items-center gap-1 text-xs text-slate-400">
                     <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                     <span>{course.instructor.rating}</span>
-                    {course.instructor.courses && (
-                      <span>• {course.instructor.courses} courses</span>
+                    {course.instructor.coursesCount && (
+                      <span>• {course.instructor.coursesCount} courses</span>
                     )}
                   </div>
                 )}
@@ -210,7 +188,7 @@ export function CourseHeader({ course }: CourseHeaderProps) {
           <div className="flex flex-wrap items-center gap-6 text-sm text-slate-300">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>{course.lastUpdated}</span>
+              <span>{course.updatedAt.toLocaleDateString()}</span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -220,7 +198,7 @@ export function CourseHeader({ course }: CourseHeaderProps) {
 
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              <span>{course.duration}</span>
+                  <span>{course.totalDuration}</span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -259,33 +237,4 @@ export function CourseHeader({ course }: CourseHeaderProps) {
   );
 }
 
-// Example usage for demo
-export default function CourseHeaderDemo() {
-  const sampleCourse = {
-    id: "python-course-2024",
-    title: "Difficult Things About Education.",
-    subtitle:
-      "Master Python by building 100 projects in 100 days. Learn data science, automation, build websites, games and apps!",
-    instructor: {
-      name: "Fred Geer",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-      rating: 4.8,
-      reviews: 1024,
-      students: 10000,
-      courses: 15,
-    },
-    rating: 4.7,
-    reviews: 1024,
-    students: 10000,
-    duration: "65 total hours",
-    level: "All Levels",
-    lastUpdated: "Last updated 11/2023",
-    language: "English",
-    price: 75,
-    discountPrice: 15.99,
-    tags: ["Development", "Programming"],
-  };
 
-  return <CourseHeader course={sampleCourse} />;
-}

@@ -10,6 +10,7 @@ import { PriceCard } from "@/features/courses/components/courseDetails/PriceCard
 import { RelatedCourses } from "@/features/courses/components/courseDetails/RelatedCourses";
 import { ReviewSection } from "@/features/courses/components/courseDetails/ReviewSection";
 import { useState } from "react";
+import { coursesData } from "@/data/coursesData";
 
 export default function CourseDetailsPage({
   params,
@@ -18,30 +19,11 @@ export default function CourseDetailsPage({
 }) {
   const [activeSection, setActiveSection] = useState("overview");
   // In a real app, you would fetch course data based on courseId
-  const courseData = {
-    id: params.courseId,
-    title: "Difficult Things About Education.",
-    subtitle:
-      "Master Python by building 100 projects in 100 days. Learn data science, automation, build websites, games and apps!",
-    instructor: {
-      name: "Fred Geer",
-      avatar: "/placeholder.svg?height=100&width=100",
-      rating: 4.8,
-      reviews: 1024,
-      students: 10000,
-      courses: 15,
-    },
-    rating: 4.7,
-    reviews: 1024,
-    students: 10000,
-    duration: "65 total hours",
-    level: "All Levels",
-    lastUpdated: "Last updated 11/2023",
-    language: "English",
-    price: 75,
-    discountPrice: 15.99,
-    tags: ["Development", "Programming"],
-  };
+  const courseData = coursesData.find((course) => course.id === params.courseId);
+  if (!courseData) {
+    return <div>Course not found</div>;
+  }
+ 
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -74,7 +56,7 @@ export default function CourseDetailsPage({
             </div>
 
             <div id="content-section">
-              <CourseContent />
+              <CourseContent sections={courseData.sections} courseId={params.courseId} />
             </div>
 
             <div id="details-section">
@@ -97,7 +79,7 @@ export default function CourseDetailsPage({
         <div className="hidden lg:block lg:col-span-1">
           <PriceCard
             price={courseData.price}
-            discountPrice={courseData.discountPrice}
+            discountPrice={courseData.discountPrice || 0}
           />
         </div>
       </div>

@@ -198,7 +198,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
 
       {/* Content Section */}
-      <CardContent className="p-5 py-2 flex-grow flex flex-col">
+      <CardContent className="p-5 py-0 flex-grow flex flex-col cursor-pointer " onClick={handleViewDetails}>
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <Badge
@@ -217,7 +217,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
 
         {/* Title & Description */}
-        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors">
+        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors group-hover:underline">
           {course.title}
         </h3>
 
@@ -226,13 +226,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </p>
 
         {/* Stats */}
-        <div className="flex items-center text-xs text-gray-500 mb-4">
+        <div className="flex items-center text-xs text-gray-500 mb-4 gap-5">
           <div className="flex items-center">
-            <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+            <BookOpen className="h-4 w-4 mr-1 text-blue-500" />
             <span>{course.totalSections} sections</span>
           </div>
           <div className="flex items-center">
-            <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+            <BookOpen className="h-4 w-4 mr-1 text-blue-500" />
             <span>{course.totalLectures} lectures</span>
           </div>
           <div className="flex items-center">
@@ -242,7 +242,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
 
         {/* Instructor */}
-        <div className="flex items-center mb-4">
+        <div className="flex items-center mb-0">
           <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
             <Image
               src={course.instructor?.avatar || "/api/placeholder/32/32"}
@@ -257,7 +257,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               {course.instructor?.name}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {course.instructor?.role}
+              {course.instructor?.title}
             </p>
           </div>
         </div>
@@ -272,7 +272,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         />
 
         <div className="flex gap-2 justify-end ml-auto">
-          <DropdownMenu modal={false}>
+          {/* <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="rounded-lg">
                 <Eye className="h-4 w-4 mr-1" />
@@ -281,7 +281,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleViewDetails}>
+              <DropdownMenuItem >
                 <Eye className="h-4 w-4 mr-2" />
                 View Details
               </DropdownMenuItem>
@@ -294,9 +294,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 Add to Cart
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
-          <Button size="sm" className="rounded-lg">
+          <Button size="sm" className="rounded-lg ">
             <ShoppingCart className="h-4 w-4 mr-1" />
             Enroll Now
           </Button>
@@ -374,7 +374,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
 
         {/* Content Section */}
-        <div className="flex-grow p-6 sm:py-2 flex flex-col">
+        <div className="flex-grow p-6 sm:py-2 flex flex-col cursor-pointer " onClick={handleViewDetails}>
           <div className="flex-grow">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
@@ -400,7 +400,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </div>
 
             {/* Title & Description */}
-            <h3 className="font-bold text-xl mb-3 text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+            <h3 className="font-bold text-xl mb-3 text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 ">
               {course.title}
             </h3>
 
@@ -444,7 +444,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   {course.instructor?.name}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {course.instructor?.role}
+                  {course.instructor?.title}
                 </p>
               </div>
             </div>
@@ -459,7 +459,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             />
 
             <div className="flex gap-2">
-              <DropdownMenu modal={false}>
+              {/* <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="rounded-lg">
                     <Eye className="h-4 w-4 mr-1" />
@@ -468,7 +468,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={handleViewDetails}>
+                  <DropdownMenuItem >
                     <Eye className="h-4 w-4 mr-2" />
                     View Details
                   </DropdownMenuItem>
@@ -481,7 +481,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                     Add to Cart
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
 
               <Button size="sm" className="rounded-lg">
                 <ShoppingCart className="h-4 w-4 mr-1" />

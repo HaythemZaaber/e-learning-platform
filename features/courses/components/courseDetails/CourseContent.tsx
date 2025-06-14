@@ -3,8 +3,9 @@
 import { ChevronDown, ChevronUp, Play } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { CourseSection } from "@/types/courseTypes";
 
-export function CourseContent() {
+export function CourseContent({ sections, courseId }: { sections: CourseSection[], courseId: string }) {
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "intro"
   );
@@ -13,104 +14,104 @@ export function CourseContent() {
     setExpandedSection(expandedSection === id ? null : id);
   };
 
-  const sections = [
-    {
-      id: "intro",
-      title: "Intro to Python and Modules",
-      duration: "45 mins",
-      lectures: [
-        {
-          title: "Course Intro",
-          duration: "5 mins",
-          type: "video",
-          id: "course-intro",
-        },
-        {
-          title: "Python Basics",
-          duration: "15 mins",
-          type: "video",
-          id: "python-basics",
-        },
-        {
-          title: "Setup Your First Project",
-          duration: "25 mins",
-          type: "video",
-          id: "setup-project",
-        },
-      ],
-    },
-    {
-      id: "fundamentals",
-      title: "Course Fundamentals",
-      duration: "1h 30min",
-      lectures: [
-        {
-          title: "Variables and Data Types",
-          duration: "20 mins",
-          type: "video",
-          id: "variables",
-        },
-        {
-          title: "Control Flow",
-          duration: "25 mins",
-          type: "video",
-          id: "control-flow",
-        },
-        {
-          title: "Functions",
-          duration: "25 mins",
-          type: "video",
-          id: "functions",
-        },
-        {
-          title: "Error Handling",
-          duration: "20 mins",
-          type: "video",
-          id: "error-handling",
-        },
-      ],
-    },
-    {
-      id: "education",
-      title: "10 Things To Know About Education!",
-      duration: "2h 45min",
-      lectures: [
-        {
-          title: "Education Basics",
-          duration: "30 mins",
-          type: "video",
-          id: "education-basics",
-        },
-        {
-          title: "Learning Strategies",
-          duration: "45 mins",
-          type: "video",
-          id: "learning-strategies",
-        },
-        {
-          title: "Teaching Methods",
-          duration: "50 mins",
-          type: "video",
-          id: "teaching-methods",
-        },
-        {
-          title: "Assessment Techniques",
-          duration: "40 mins",
-          type: "video",
-          id: "assessment-techniques",
-        },
-      ],
-    },
-  ];
+  // const sections = [
+  //   {
+  //     id: "intro",
+  //     title: "Intro to Python and Modules",
+  //     duration: "45 mins",
+  //     lectures: [
+  //       {
+  //         title: "Course Intro",
+  //         duration: "5 mins",
+  //         type: "video",
+  //         id: "course-intro",
+  //       },
+  //       {
+  //         title: "Python Basics",
+  //         duration: "15 mins",
+  //         type: "video",
+  //         id: "python-basics",
+  //       },
+  //       {
+  //         title: "Setup Your First Project",
+  //         duration: "25 mins",
+  //         type: "video",
+  //         id: "setup-project",
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     id: "fundamentals",
+  //     title: "Course Fundamentals",
+  //     duration: "1h 30min",
+  //     lectures: [
+  //       {
+  //         title: "Variables and Data Types",
+  //         duration: "20 mins",
+  //         type: "video",
+  //         id: "variables",
+  //       },
+  //       {
+  //         title: "Control Flow",
+  //         duration: "25 mins",
+  //         type: "video",
+  //         id: "control-flow",
+  //       },
+  //       {
+  //         title: "Functions",
+  //         duration: "25 mins",
+  //         type: "video",
+  //         id: "functions",
+  //       },
+  //       {
+  //         title: "Error Handling",
+  //         duration: "20 mins",
+  //         type: "video",
+  //         id: "error-handling",
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     id: "education",
+  //     title: "10 Things To Know About Education!",
+  //     duration: "2h 45min",
+  //     lectures: [
+  //       {
+  //         title: "Education Basics",
+  //         duration: "30 mins",
+  //         type: "video",
+  //         id: "education-basics",
+  //       },
+  //       {
+  //         title: "Learning Strategies",
+  //         duration: "45 mins",
+  //         type: "video",
+  //         id: "learning-strategies",
+  //       },
+  //       {
+  //         title: "Teaching Methods",
+  //         duration: "50 mins",
+  //         type: "video",
+  //         id: "teaching-methods",
+  //       },
+  //       {
+  //         title: "Assessment Techniques",
+  //         duration: "40 mins",
+  //         type: "video",
+  //         id: "assessment-techniques",
+  //       },
+  //     ],
+  //   },
+  // ];
 
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold mb-4">Course Content</h2>
       <div className="text-sm text-gray-600 mb-4 flex justify-between">
         <span>3 sections • 11 lectures • 4h 45m total length</span>
-        <Link href="/courses/course-id/learn">
+        <Link href={`/courses/${courseId}/learn`}>
           <button className="text-primary hover:underline cursor-pointer">
-            Expand all sections
+           View all sections
           </button>
         </Link>
       </div>
@@ -152,7 +153,7 @@ export function CourseContent() {
                   {section.lectures.map((lecture, idx) => (
                     <Link
                       key={idx}
-                      href={`/courses/course-id/learn/${lecture.id}`}
+                      href={`/courses/${courseId}/learn/${lecture.id}`}
                       className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-2">

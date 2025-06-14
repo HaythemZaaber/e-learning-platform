@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/auth.store";
 import ClientNavbar, { UserRole } from "./ClientNavbar";
 
 
+
 const getUserFromCookies = (
   role: string
 ): {
@@ -27,7 +28,7 @@ const getUserFromCookies = (
   }
 };
 
-export default function Navbar() {
+export default function Navbar({ showAiAssistant, setShowAiAssistant }: { showAiAssistant: boolean, setShowAiAssistant: (show: boolean) => void }) {
  const { role } = useAuthStore();
   const user = getUserFromCookies(role);
 
@@ -37,6 +38,7 @@ export default function Navbar() {
       userName={user?.name || ""}
       userInitials={user?.initials || ""}
       notificationCount={user?.notificationCount || 0}
+      onAiAssistantToggle={() => setShowAiAssistant(!showAiAssistant)}
     />
   );
 }

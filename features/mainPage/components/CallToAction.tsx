@@ -41,9 +41,11 @@ export default function CallToAction() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Button variant="outline" className="text-lg px-6 py-4  ">
-              <School className="mr-2" /> Become a Teacher
-            </Button>
+            <Link href="/instructor/verification">
+              <Button variant="outline" className=" text-lg px-6 py-4 hover:border-none cursor-pointer ">
+                <School className="mr-2" /> Become a Teacher
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </div>

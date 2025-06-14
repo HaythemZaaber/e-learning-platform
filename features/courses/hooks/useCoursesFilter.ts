@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Course, CourseFilters } from "../types/courseTypes";
+import { Course, CourseFilters } from "@/types/courseTypes";
 
 export const useCoursesFilter = (courses: Course[]) => {
   const [filters, setFilters] = useState<CourseFilters>({
@@ -77,7 +77,7 @@ export const useCoursesFilter = (courses: Course[]) => {
     // Duration filter
     if (filters.durations && filters.durations.length > 0) {
       result = result.filter((course) => {
-        const duration = parseInt(course.duration.split(" ")[0]);
+        const duration = parseInt(course.totalDuration.split(" ")[0]);
         return filters.durations!.some((d) => {
           if (d === "any") return true;
           if (d === "10+") return duration >= 10;
@@ -106,7 +106,7 @@ export const useCoursesFilter = (courses: Course[]) => {
         (course) =>
           course.title.toLowerCase().includes(searchLower) ||
           course.description.toLowerCase().includes(searchLower) ||
-          course.teacher.toLowerCase().includes(searchLower) ||
+          course.instructor.name.toLowerCase().includes(searchLower) ||
           course.category.toLowerCase().includes(searchLower)
       );
     }
@@ -118,7 +118,7 @@ export const useCoursesFilter = (courses: Course[]) => {
           result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
           break;
         case "popular":
-          result.sort((a, b) => b.students - a.students);
+          result.sort((a, b) => b.totalStudents - a.totalStudents);
           break;
         case "rating":
           result.sort((a, b) => b.rating - a.rating);

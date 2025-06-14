@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CourseLevel } from "../../mainPage/types/coursesTypes";
+import { CourseLevel } from "@/types/courseTypes";
 import { DualRangeSlider } from "@/components/shared/DualRangeSlider";
 import { Star } from "lucide-react";
 

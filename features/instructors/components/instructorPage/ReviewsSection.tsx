@@ -13,19 +13,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Progress } from "@/components/ui/progress"
 import type { Review } from "@/data/instructorsData"
 
-interface EnhancedReviewsSectionProps {
+interface ReviewsSectionProps {
   reviews: Review[]
   averageRating: number
   totalReviews: number
   instructorName: string
 }
 
-export function EnhancedReviewsSection({
+export function ReviewsSection({
   reviews,
   averageRating,
   totalReviews,
   instructorName,
-}: EnhancedReviewsSectionProps) {
+}: ReviewsSectionProps) {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "highest" | "lowest">("newest")
   const [filterRating, setFilterRating] = useState<number | "all">("all")
   const [showWriteReview, setShowWriteReview] = useState(false)

@@ -13,22 +13,11 @@ import {
   ArrowLeft 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCourseById } from "@/data/coursesData";
+import { Course } from "@/types/courseTypes";
+import { CourseSection, CourseLecture } from "@/types/courseTypes";
 
-interface Lecture {
-  id: string;
-  title: string;
-  duration: string;
-  isCompleted: boolean;
-  isLocked: boolean;
-  type: 'video' | 'quiz' | 'reading';
-}
 
-interface Section {
-  id: string;
-  title: string;
-  duration: string;
-  lectures: Lecture[];
-}
 
 export default function CourseLearnPage({
   params,
@@ -36,128 +25,128 @@ export default function CourseLearnPage({
   params: { courseId: string };
 }) {
   const router = useRouter();
-  
+  const courseData = getCourseById(params.courseId) as Course;
   // Mock data - replace with actual API call
-  const courseData = {
-    id: params.courseId,
-    title: "Difficult Things About Education",
-    description: "Master Python by building 100 projects in 100 days.",
-    totalDuration: "65 hours",
-    completedLectures: 3,
-    totalLectures: 45,
-    lastWatchedLecture: "variables",
-    sections: [
-      {
-        id: "intro",
-        title: "Intro to Python and Modules",
-        duration: "45 mins",
-        lectures: [
-          {
-            id: "course-intro",
-            title: "Course Intro",
-            duration: "5 mins",
-            type: "video" as const,
-            isCompleted: true,
-            isLocked: false,
-          },
-          {
-            id: "python-basics",
-            title: "Python Basics",
-            duration: "15 mins",
-            type: "video" as const,
-            isCompleted: true,
-            isLocked: false,
-          },
-          {
-            id: "setup-project",
-            title: "Setup Your First Project",
-            duration: "25 mins",
-            type: "video" as const,
-            isCompleted: true,
-            isLocked: false,
-          },
-        ],
-      },
-      {
-        id: "fundamentals",
-        title: "Course Fundamentals",
-        duration: "1h 30min",
-        lectures: [
-          {
-            id: "variables",
-            title: "Variables and Data Types",
-            duration: "20 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: false,
-          },
-          {
-            id: "control-flow",
-            title: "Control Flow",
-            duration: "25 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: false,
-          },
-          {
-            id: "functions",
-            title: "Functions",
-            duration: "25 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: true,
-          },
-          {
-            id: "error-handling",
-            title: "Error Handling",
-            duration: "20 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: true,
-          },
-        ],
-      },
-      {
-        id: "education",
-        title: "10 Things To Know About Education!",
-        duration: "2h 45min",
-        lectures: [
-          {
-            id: "education-basics",
-            title: "Education Basics",
-            duration: "30 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: true,
-          },
-          {
-            id: "learning-strategies",
-            title: "Learning Strategies",
-            duration: "45 mins",
-            type: "video" as const,
-            isCompleted: false,
-            isLocked: true,
-          },
-        ],
-      },
-    ] as Section[],
-  };
+  // const courseData = {
+  //   id: params.courseId,
+  //   title: "Difficult Things About Education",
+  //   description: "Master Python by building 100 projects in 100 days.",
+  //   totalDuration: "65 hours",
+  //   completedLectures: 3,
+  //   totalLectures: 45,
+  //   lastWatchedLecture: "variables",
+  //   sections: [
+  //     {
+  //       id: "intro",
+  //       title: "Intro to Python and Modules",
+  //       duration: "45 mins",
+  //       lectures: [
+  //         {
+  //           id: "course-intro",
+  //           title: "Course Intro",
+  //           duration: "5 mins",
+  //           type: "video" as const,
+  //           isCompleted: true,
+  //           isLocked: false,
+  //         },
+  //         {
+  //           id: "python-basics",
+  //           title: "Python Basics",
+  //           duration: "15 mins",
+  //           type: "video" as const,
+  //           isCompleted: true,
+  //           isLocked: false,
+  //         },
+  //         {
+  //           id: "setup-project",
+  //           title: "Setup Your First Project",
+  //           duration: "25 mins",
+  //           type: "video" as const,
+  //           isCompleted: true,
+  //           isLocked: false,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "fundamentals",
+  //       title: "Course Fundamentals",
+  //       duration: "1h 30min",
+  //       lectures: [
+  //         {
+  //           id: "variables",
+  //           title: "Variables and Data Types",
+  //           duration: "20 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: false,
+  //         },
+  //         {
+  //           id: "control-flow",
+  //           title: "Control Flow",
+  //           duration: "25 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: false,
+  //         },
+  //         {
+  //           id: "functions",
+  //           title: "Functions",
+  //           duration: "25 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: true,
+  //         },
+  //         {
+  //           id: "error-handling",
+  //           title: "Error Handling",
+  //           duration: "20 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: true,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "education",
+  //       title: "10 Things To Know About Education!",
+  //       duration: "2h 45min",
+  //       lectures: [
+  //         {
+  //           id: "education-basics",
+  //           title: "Education Basics",
+  //           duration: "30 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: true,
+  //         },
+  //         {
+  //           id: "learning-strategies",
+  //           title: "Learning Strategies",
+  //           duration: "45 mins",
+  //           type: "video" as const,
+  //           isCompleted: false,
+  //           isLocked: true,
+  //         },
+  //       ],
+  //     },
+  //   ] as Section[],
+  // };
 
   const progressPercentage = Math.round(
-    (courseData.completedLectures / courseData.totalLectures) * 100
+    (courseData.progress?.completedLectures || 0 / courseData.totalLectures) * 100
   );
 
-  const handleLectureClick = (lecture: Lecture) => {
+  const handleLectureClick = (lecture: CourseLecture) => {
     if (!lecture.isLocked) {
       router.push(`/courses/${params.courseId}/learn/${lecture.id}`);
     }
   };
 
   const resumeLastLesson = () => {
-    router.push(`/courses/${params.courseId}/learn/${courseData.lastWatchedLecture}`);
+    router.push(`/courses/${params.courseId}/learn/${courseData.progress?.lastWatchedLecture}`);
   };
 
-  const getLectureIcon = (lecture: Lecture) => {
+  const getLectureIcon = (lecture: CourseLecture) => {
     if (lecture.isCompleted) {
       return <CheckCircle className="w-4 h-4 text-green-500" />;
     }
@@ -211,7 +200,7 @@ export default function CourseLearnPage({
               </div>
               
               <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                <span>{courseData.completedLectures} of {courseData.totalLectures} lessons completed</span>
+                <span>{courseData.progress?.completedLectures} of {courseData.totalLectures} lessons completed</span>
                 <span>{courseData.totalDuration} total</span>
               </div>
 
@@ -294,13 +283,13 @@ export default function CourseLearnPage({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Completed</span>
                   <span className="font-medium text-green-600">
-                    {courseData.completedLectures}
+                    {courseData.progress?.completedLectures}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Remaining</span>
                   <span className="font-medium">
-                    {courseData.totalLectures - courseData.completedLectures}
+                    {courseData.totalLectures - (courseData.progress?.completedLectures || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between">

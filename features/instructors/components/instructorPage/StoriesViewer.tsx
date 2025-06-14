@@ -1,25 +1,25 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+import Image, { StaticImageData } from "next/image"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import type { StoryHighlight, SocialContent } from "@/data/instructorsData"
 
-interface EnhancedStoriesViewerProps {
+interface StoriesViewerProps {
   highlights: StoryHighlight[]
   recentStories: SocialContent[]
   instructorName: string
-  instructorAvatar: string
+  instructorAvatar: StaticImageData | string
 }
 
-export function EnhancedStoriesViewer({
+export function StoriesViewer({
   highlights,
   recentStories,
   instructorName,
   instructorAvatar,
-}: EnhancedStoriesViewerProps) {
+}: StoriesViewerProps) {
   const [selectedStory, setSelectedStory] = useState<SocialContent | null>(null)
   const [selectedHighlight, setSelectedHighlight] = useState<StoryHighlight | null>(null)
   const [isStoryOpen, setIsStoryOpen] = useState(false)

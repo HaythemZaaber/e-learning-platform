@@ -402,8 +402,9 @@ export default function CourseCreation() {
   const currentValidation = stepValidations[currentStep];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto py-8 px-4">
+    // <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div >
+      {/* <div className="container  w-[90vw] mx-auto"> */}
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -786,6 +787,6 @@ export default function CourseCreation() {
           
         )}
       </div>
-    </div>
+    // </div>
   );
 }

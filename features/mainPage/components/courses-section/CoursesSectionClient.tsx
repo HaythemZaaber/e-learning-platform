@@ -15,7 +15,7 @@ import {
   Navigation,
 } from "lucide-react";
 import Link from "next/link";
-import { CourseCard } from "../../../../components/shared/CourseCard";
+import { CourseCard } from "../../../courses/shared/CourseCard";
 import { cn } from "@/lib/utils";
 import {
   CourseContainer,

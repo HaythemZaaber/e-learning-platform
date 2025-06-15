@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { CourseCard } from "@/components/shared/CourseCard";
+import { CourseCard } from "@/features/courses/shared/CourseCard";
 
 import { StaticImageData } from "next/image";
 import placeholderImage from "@/public/images/courses/course.jpg";

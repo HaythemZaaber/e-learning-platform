@@ -270,3 +270,12 @@
 .hover-grow:hover {
   transform: scale(1.05);
 }
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -4,13 +4,12 @@ import React, { useState, useMemo } from "react";
 import { Search, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { CourseCard } from "@/components/shared/CourseCard";
+import { CourseCard } from "@/features/courses/shared/CourseCard";
 import { useCoursesFilter } from "../hooks/useCoursesFilter";
 import { useSavedCourses } from "../hooks/useSavedCourses";
 import { Pagination } from "@/components/shared/Pagination";
 import CourseSearchAndFilters from "./CourseSearchAndFilters";
-import {coursesData} from "@/data/coursesData"
-
+import { coursesData } from "@/data/coursesData";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -59,7 +58,9 @@ const CoursesGrid = () => {
     return filteredCourses.filter(
       (course) =>
         course.title.toLowerCase().includes(quickSearch.toLowerCase()) ||
-        course.instructor.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
+        course.instructor.name
+          .toLowerCase()
+          .includes(quickSearch.toLowerCase()) ||
         course.category.toLowerCase().includes(quickSearch.toLowerCase())
     );
   }, [filteredCourses, quickSearch]);
@@ -82,7 +83,7 @@ const CoursesGrid = () => {
 
   return (
     <div className="w-full min-h-screen ">
-      <div className="container mx-auto px-4 py-8">
+      <div className=" py-8">
         <CourseSearchAndFilters
           quickSearch={quickSearch}
           onQuickSearchChange={setQuickSearch}
@@ -146,6 +147,7 @@ const CoursesGrid = () => {
                   onToggleSave={toggleSavedCourse}
                   className={`${viewMode === "list" ? "w-full" : "h-full"} `}
                   viewMode={viewMode}
+                  userRole="learner"
                 />
               </motion.div>
             ))}

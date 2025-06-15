@@ -50,7 +50,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs-secondary";
-import { CourseCard } from "@/components/shared/CourseCard";
+import { CourseCard } from "@/features/courses/shared/CourseCard";
 import BookingCalendar from "@/features/instructors/components/instructorPage/BookingCalendar";
 import { ReelsGrid } from "@/features/instructors/components/instructorPage/ReelsGrid";
 import { StoriesViewer } from "@/features/instructors/components/instructorPage/StoriesViewer";

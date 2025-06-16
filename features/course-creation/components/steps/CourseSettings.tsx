@@ -169,9 +169,9 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
         {/* Navigation Sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-6">
-            <h3 className="font-semibold text-gray-900 mb-4">
+            <h4 className="font-semibold text-gray-900 mb-4">
               Settings Sections
-            </h3>
+            </h4>
             <nav className="space-y-1">
               {sections.map((section) => {
                 const Icon = section.icon;
@@ -186,7 +186,10 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                     }`}
                   >
                     <Icon className="h-4 w-4" />
+                <span className="text-start">
+
                     {section.title}
+                </span>
                   </button>
                 );
               })}
@@ -225,7 +228,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Globe className="h-5 w-5 text-blue-500" />
                           <div>
-                            <h4 className="font-medium">Public</h4>
+                            <h6 className="font-semibold">Public</h6>
                             <p className="text-sm text-gray-600">
                               Anyone can find and enroll in your course
                             </p>
@@ -245,7 +248,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Lock className="h-5 w-5 text-gray-500" />
                           <div>
-                            <h4 className="font-medium">Private</h4>
+                            <h6 className="font-semibold">Private</h6>
                             <p className="text-sm text-gray-600">
                               Only you can see and manage this course
                             </p>
@@ -280,7 +283,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                     <div className="flex items-center gap-3">
                       <Award className="h-5 w-5 text-amber-500" />
                       <div>
-                        <h4 className="font-medium">Course Certificate</h4>
+                        <h6 className="font-medium">Course Certificate</h6>
                         <p className="text-sm text-gray-600">
                           Issue certificates upon course completion
                         </p>
@@ -335,7 +338,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         },
                         {
                           id: "subscription",
-                          title: "Subscription",
+                          title: "Subscription",  
                           icon: Calendar,
                           desc: "Recurring billing",
                         },
@@ -358,8 +361,8 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                           >
                             <div className="text-center">
                               <Icon className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                              <h4 className="font-medium">{type.title}</h4>
-                              <p className="text-sm text-gray-600">
+                              <h6 className="font-semibold">{type.title}</h6>
+                              <p className="text-sm text-gray-600"> 
                                 {type.desc}
                               </p>
                             </div>
@@ -439,7 +442,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>
-                          <h4 className="font-medium">Early Bird Discount</h4>
+                          <h6 className="font-medium">Early Bird Discount</h6>
                           <p className="text-sm text-gray-600">
                             Offer discounts for early enrollments
                           </p>
@@ -465,7 +468,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
 
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>
-                          <h4 className="font-medium">Installment Plans</h4>
+                          <h6 className="font-medium">Installment Plans</h6>
                           <p className="text-sm text-gray-600">
                             Allow students to pay in installments
                           </p>
@@ -633,7 +636,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Icon className="h-5 w-5 text-blue-500" />
                           <div>
-                            <h4 className="font-medium">{feature.title}</h4>
+                            <h6 className="font-medium">{feature.title}</h6>
                             <p className="text-sm text-gray-600">
                               {feature.desc}
                             </p>
@@ -742,7 +745,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <h4 className="font-medium">Allow Retakes</h4>
+                      <h6 className="font-medium">Allow Retakes</h6>
                       <p className="text-sm text-gray-600">
                         Let students retake failed assessments
                       </p>
@@ -811,7 +814,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Icon className="h-5 w-5 text-green-500" />
                           <div>
-                            <h4 className="font-medium">{feature.title}</h4>
+                              <h6 className="font-medium">{feature.title}</h6>
                             <p className="text-sm text-gray-600">
                               {feature.desc}
                             </p>
@@ -960,9 +963,9 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                     <div className="flex items-center gap-3">
                       <Star className="h-5 w-5 text-yellow-500" />
                       <div>
-                        <h4 className="font-medium text-gray-900">
+                        <h6 className="font-medium text-gray-900">
                           Featured Course
-                        </h4>
+                        </h6>
                         <p className="text-sm text-gray-600">
                           Highlight this course in featured sections
                         </p>
@@ -1028,7 +1031,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Icon className="h-5 w-5 text-indigo-500" />
                           <div>
-                            <h4 className="font-medium">{feature.title}</h4>
+                            <h6 className="font-medium">{feature.title}</h6>
                             <p className="text-sm text-gray-600">
                               {feature.desc}
                             </p>
@@ -1060,9 +1063,9 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                   <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 text-blue-500 mt-0.5" />
                     <div>
-                      <h4 className="font-medium text-blue-900">
+                      <h6 className="font-medium text-blue-900">
                         Accessibility Guidelines
-                      </h4>
+                      </h6>
                       <p className="text-sm text-blue-700 mt-1">
                         Following accessibility best practices helps ensure your
                         course is inclusive and reaches a wider audience.

@@ -175,8 +175,8 @@ const Navbar = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {userInitials || "U"}
+          <div className="flex  h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+            {userInitials || "User"}
           </div>
         </Button>
       </DropdownMenuTrigger>

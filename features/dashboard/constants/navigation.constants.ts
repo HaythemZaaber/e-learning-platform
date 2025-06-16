@@ -36,7 +36,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
   teacher: {
     main: [
       {
-        name: "Dashboard",
+        name: "Overview",
         href: "/instructor/dashboard/overview",
         icon: LayoutDashboard,
         badge: null,

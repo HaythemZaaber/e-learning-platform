@@ -1,7 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { CourseList } from "@/features/courses/shared/CourseList";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export default function CoursesPage() {
   const handleCourseAction = (action: string, courseId: string) => {
@@ -19,10 +19,12 @@ export default function CoursesPage() {
             Create, edit, and manage your courses
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Course
-        </Button>
+        <Link href="/instructor/dashboard/courses/course-creation">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Course
+          </Button>
+        </Link>
       </div>
 
       <CourseList
@@ -30,7 +32,6 @@ export default function CoursesPage() {
         cardVariant="detailed"
         showFilters={true}
         showActions={true}
-     
       />
     </div>
   );

@@ -403,95 +403,101 @@ export default function CourseCreation() {
 
   return (
     // <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div >
+    <div>
       {/* <div className="container  w-[90vw] mx-auto"> */}
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Create New Course
-            </h1>
-            <p className="text-gray-600 mt-2 text-lg">
-              Complete all steps to publish your course
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {lastSaved && (
-              <span className="text-sm text-gray-500">
-                Last saved: {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-
-            <button
-              onClick={() => setShowAssistant(!showAssistant)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Bot className="h-4 w-4" />
-              AI Assistant
-            </button>
-
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </button>
-
-            <button
-              onClick={handleSave}
-              disabled={isSaving || !hasUnsavedChanges}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Draft
-                </>
-              )}
-            </button>
-
-            {currentStep === steps.length - 1 && (
-              <button
-                onClick={handlePublish}
-                disabled={isSaving || !stepValidations.every((v) => v.isValid)}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                <Check className="h-4 w-4" />
-                Publish Course
-              </button>
-            )}
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        {/* <div>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"></h1>
+          <p className="text-gray-600 mt-2 text-lg">
+            Complete all steps to publish your course
+          </p>
+        </div> */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Create New Course
+          </h1>
+          <p className="text-muted-foreground">
+            Complete all steps to publish your course
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Step Indicator */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <div className="flex items-center justify-between">
-                {steps.map((step, index) => {
-                  const StepIcon = step.icon;
-                  const isActive = index === currentStep;
-                  const isCompleted =
-                    stepValidations[index]?.isValid && index < currentStep;
-                  const isClickable = canNavigateToStep(index);
-                  const hasError =
-                    !stepValidations[index]?.isValid && index <= currentStep;
+        <div className="flex  gap-3 justify-end ml-auto flex-wrap">
+          {lastSaved && (
+            <span className="text-sm text-gray-500">
+              Last saved: {lastSaved.toLocaleTimeString()}
+            </span>
+          )}
 
-                  return (
-                    <div key={step.id} className="flex items-center">
-                      <div className="flex flex-col items-center">
-                        <button
-                          onClick={() => isClickable && setCurrentStep(index)}
-                          disabled={!isClickable}
-                          className={`
+          <button
+            onClick={() => setShowAssistant(!showAssistant)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Bot className="h-4 w-4" />
+            AI Assistant
+          </button>
+
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            Preview
+          </button>
+
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Draft
+              </>
+            )}
+          </button>
+
+          {currentStep === steps.length - 1 && (
+            <button
+              onClick={handlePublish}
+              disabled={isSaving || !stepValidations.every((v) => v.isValid)}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+            >
+              <Check className="h-4 w-4" />
+              Publish Course
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-3">
+          {/* Step Indicator */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center justify-between">
+              {steps.map((step, index) => {
+                const StepIcon = step.icon;
+                const isActive = index === currentStep;
+                const isCompleted =
+                  stepValidations[index]?.isValid && index < currentStep;
+                const isClickable = canNavigateToStep(index);
+                const hasError =
+                  !stepValidations[index]?.isValid && index <= currentStep;
+
+                return (
+                  <div key={step.id} className="flex items-center">
+                    <div className="flex flex-col items-center">
+                      <button
+                        onClick={() => isClickable && setCurrentStep(index)}
+                        disabled={!isClickable}
+                        className={`
                             w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-200
                             ${
                               isActive
@@ -508,285 +514,280 @@ export default function CourseCreation() {
                                 : "cursor-not-allowed"
                             }
                           `}
-                        >
-                          {isCompleted ? (
-                            <Check className="h-5 w-5" />
-                          ) : hasError ? (
-                            <AlertCircle className="h-5 w-5" />
-                          ) : (
-                            <StepIcon className="h-5 w-5" />
-                          )}
-                        </button>
-                        <div className="mt-3 text-center">
-                          <p
-                            className={`text-sm font-medium ${
-                              isActive ? "text-blue-600" : "text-gray-600"
-                            }`}
-                          >
-                            {step.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1 max-w-[120px]">
-                            {step.description}
-                          </p>
-                        </div>
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div
-                          className={`w-16 h-0.5 mx-4 ${
-                            isCompleted ? "bg-green-500" : "bg-gray-300"
+                      >
+                        {isCompleted ? (
+                          <Check className="h-5 w-5" />
+                        ) : hasError ? (
+                          <AlertCircle className="h-5 w-5" />
+                        ) : (
+                          <StepIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                      <div className="mt-3 text-center">
+                        <p
+                          className={`text-sm font-medium ${
+                            isActive ? "text-blue-600" : "text-gray-600"
                           }`}
-                        />
-                      )}
+                        >
+                          {step.title}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 max-w-[120px]">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div
+                        className={`w-16 h-0.5 mx-4 ${
+                          isCompleted ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Step Content */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Validation Messages */}
+            {(currentValidation.errors.length > 0 ||
+              currentValidation.warnings.length > 0) && (
+              <div className="p-6 border-b border-gray-200">
+                {currentValidation.errors.length > 0 && (
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-red-800">
+                        Required fields missing
+                      </h4>
+                      <p className="text-red-700 text-sm mt-1">
+                        Please fill in all required fields to continue.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {currentValidation.warnings.length > 0 && (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-amber-800">
+                        Recommendations
+                      </h4>
+                      <ul className="text-amber-700 text-sm mt-1 space-y-1">
+                        {currentValidation.warnings.map((warning, index) => (
+                          <li key={index}>• {warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="p-8">
+              {currentStep === 0 && (
+                <CourseInformation
+                  data={courseData}
+                  updateData={updateCourseData}
+                  validation={currentValidation}
+                />
+              )}
+              {currentStep === 1 && (
+                <CourseStructure
+                  data={courseData}
+                  updateData={updateCourseData}
+                />
+              )}
+              {currentStep === 2 && (
+                <ContentUpload
+                  data={courseData}
+                  updateData={updateCourseData}
+                />
+              )}
+              {currentStep === 3 && (
+                <CourseSettings
+                  data={courseData}
+                  updateData={updateCourseData}
+                />
+              )}
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between items-center p-6 bg-gray-50 border-t border-gray-200">
+              <button
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className="flex items-center gap-2 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Previous
+              </button>
+
+              <button
+                onClick={handleNext}
+                disabled={
+                  currentStep === steps.length - 1 || !currentValidation.isValid
+                }
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Progress Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-500" />
+              Course Progress
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Completion</span>
+                <span className="font-semibold text-gray-900">{progress}%</span>
+              </div>
+
+              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                {steps.map((step, index) => {
+                  const validation = stepValidations[index];
+                  return (
+                    <div
+                      key={step.id}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="text-gray-600">{step.title}</span>
+                      <span
+                        className={`font-medium ${
+                          validation.isValid && index < currentStep
+                            ? "text-green-600"
+                            : index === currentStep
+                            ? "text-blue-600"
+                            : !validation.isValid && index <= currentStep
+                            ? "text-red-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {validation.isValid && index < currentStep
+                          ? "Complete"
+                          : index === currentStep
+                          ? "In Progress"
+                          : !validation.isValid && index <= currentStep
+                          ? "Incomplete"
+                          : "Not Started"}
+                      </span>
                     </div>
                   );
                 })}
               </div>
             </div>
-
-            {/* Step Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Validation Messages */}
-              {(currentValidation.errors.length > 0 ||
-                currentValidation.warnings.length > 0) && (
-                <div className="p-6 border-b border-gray-200">
-                  {currentValidation.errors.length > 0 && (
-                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
-                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-medium text-red-800">
-                          Required fields missing
-                        </h4>
-                        <p className="text-red-700 text-sm mt-1">
-                          Please fill in all required fields to continue.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {currentValidation.warnings.length > 0 && (
-                    <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-medium text-amber-800">
-                          Recommendations
-                        </h4>
-                        <ul className="text-amber-700 text-sm mt-1 space-y-1">
-                          {currentValidation.warnings.map((warning, index) => (
-                            <li key={index}>• {warning}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="p-8">
-                {currentStep === 0 && (
-                  <CourseInformation
-                    data={courseData}
-                    updateData={updateCourseData}
-                    validation={currentValidation}
-                  />
-                )}
-                {currentStep === 1 && (
-                  <CourseStructure
-                    data={courseData}
-                    updateData={updateCourseData}
-                  />
-                )}
-                {currentStep === 2 && (
-                  <ContentUpload
-                    data={courseData}
-                    updateData={updateCourseData}
-                  />
-                )}
-                {currentStep === 3 && (
-                  <CourseSettings
-                    data={courseData}
-                    updateData={updateCourseData}
-                  />
-                )}
-              </div>
-
-              {/* Navigation */}
-              <div className="flex justify-between items-center p-6 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={handlePrevious}
-                  disabled={currentStep === 0}
-                  className="flex items-center gap-2 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Previous
-                </button>
-
-                <button
-                  onClick={handleNext}
-                  disabled={
-                    currentStep === steps.length - 1 ||
-                    !currentValidation.isValid
-                  }
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Progress Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-blue-500" />
-                Course Progress
-              </h3>
+          {/* Analytics Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-green-500" />
+              Course Analytics
+            </h3>
 
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Completion</span>
-                  <span className="font-semibold text-gray-900">
-                    {progress}%
-                  </span>
-                </div>
+            <div className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Estimated Duration</span>
+                <span className="font-medium">4h 30m</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Content Quality</span>
+                <span className="font-medium text-green-600">Good</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">SEO Score</span>
+                <span className="font-medium text-amber-600">72/100</span>
+              </div>
 
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                  Content Distribution
+                </h4>
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                  <div className="h-full bg-blue-500 w-[40%]" title="Video" />
+                  <div className="h-full bg-green-500 w-[25%]" title="Text" />
+                  <div className="h-full bg-amber-500 w-[20%]" title="Quiz" />
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
+                    className="h-full bg-purple-500 w-[15%]"
+                    title="Assignment"
                   />
                 </div>
-
-                <div className="border-t border-gray-200 pt-4 space-y-3">
-                  {steps.map((step, index) => {
-                    const validation = stepValidations[index];
-                    return (
-                      <div
-                        key={step.id}
-                        className="flex justify-between items-center text-sm"
-                      >
-                        <span className="text-gray-600">{step.title}</span>
-                        <span
-                          className={`font-medium ${
-                            validation.isValid && index < currentStep
-                              ? "text-green-600"
-                              : index === currentStep
-                              ? "text-blue-600"
-                              : !validation.isValid && index <= currentStep
-                              ? "text-red-600"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {validation.isValid && index < currentStep
-                            ? "Complete"
-                            : index === currentStep
-                            ? "In Progress"
-                            : !validation.isValid && index <= currentStep
-                            ? "Incomplete"
-                            : "Not Started"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Analytics Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Target className="h-5 w-5 text-green-500" />
-                Course Analytics
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Estimated Duration</span>
-                  <span className="font-medium">4h 30m</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Content Quality</span>
-                  <span className="font-medium text-green-600">Good</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">SEO Score</span>
-                  <span className="font-medium text-amber-600">72/100</span>
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">
-                    Content Distribution
-                  </h4>
-                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden flex">
-                    <div className="h-full bg-blue-500 w-[40%]" title="Video" />
-                    <div className="h-full bg-green-500 w-[25%]" title="Text" />
-                    <div className="h-full bg-amber-500 w-[20%]" title="Quiz" />
-                    <div
-                      className="h-full bg-purple-500 w-[15%]"
-                      title="Assignment"
-                    />
+                <div className="grid grid-cols-4 gap-2 mt-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                    Video
                   </div>
-                  <div className="grid grid-cols-4 gap-2 mt-3 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                      Video
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full" />
-                      Text
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                      Quiz
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                      Assignment
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    Text
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                    Quiz
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                    Assignment
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Modals would be rendered here */}
-        {showPreview && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">Course Preview</h2>
-                  <button
-                    onClick={() => setShowPreview(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <CoursePreview
-                  data={courseData}
-                  onClose={() => setShowPreview(false)}
-                />
+      {/* Modals would be rendered here */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Course Preview</h2>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
               </div>
             </div>
+            <div className="p-6">
+              <CoursePreview
+                data={courseData}
+                onClose={() => setShowPreview(false)}
+              />
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {showAssistant && (
-       
-                <SmartAssistant
-                  data={courseData}
-                  updateData={updateCourseData}
-                  onClose={() => setShowAssistant(false)}
-                />
-          
-        )}
-      </div>
+      {showAssistant && (
+        <SmartAssistant
+          data={courseData}
+          updateData={updateCourseData}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
+    </div>
     // </div>
   );
 }

@@ -51,7 +51,7 @@ export default function InstructorLayout({
             isSidebarOpen || isHovering ? "ml-64" : "ml-0"
           )}
         >
-          <div className="p-10">{children}</div>
+          <div className="p-4 sm:p-10">{children}</div>
         </main>
       </div>
       <Footer />

@@ -49,13 +49,13 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
       },
       {
         name: "Students",
-        href: "/instructor/students",
+        href: "/instructor/dashboard/students",
         icon: Users,
         badge: "12",
       },
       {
         name: "Live Sessions",
-        href: "/instructor/sessions",
+        href: "/instructor/dashboard/sessions",
         icon: Video,
         badge: null,
       },

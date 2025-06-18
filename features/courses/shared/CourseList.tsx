@@ -173,6 +173,7 @@ export function CourseList({
                 viewMode={viewMode}
                 userRole="instructor"
                 isInstructorDashboard={true}
+                isOwnCourse={true}
               />
             </motion.div>
           ))}

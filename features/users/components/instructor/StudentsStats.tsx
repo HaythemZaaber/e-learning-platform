@@ -1,12 +1,14 @@
 "use client";
 
-import { Activity, Award, BarChart3, TrendingUp, User, Users } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Activity,
+  Award,
+  BarChart3,
+  TrendingUp,
+  User,
+  Users,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 
 interface StudentStatsProps {
@@ -74,13 +76,13 @@ export function StudentStats({ detailed = false }: StudentStatsProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3  mt-10">
       {/* Filter Tabs */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-semibold text-gray-900">
           Student Analytics
         </h2>
-        <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-1 ml-auto">
           {filters.map((filter) => (
             <button
               key={filter.id}

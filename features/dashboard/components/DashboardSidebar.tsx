@@ -73,7 +73,7 @@ export function DashboardSidebar({
           </h3>
           <nav className="space-y-1">
             {navigation.main.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname.includes(item.href);
               return (
                 <Link
                   key={item.name}

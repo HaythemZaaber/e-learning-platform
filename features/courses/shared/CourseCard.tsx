@@ -517,6 +517,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 <actions.secondary.icon className="h-4 w-4 mr-1" />
                 {actions.secondary.label}
               </Button>
+            
               <Button size="sm" className="rounded-lg">
                 <actions.primary.icon className="h-4 w-4 mr-1" />
                 {actions.primary.label}

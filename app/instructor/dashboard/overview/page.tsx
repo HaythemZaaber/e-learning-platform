@@ -18,12 +18,11 @@ import {
   Activity,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StudentStats } from "@/features/users/components/instructor/StudentsStats";    
+import { StudentStats } from "@/features/users/components/instructor/StudentsStats";
 import { InstructorCoursesOverview } from "@/features/courses/components/instructor/InstructorCoursesOverview";
 import { SessionCalendar } from "@/features/sessions/components/SessionCalendar";
 import { EarningsChart } from "@/features/analytics/components/EarningsChart";
 import { RecentMessages } from "@/features/messages/components/RecentMessages";
-
 
 // Mock components for the dashboard
 // const InstructorCoursesOverview = ({ limit, showCreateButton }) => (
@@ -152,69 +151,70 @@ export default function EnhancedDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Welcome back, Jessica! 👋
-              </h1>
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
-                <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
+    <div>
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Welcome back, Jessica! 👋
+            </h1>
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
             </div>
-            <p className="text-gray-600 text-lg">
-              Here's what's happening with your courses today.
-            </p>
-            <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <span>
-                {currentTime.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-              <span>•</span>
-              <span>
-                {currentTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
+          </div>
+          <p className="text-gray-600 text-lg">
+            Here's what's happening with your courses today.
+          </p>
+          <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <span>
+              {currentTime.toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            <span>•</span>
+            <span>
+              {currentTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* Enhanced Student Stats */}
+      <div className="space-y-8">
         <StudentStats detailed={true} />
+        <InstructorCoursesOverview limit={4} showCreateButton />
+        {/* <div className="grid gap-8 lg:grid-cols-2">
+          </div> */}
+        <div>
+          <h2 className="text-xl font-semibold mb-6 flex items-center">
+            <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+            Earnings Overview
+          </h2>
+          <EarningsChart period="month" />
+        </div>
 
-        {/* Main Content Grid */}
-        <div className="space-y-8">
-          <div className="grid gap-8 lg:grid-cols-2">
-            <InstructorCoursesOverview limit={4} showCreateButton />
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div>
+            <h2 className="text-xl font-semibold mb-6 flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-primary" />
+              Upcoming Sessions
+            </h2>
+
             <SessionCalendar view="upcoming" limit={5} />
           </div>
-
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <h2 className="text-xl font-semibold mb-6 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                Earnings Overview
-              </h2>
-              <EarningsChart period="month" />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-6 flex items-center">
-                <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
-                Recent Messages
-              </h2>
-              <RecentMessages limit={5} />
-            </div>
+          <div>
+            <h2 className="text-xl font-semibold mb-6 flex items-center">
+              <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
+              Recent Messages
+            </h2>
+            <RecentMessages limit={5} />
           </div>
         </div>
       </div>

@@ -41,7 +41,7 @@ const HeroSection: React.FC = () => {
   }, [setShowNavbarSearch]);
 
   return (
-    <section className="w-full bg-gradient-to-br from-primary/5 to-primary/20 overflow-hidden">
+    <section className="w-full bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
       <div className="container w-[90vw]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}

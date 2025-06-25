@@ -51,7 +51,7 @@ export default function InstructorLayout({
             isSidebarOpen || isHovering ? "ml-64" : "ml-0"
           )}
         >
-          <div className="p-4 sm:p-10 bg-gradient-to-br from-blue-50 via-white to-purple-50">{children}</div>
+          <div className="p-4 sm:p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50">{children}</div>
         </main>
       </div>
       <Footer />

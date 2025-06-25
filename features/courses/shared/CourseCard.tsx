@@ -41,7 +41,7 @@ import { CourseBadgeColor } from "@/features/mainPage/types/coursesTypes";
 import { useRouter } from "next/navigation";
 import { Course } from "@/types/courseTypes";
 
-type UserRole = "learner" | "instructor" | "parent" | "admin";
+type UserRole = "student" | "instructor" | "parent" | "admin";
 
 interface CourseCardProps {
   course: Course;
@@ -172,7 +172,7 @@ const getRoleSpecificActions = (
   moderationStatus?: "pending" | "approved" | "rejected"
 ) => {
   switch (userRole) {
-    case "learner":
+    case "student":
       if (isEnrolled) {
         return {
           primary: {
@@ -395,7 +395,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </p>
 
         {/* Progress bar for enrolled learners or parent viewing child's progress */}
-        {((userRole === "learner" && isEnrolled) ||
+        {((userRole === "student" && isEnrolled) ||
           (userRole === "parent" && childProgress !== undefined)) && (
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
@@ -658,7 +658,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </p>
 
             {/* Progress bar for enrolled learners or parent viewing child's progress */}
-            {((userRole === "learner" && isEnrolled) ||
+            {((userRole === "student" && isEnrolled) ||
               (userRole === "parent" && childProgress !== undefined)) && (
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">

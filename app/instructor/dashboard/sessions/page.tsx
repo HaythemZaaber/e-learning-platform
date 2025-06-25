@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { SessionsCalendar } from "@/features/sessions/components/SessionsCalendar";
 import { SessionsStats } from "@/features/sessions/components/SessionsStats";
-import { RequestsDrawer } from "@/features/sessions/components/RequestDrawer";
+import RequestsManagement from "@/features/sessions/components/RequestManagement";
 import { PriceRulesModal } from "@/features/sessions/components/PriceRulesModal";
 import { NotificationProvider } from "@/features/sessions/components/NotificationProvider";
 import { SessionsProvider } from "@/features/sessions/context/sessionsContext";
@@ -11,15 +11,17 @@ import { TopicApprovalPanel } from "@/features/sessions/components/TopicApproval
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useSessions } from "@/features/sessions/context/sessionsContext";
+import { useState } from "react";
 
 // Create a separate component that uses the context
 function SessionsContent() {
   // This component is rendered inside the SessionsProvider
   // so it's safe to use the useSessions hook here
   const { state } = useSessions();
+  const [requestsOpen, setRequestsOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex">
       {/* Left Sidebar */}
       <aside className="w-80 border-r bg-card p-6 hidden lg:block">
         <div className="space-y-6">
@@ -43,6 +45,16 @@ function SessionsContent() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="border-b">
+          {/* Manage Requests Button */}
+          <div className="flex justify-end px-6 pt-6">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow"
+              onClick={() => setRequestsOpen(true)}
+              type="button"
+            >
+              Manage Requests
+            </button>
+          </div>
           <Tabs defaultValue="calendar" className="w-full">
             <div className="px-6 pt-6">
               <TabsList className="grid w-full grid-cols-2 max-w-md">
@@ -86,7 +98,10 @@ function SessionsContent() {
       </main>
 
       {/* Requests Drawer */}
-      <RequestsDrawer />
+      <RequestsManagement
+        isOpen={requestsOpen}
+        onClose={() => setRequestsOpen(false)}
+      />
 
       {/* Modals */}
       <PriceRulesModal />

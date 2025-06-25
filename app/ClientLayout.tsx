@@ -23,6 +23,7 @@ export default function ClientLayout({
     pathname?.includes("/dashboard") ||
     // pathname?.includes("/instructor") ||
     pathname?.includes("/student") ||
+    pathname?.includes("/become-instructor") ||
     pathname?.includes("/parent");
   const isLandingPage = pathname === "/";
 

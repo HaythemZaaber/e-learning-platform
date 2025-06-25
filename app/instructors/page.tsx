@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Grid,
   List,
@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InstructorCard } from "@/components/shared/InstructorCard";
 import { FilterSidebar } from "@/features/instructors/components/FilterSidebar";
+import { Pagination } from "@/components/shared/Pagination";
 import { instructors } from "@/data/instructorsData";
+
+const ITEMS_PER_PAGE = 6;
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -37,25 +40,44 @@ const sortOptions = [
 export default function InstructorsPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("featured");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const sortedInstructors = [...instructors].sort((a, b) => {
-    switch (sortBy) {
-      case "rating":
-        return b.rating - a.rating;
-      case "students":
-        return b.studentsCount - a.studentsCount;
-      case "most-booked":
-        return b.weeklyBookings - a.weeklyBookings;
-      case "available-today":
-        return (b.nextAvailableSlot ? 1 : 0) - (a.nextAvailableSlot ? 1 : 0);
-      case "name":
-        return a.name.localeCompare(b.name);
-      case "newest":
-        return 0; // Would sort by join date if available
-      default:
-        return 0; // Featured order
-    }
-  });
+  const sortedInstructors = useMemo(() => {
+    return [...instructors].sort((a, b) => {
+      switch (sortBy) {
+        case "rating":
+          return b.rating - a.rating;
+        case "students":
+          return b.studentsCount - a.studentsCount;
+        case "most-booked":
+          return b.weeklyBookings - a.weeklyBookings;
+        case "available-today":
+          return (b.nextAvailableSlot ? 1 : 0) - (a.nextAvailableSlot ? 1 : 0);
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "newest":
+          return 0; // Would sort by join date if available
+        default:
+          return 0; // Featured order
+      }
+    });
+  }, [sortBy]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(sortedInstructors.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentInstructors = sortedInstructors.slice(startIndex, endIndex);
+
+  // Reset page when sort changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const availableTodayCount = instructors.filter(
     (i) => i.nextAvailableSlot
@@ -101,24 +123,6 @@ export default function InstructorsPage() {
               succeed in your learning journey.
             </p>
 
-            {/* CTA Buttons */}
-            {/* <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <BookOpen className="mr-2 h-5 w-5" />
-                Explore All Instructors
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-8 py-3 rounded-xl border-2 hover:bg-gray-50 transition-all duration-200"
-              >
-                <Calendar className="mr-2 h-5 w-5" />
-                Book Live Session
-              </Button>
-            </div> */}
           </div>
 
           {/* Enhanced Stats Grid */}
@@ -200,13 +204,15 @@ export default function InstructorsPage() {
                 <div className="text-sm text-muted-foreground">
                   Showing{" "}
                   <span className="font-semibold text-gray-900">
-                    {sortedInstructors.length}
+                    {startIndex + 1}-
+                    {Math.min(endIndex, sortedInstructors.length)}
                   </span>{" "}
                   of{" "}
                   <span className="font-semibold text-gray-900">
-                    {instructors.length}
+                    {sortedInstructors.length}
                   </span>{" "}
                   instructors
+                  {currentPage > 1 && ` • Page ${currentPage} of ${totalPages}`}
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -271,8 +277,8 @@ export default function InstructorsPage() {
 
           <div className="container py-8 px-5">
             {view === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {sortedInstructors.map((instructor) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                {currentInstructors.map((instructor) => (
                   <InstructorCard
                     key={instructor.id}
                     instructor={instructor}
@@ -281,8 +287,8 @@ export default function InstructorsPage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {sortedInstructors.map((instructor) => (
+              <div className="space-y-4 mb-8">
+                {currentInstructors.map((instructor) => (
                   <InstructorCard
                     key={instructor.id}
                     instructor={instructor}
@@ -291,6 +297,16 @@ export default function InstructorsPage() {
                 ))}
               </div>
             )}
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={sortedInstructors.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
+              showSummary={true}
+              className="mt-8"
+            />
           </div>
         </div>
       </div>

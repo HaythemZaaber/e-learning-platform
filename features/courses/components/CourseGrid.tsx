@@ -147,7 +147,7 @@ const CoursesGrid = () => {
                   onToggleSave={toggleSavedCourse}
                   className={`${viewMode === "list" ? "w-full" : "h-full"} `}
                   viewMode={viewMode}
-                  userRole="learner"
+                  userRole="student"
                 />
               </motion.div>
             ))}

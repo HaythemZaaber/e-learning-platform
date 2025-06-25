@@ -1,46 +1,3 @@
-// "use client";
-
-// import { useAuthStore } from "@/store/auth.store";
-// import ClientNavbar, { UserRole } from "./ClientNavbar";
-
-// const getUserFromCookies = (
-//   role: string
-// ): {
-//   role: UserRole;
-//   name: string;
-//   initials: string;
-//   notificationCount: number;
-// } | null => {
-//   try {
-//     // This would normally decode and verify a JWT or similar
-//     // For demo purposes, we'll just return mock data
-//     return {
-//       role: role as UserRole,
-//       name: "Haythem Zaaber",
-//       initials: "HZ",
-//       notificationCount: 4,
-//     };
-//   } catch (error) {
-//     console.error("Failed to parse user session", error);
-//     return null;
-//   }
-// };
-
-// export default function Navbar({ showAiAssistant, setShowAiAssistant }: { showAiAssistant: boolean, setShowAiAssistant: (show: boolean) => void }) {
-//  const { role } = useAuthStore();
-//   const user = getUserFromCookies(role);
-
-//   return (
-//     <ClientNavbar
-//       userRole={user?.role || "visitor"}
-//       userName={user?.name || ""}
-//       userInitials={user?.initials || ""}
-//       notificationCount={user?.notificationCount || 0}
-//       onAiAssistantToggle={() => setShowAiAssistant(!showAiAssistant)}
-//     />
-//   );
-// }
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -133,8 +90,8 @@ const Navbar = ({
           ...baseItems,
           { label: "How It Works", href: "/how-it-works", icon: null },
           {
-            label: "Become a Teacher",
-            href: "/become-teacher",
+            label: "Become an Instructor",
+            href: "/become-instructor",
             icon: GraduationCap,
             badge: "New",
           },
@@ -257,22 +214,44 @@ const Navbar = ({
             {/* Desktop Navigation */}
             {!isDashboard && (
               <nav className="hidden lg:flex items-center gap-6">
-                {navigationItems.map((item) => (
-                  <Link key={item.label} href={item.href} className="relative">
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-2 text-sm font-medium"
+                {navigationItems.map((item) => {
+                  if (item.label === "Become an Instructor") {
+                    return (
+                      <Link key={item.label} href={item.href}>
+                        <motion.button
+                          className="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-br from-purple-600 to-blue-500 group-hover:from-purple-600 group-hover:to-blue-500 text-white focus:ring-4 focus:outline-none focus:ring-blue-300"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground cursor-pointer">
+                            {item.icon && <item.icon className="h-4 w-4" />}
+                            {item.label}
+                          </span>
+                        </motion.button>
+                      </Link>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="relative"
                     >
-                      {item.icon && <item.icon className="h-4 w-4" />}
-                      {item.label}
-                      {item.badge && (
-                        <Badge variant="secondary" className="ml-1 text-xs">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Button>
-                  </Link>
-                ))}
+                      <Button
+                        variant="ghost"
+                        className="flex items-center gap-2 text-sm font-medium hover:scale-105 transition-all duration-300"
+                      >
+                        {item.icon && <item.icon className="h-4 w-4" />}
+                        {item.label}
+                        {item.badge && (
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Button>
+                    </Link>
+                  );
+                })}
               </nav>
             )}
           </motion.div>
@@ -321,10 +300,14 @@ const Navbar = ({
               <UserProfileDropdown />
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
-                <Button size="sm">Get Started</Button>
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/register">
+                  <Button size="sm">Get Started</Button>
+                </Link>
               </div>
             )}
 
@@ -363,29 +346,61 @@ const Navbar = ({
                 )}
 
                 {/* Mobile Navigation Items */}
-                {navigationItems.map((item) => (
-                  <Button
-                    key={item.label}
-                    variant="ghost"
-                    className="justify-start gap-2"
-                  >
-                    {item.icon && <item.icon className="h-4 w-4" />}
-                    {item.label}
-                    {item.badge && (
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </Button>
-                ))}
+                {navigationItems.map((item) => {
+                  if (item.label === "Become an Instructor") {
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        className="w-full"
+                      >
+                        <motion.button
+                          className="w-full relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-br from-purple-600 to-blue-500 group-hover:from-purple-600 group-hover:to-blue-500 text-white focus:ring-4 focus:outline-none focus:ring-blue-300  cursor-pointer"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <span className="w-full justify-center relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground ">
+                            {item.icon && <item.icon className="h-4 w-4" />}
+                            {item.label}
+                          </span>
+                        </motion.button>
+                      </Link>
+                    );
+                  }
+                  return (
+                    <Button
+                      key={item.label}
+                      variant="ghost"
+                      className="justify-start gap-2"
+                      asChild
+                    >
+                      <Link href={item.href}>
+                        {item.icon && <item.icon className="h-4 w-4" />}
+                        {item.label}
+                        {item.badge && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-auto text-xs"
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Link>
+                    </Button>
+                  );
+                })}
 
                 {/* Mobile Auth Buttons */}
                 {!isLoggedIn && (
                   <div className="flex flex-col gap-2 pt-4 border-t">
-                    <Button variant="ghost" className="justify-start">
-                      Sign In
-                    </Button>
-                    <Button className="justify-start">Get Started</Button>
+                    <Link href="/auth/login">
+                      <Button variant="ghost" className="justify-start">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/register">
+                      <Button className="justify-start">Get Started</Button>
+                    </Link>
                   </div>
                 )}
               </div>

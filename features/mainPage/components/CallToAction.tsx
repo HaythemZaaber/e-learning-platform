@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight,  School } from "lucide-react";
+import { ArrowRight, School } from "lucide-react";
 import Link from "next/link";
 
 export default function CallToAction() {
@@ -24,16 +24,16 @@ export default function CallToAction() {
         >
           Join thousands of learners and teachers worldwide.
         </motion.p>
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-4 ">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <Link href="/courses" >
-            <Button className="text-lg px-6 py-4 cursor-pointer hover:bg-primary/80 ">
-              <ArrowRight className="mr-2" /> Browse Courses
-            </Button>
+            <Link href="/courses">
+              <Button className="text-lg px-6 py-4 cursor-pointer hover:bg-primary/80 hover:scale-105 transition-all duration-300 ">
+                <ArrowRight className="mr-2" /> Browse Courses
+              </Button>
             </Link>
           </motion.div>
           <motion.div
@@ -41,9 +41,12 @@ export default function CallToAction() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Link href="/instructor/verification">
-              <Button variant="outline" className=" text-lg px-6 py-4 hover:border-none cursor-pointer ">
-                <School className="mr-2" /> Become a Teacher
+            <Link href="/become-instructor">
+              <Button
+                variant="outline"
+                className=" text-lg px-6 py-4 hover:border-none cursor-pointer text-white bg-gradient-to-r from-primary to-secondary hover:scale-105 transition-all duration-300 "
+              >
+                <School className="mr-2" /> Become an Instructor
               </Button>
             </Link>
           </motion.div>

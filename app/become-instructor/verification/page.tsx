@@ -1,4 +1,4 @@
-import { MainVerification } from "@/features/verification/components/MainVerification";
+import { MainVerification } from "@/features/becomeInstructor/verification/components/MainVerification";
 
 export default function VerificationPage() {
   return (

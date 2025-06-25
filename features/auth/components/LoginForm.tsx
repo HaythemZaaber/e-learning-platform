@@ -137,7 +137,7 @@ export const LoginForm = () => {
         <p className="text-sm ">
           Don't have an account?{" "}
           <Link
-            href="/auth/signup"
+            href="/auth/register"
             className="font-medium text-primary hover:text-primary/80"
           >
             Sign up

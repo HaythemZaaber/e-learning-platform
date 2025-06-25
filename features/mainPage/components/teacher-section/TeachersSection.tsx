@@ -73,7 +73,7 @@ export default function TeachersHeroSection() {
       transition={{ duration: 0.5 }}
       variants={fadeIn}
     >
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <MotionDiv
           initial="initial"
           animate={inView ? "animate" : "initial"}
@@ -211,7 +211,7 @@ export default function TeachersHeroSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {filteredInstructors.map((instructor, i) => (
+          {filteredInstructors.slice(0, 6).map((instructor, i) => (
             <MotionDiv
               key={instructor.id}
               initial="initial"

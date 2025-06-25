@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,35 +22,17 @@ import { CourseStructure } from "./steps/CourseStructure";
 import { ContentUpload } from "./steps/ContentUpload";
 import { SmartAssistant } from "./SmartAssistant";
 import { CourseSettings } from "./steps/CourseSettings";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 // Mock types for demonstration
 type CourseLevel = "beginner" | "intermediate" | "advanced";
 type EnrollmentType = "free" | "paid" | "subscription";
-
-// interface CourseData {
-//   title: string;
-//   description: string;
-//   category: string;
-//   level: CourseLevel;
-//   thumbnail?: File;
-//   price: number;
-//   objectives: string[];
-//   prerequisites: string[];
-//   sections: any[];
-//   settings: {
-//     isPublic: boolean;
-//     enrollmentType: EnrollmentType;
-//     language: string;
-//     certificate: boolean;
-//     seoDescription: string;
-//     seoTags: string[];
-//     accessibility: {
-//       captions: boolean;
-//       transcripts: boolean;
-//       audioDescription: boolean;
-//     };
-//   };
-// }
 
 interface StepValidation {
   isValid: boolean;
@@ -85,131 +67,9 @@ const steps = [
   },
 ];
 
-// Mock step components
-// const CourseInformation = ({ data, updateData, validation }: any) => (
-//   <div className="space-y-6">
-//     <div className="space-y-4">
-//       <div>
-//         <label className="block text-sm font-medium mb-2">Course Title *</label>
-//         <input
-//           type="text"
-//           value={data.title}
-//           onChange={(e) => updateData({ title: e.target.value })}
-//           className={`w-full p-3 border rounded-lg transition-colors ${
-//             validation.errors.includes("title")
-//               ? "border-red-500 bg-red-50"
-//               : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-//           }`}
-//           placeholder="Enter your course title"
-//         />
-//         {validation.errors.includes("title") && (
-//           <p className="text-red-500 text-sm mt-1">Course title is required</p>
-//         )}
-//       </div>
-
-//       <div>
-//         <label className="block text-sm font-medium mb-2">Description *</label>
-//         <textarea
-//           value={data.description}
-//           onChange={(e) => updateData({ description: e.target.value })}
-//           rows={4}
-//           className={`w-full p-3 border rounded-lg transition-colors ${
-//             validation.errors.includes("description")
-//               ? "border-red-500 bg-red-50"
-//               : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-//           }`}
-//           placeholder="Describe what students will learn in this course"
-//         />
-//         {validation.errors.includes("description") && (
-//           <p className="text-red-500 text-sm mt-1">
-//             Course description is required
-//           </p>
-//         )}
-//       </div>
-
-//       <div className="grid grid-cols-2 gap-4">
-//         <div>
-//           <label className="block text-sm font-medium mb-2">Category *</label>
-//           <select
-//             value={data.category}
-//             onChange={(e) => updateData({ category: e.target.value })}
-//             className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
-//           >
-//             <option value="">Select category</option>
-//             <option value="technology">Technology</option>
-//             <option value="business">Business</option>
-//             <option value="design">Design</option>
-//             <option value="marketing">Marketing</option>
-//           </select>
-//         </div>
-
-//         <div>
-//           <label className="block text-sm font-medium mb-2">Level</label>
-//           <select
-//             value={data.level}
-//             onChange={(e) =>
-//               updateData({ level: e.target.value as CourseLevel })
-//             }
-//             className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
-//           >
-//             <option value="beginner">Beginner</option>
-//             <option value="intermediate">Intermediate</option>
-//             <option value="advanced">Advanced</option>
-//           </select>
-//         </div>
-//       </div>
-//     </div>
-//   </div>
-// );
-
-// const CourseStructure = ({ data, updateData }: any) => (
-//   <div className="space-y-6">
-//     <div className="p-6 bg-blue-50 rounded-lg border border-blue-200">
-//       <h3 className="font-medium text-blue-900 mb-2">Course Structure</h3>
-//       <p className="text-blue-700 text-sm">
-//         Define your course sections and lessons. Each section should have a
-//         clear learning objective.
-//       </p>
-//     </div>
-//     <div className="text-center py-12 text-gray-500">
-//       <Target className="mx-auto h-12 w-12 mb-4 opacity-50" />
-//       <p>Course structure configuration would go here</p>
-//     </div>
-//   </div>
-// );
-
-// const ContentUpload = ({ data, updateData }: any) => (
-//   <div className="space-y-6">
-//     <div className="p-6 bg-green-50 rounded-lg border border-green-200">
-//       <h3 className="font-medium text-green-900 mb-2">Content Upload</h3>
-//       <p className="text-green-700 text-sm">
-//         Upload your course materials including videos, documents, and resources.
-//       </p>
-//     </div>
-//     <div className="text-center py-12 text-gray-500">
-//       <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
-//       <p>Content upload interface would go here</p>
-//     </div>
-//   </div>
-// );
-
-// const CourseSettings = ({ data, updateData }: any) => (
-//   <div className="space-y-6">
-//     <div className="p-6 bg-purple-50 rounded-lg border border-purple-200">
-//       <h3 className="font-medium text-purple-900 mb-2">Final Settings</h3>
-//       <p className="text-purple-700 text-sm">
-//         Configure your course settings and prepare for publishing.
-//       </p>
-//     </div>
-//     <div className="text-center py-12 text-gray-500">
-//       <Sparkles className="mx-auto h-12 w-12 mb-4 opacity-50" />
-//       <p>Course settings configuration would go here</p>
-//     </div>
-//   </div>
-// );
-
 export default function CourseCreation() {
   const [currentStep, setCurrentStep] = useState(0);
+  const topRef = useRef<HTMLDivElement>(null);
   const [courseData, setCourseData] = useState<CourseData>({
     title: "",
     description: "",
@@ -347,6 +207,8 @@ export default function CourseCreation() {
 
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
+      // Smooth scroll to top of the page
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -403,16 +265,10 @@ export default function CourseCreation() {
 
   return (
     // <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <div>
+    <div ref={topRef}>
       {/* <div className="container  w-[90vw] mx-auto"> */}
       {/* Header */}
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-        {/* <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"></h1>
-          <p className="text-gray-600 mt-2 text-lg">
-            Complete all steps to publish your course
-          </p>
-        </div> */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Create New Course
@@ -422,7 +278,7 @@ export default function CourseCreation() {
           </p>
         </div>
 
-        <div className="flex  gap-3 justify-end ml-auto flex-wrap">
+        <div className="flex  gap-3 justify-end ml-auto flex-wrap items-center">
           {lastSaved && (
             <span className="text-sm text-gray-500">
               Last saved: {lastSaved.toLocaleTimeString()}
@@ -756,29 +612,24 @@ export default function CourseCreation() {
       </div>
 
       {/* Modals would be rendered here */}
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Course Preview</h2>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              </div>
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-auto p-0">
+          {/* <DialogHeader className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-xl font-semibold">
+                Course Preview
+              </DialogTitle>
+             
             </div>
-            <div className="p-6">
-              <CoursePreview
-                data={courseData}
-                onClose={() => setShowPreview(false)}
-              />
-            </div>
+          </DialogHeader> */}
+          <div className="p-6">
+            <CoursePreview
+              data={courseData}
+              onClose={() => setShowPreview(false)}
+            />
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {showAssistant && (
         <SmartAssistant

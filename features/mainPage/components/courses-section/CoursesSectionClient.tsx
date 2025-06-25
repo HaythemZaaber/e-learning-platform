@@ -541,6 +541,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               isSaved={savedCourses.includes(course.id)}
               onToggleSave={toggleSavedCourse}
               viewMode="grid"
+              userRole="student"
             />
           </CourseCardWrapper>
         ))}

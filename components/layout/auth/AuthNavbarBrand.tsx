@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const AuthNavbarBrand = () => {
   const router = useRouter();
@@ -13,8 +14,12 @@ const AuthNavbarBrand = () => {
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
       onClick={() => router.push("/")}
     >
-      <BookOpen className="h-6 w-6 text-white" />
-      <span className="font-bold text-2xl text-white">ELearning</span>
+      <Link href="/" className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
+          ED
+        </div>
+        <span className="font-bold text-xl text-white">EduConnect</span>
+      </Link>
     </motion.div>
   );
 };

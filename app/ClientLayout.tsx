@@ -18,7 +18,7 @@ export default function ClientLayout({
   const [showAiAssistant, setShowAiAssistant] = useState(false);
 
   // Determine layout type based on pathname
-  const isAuthPage = pathname?.startsWith("/auth");
+  const isAuthPage = pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up");
   const isDashboardPage =
     pathname?.includes("/dashboard") ||
     // pathname?.includes("/instructor") ||

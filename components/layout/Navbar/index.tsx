@@ -33,6 +33,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { LucideProps } from "lucide-react";
 import Link from "next/link";
+import {
+  UserButton,
+  useUser,
+  useAuth,
+  SignInButton,
+  SignUpButton,
+} from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface NavigationItem {
   label: string;
@@ -66,7 +74,18 @@ const Navbar = ({
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isLoggedIn = userRole !== "visitor";
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  // Get user role from Clerk public metadata (customize as needed)
+  const userRoleFromClerk = user?.publicMetadata?.role || "visitor";
+  const userNameFromClerk = user?.fullName || "User";
+  const userInitialsFromClerk = user?.firstName?.[0] || "U";
+  const notificationCountFromClerk = 0; // TODO: Replace with real notification count
+  const isDashboardFromProps = false; // TODO: Set based on route if needed
+
+  const isLoggedIn = isSignedIn;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,7 +103,7 @@ const Navbar = ({
       { label: "Courses", href: "/courses", icon: BookOpen },
     ];
 
-    switch (userRole) {
+    switch (userRoleFromClerk) {
       case "visitor":
         return [
           ...baseItems,
@@ -128,41 +147,7 @@ const Navbar = ({
 
   const navigationItems = getNavigationItems();
 
-  const UserProfileDropdown = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <div className="flex  h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {userInitials || "User"}
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">{userName || "User"}</p>
-            <p className="w-[200px] truncate text-sm text-muted-foreground">
-              {userRole?.charAt(0).toUpperCase() + userRole?.slice(1)} Account
-            </p>
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  // Remove custom UserProfileDropdown, use Clerk's UserButton instead
 
   const SearchBar = () => (
     <div
@@ -185,10 +170,10 @@ const Navbar = ({
     <motion.nav
       className={cn(
         "w-full z-50 transition-all duration-300 ease-in-out border-b",
-        isSticky || isDashboard
+        isSticky || isDashboardFromProps
           ? "sticky top-0 bg-white/95 backdrop-blur-sm shadow-sm py-2"
           : "relative bg-background py-3",
-        isDashboard && "bg-background/95"
+        isDashboardFromProps && "bg-background/95"
       )}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -210,9 +195,8 @@ const Navbar = ({
                 EduConnect
               </span>
             </Link>
-
             {/* Desktop Navigation */}
-            {!isDashboard && (
+            {!isDashboardFromProps && (
               <nav className="hidden lg:flex items-center gap-6">
                 {navigationItems.map((item) => {
                   if (item.label === "Become an Instructor") {
@@ -264,7 +248,7 @@ const Navbar = ({
             transition={{ delay: 0.2 }}
           >
             {/* Search Bar - Desktop */}
-            {!isDashboard && isLoggedIn && (
+            {!isDashboardFromProps && isLoggedIn && (
               <div className="hidden md:block">
                 <SearchBar />
               </div>
@@ -287,27 +271,29 @@ const Navbar = ({
             {isLoggedIn && (
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
+                {notificationCountFromClerk > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                    {notificationCount > 9 ? "9+" : notificationCount}
+                    {notificationCountFromClerk > 9
+                      ? "9+"
+                      : notificationCountFromClerk}
                   </span>
                 )}
               </Button>
             )}
 
             {/* User Profile or Auth Buttons */}
-            {isLoggedIn ? (
-              <UserProfileDropdown />
+            {isLoaded && isLoggedIn ? (
+              <UserButton afterSignOutUrl="/" />
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/auth/login">
+                <SignInButton mode="modal">
                   <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
-                </Link>
-                <Link href="/auth/register">
+                </SignInButton>
+                <SignUpButton mode="modal">
                   <Button size="sm">Get Started</Button>
-                </Link>
+                </SignUpButton>
               </div>
             )}
 
@@ -326,7 +312,6 @@ const Navbar = ({
             </Button>
           </motion.div>
         </div>
-
         {/* Mobile Menu */}
         <AnimatePresence>
           {isMobileMenuOpen && (
@@ -344,7 +329,6 @@ const Navbar = ({
                     <SearchBar />
                   </div>
                 )}
-
                 {/* Mobile Navigation Items */}
                 {navigationItems.map((item) => {
                   if (item.label === "Become an Instructor") {
@@ -389,18 +373,17 @@ const Navbar = ({
                     </Button>
                   );
                 })}
-
                 {/* Mobile Auth Buttons */}
                 {!isLoggedIn && (
                   <div className="flex flex-col gap-2 pt-4 border-t">
-                    <Link href="/auth/login">
+                    <SignInButton mode="modal">
                       <Button variant="ghost" className="justify-start">
                         Sign In
                       </Button>
-                    </Link>
-                    <Link href="/auth/register">
+                    </SignInButton>
+                    <SignUpButton mode="modal">
                       <Button className="justify-start">Get Started</Button>
-                    </Link>
+                    </SignUpButton>
                   </div>
                 )}
               </div>

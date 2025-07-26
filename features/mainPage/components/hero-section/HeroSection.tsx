@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import banner from "@/public/images/banner.png";
-import { useSearchStore } from "@/store/search.store";
+import { useSearchStore } from "@/stores/search.store";
 import {
   AnimatedWrapper,
   fadeInLeft,
@@ -16,7 +16,21 @@ import {
 import { HeroImage } from "./HeroImage";
 import { HeroSearch } from "./HeroSearch";
 
+import { gql, useQuery } from "@apollo/client";
+
+const ME_QUERY = gql`
+  query Me {
+    me {
+      id
+      email
+      firstName
+      role
+    }
+  }
+`;
+
 const HeroSection: React.FC = () => {
+  // const { loading, error, data } = useQuery(ME_QUERY);
   const [isLoaded, setIsLoaded] = useState(false);
   const setShowNavbarSearch = useSearchStore(
     (state) => state.setShowNavbarSearch
@@ -39,6 +53,13 @@ const HeroSection: React.FC = () => {
 
     return () => observer.disconnect();
   }, [setShowNavbarSearch]);
+
+  // Handle loading and error states
+  // if (loading) return <p>Loading...</p>;
+  // if (error) return <p>Error: {error.message}</p>;
+
+  // const user = data.me;
+  // console.log(user);
 
   return (
     <section className="w-full bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">

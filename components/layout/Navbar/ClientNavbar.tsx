@@ -11,7 +11,7 @@ import NavbarSearch from "./NavbarSearch";
 import UserProfileMenu from "./UserProfileMenu";
 import NavbarMobileMenu from "./NavbarMobileMenu";
 import RoleSwitcher from "./RoleSwitcher";
-import { useSearchStore } from "@/store/search.store";
+import { useSearchStore } from "@/stores/search.store";
 import { AiAssistant } from "@/components/shared/AiAssistant";
 import { Button } from "@/components/ui/button";
 

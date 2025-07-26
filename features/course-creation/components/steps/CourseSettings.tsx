@@ -36,6 +36,7 @@ interface CourseSettingsProps {
   updateData: (data: any) => void;
 }
 
+
 export function CourseSettings({ data, updateData }: CourseSettingsProps) {
   const [settings, setSettings] = useState(
     data.settings || {
@@ -104,6 +105,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
     setSettings(newSettings);
     updateData({ settings: newSettings });
   };
+
 
   const handleDirectSettingsChange = (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };

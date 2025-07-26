@@ -29,7 +29,7 @@ export interface CourseData {
 
 export interface CourseSettings {
   isPublic: boolean;
-  enrollmentType: "free" | "paid" | "invite";
+  enrollmentType: "free" | "paid" | "subscription";
   language: string;
   certificate: boolean;
   seoDescription: string;
@@ -38,6 +38,43 @@ export interface CourseSettings {
     captions: boolean;
     transcripts: boolean;
     audioDescription: boolean;
+  };
+  pricing?: {
+    amount: number;
+    currency: string;
+    discountPercentage: number;
+    earlyBirdDiscount: boolean;
+    installmentPlans: boolean;
+  };
+  enrollment?: {
+    maxStudents: number | null;
+    enrollmentDeadline: string;
+    prerequisitesCourse: string;
+    ageRestriction: string;
+  };
+  communication?: {
+    discussionForum: boolean;
+    directMessaging: boolean;
+    liveChat: boolean;
+    announcementEmails: boolean;
+  };
+  completion?: {
+    passingGrade: number;
+    allowRetakes: boolean;
+    timeLimit: number | null;
+    certificateTemplate: string;
+  };
+  content?: {
+    downloadableResources: boolean;
+    offlineAccess: boolean;
+    mobileOptimized: boolean;
+    printableMaterials: boolean;
+  };
+  marketing?: {
+    featuredCourse: boolean;
+    courseTags: string[];
+    difficultyRating: string;
+    estimatedDuration: string;
   };
 }
 

@@ -39,7 +39,7 @@ export function DashboardSidebar({
       {/* Header */}
       <div
         className={cn(
-          "flex h-16 items-center border-b px-4",
+          "flex h-16 items-center border-b p-4",
           !isOpen && "hidden"
         )}
       >
@@ -65,7 +65,7 @@ export function DashboardSidebar({
       </div>
 
       {/* Navigation Content */}
-      <div className={cn("flex-1 overflow-y-auto py-4", !isOpen && "hidden")}>
+      <div className={cn("flex-1  py-4", !isOpen && "hidden")}>
         {/* Main Navigation */}
         <div className="px-3 mb-6">
           <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

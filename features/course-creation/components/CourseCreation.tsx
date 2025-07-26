@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useCreateCourseMutation } from "../hooks/useCreateCourseMutation";
 
 // Mock types for demonstration
 type CourseLevel = "beginner" | "intermediate" | "advanced";
@@ -106,6 +107,8 @@ export default function CourseCreation() {
     { isValid: true, errors: [], warnings: [] },
     { isValid: true, errors: [], warnings: [] },
   ]);
+
+  const { submitCourse, loading: submitting, error: submitError, data: submitData } = useCreateCourseMutation();
 
   // Validation logic
   const validateStep = useCallback(
@@ -232,10 +235,9 @@ export default function CourseCreation() {
 
     try {
       setIsSaving(true);
-      // Simulate publish API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Show success message
+      // Submit course data via GraphQL mutation
+      await submitCourse(courseData);
+      // Show success message (replace with toast in real app)
       console.log("Course published successfully!");
     } catch (error) {
       console.error("Failed to publish course:", error);
@@ -322,11 +324,11 @@ export default function CourseCreation() {
           {currentStep === steps.length - 1 && (
             <button
               onClick={handlePublish}
-              disabled={isSaving || !stepValidations.every((v) => v.isValid)}
+              disabled={isSaving || submitting || !stepValidations.every((v) => v.isValid)}
               className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
             >
               <Check className="h-4 w-4" />
-              Publish Course
+              {submitting ? "Publishing..." : "Publish Course"}
             </button>
           )}
         </div>
@@ -637,6 +639,16 @@ export default function CourseCreation() {
           updateData={updateCourseData}
           onClose={() => setShowAssistant(false)}
         />
+      )}
+      {submitError && (
+        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
+          Error publishing course: {submitError.message}
+        </div>
+      )}
+      {submitData && (
+        <div className="mt-4 p-4 bg-green-100 text-green-700 rounded-lg">
+          Course published successfully!
+        </div>
       )}
     </div>
     // </div>

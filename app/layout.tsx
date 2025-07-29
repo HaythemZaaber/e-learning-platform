@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased duration-300`}>
-        <ClerkProvider>
+        <ClerkProvider  touchSession={false} >
           <ApolloProviderWrapper>
             <ClientLayout>{children}</ClientLayout>
           </ApolloProviderWrapper>

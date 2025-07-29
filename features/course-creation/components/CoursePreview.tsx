@@ -66,7 +66,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300 ">
       {/* Header */}
       <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
         {/* <DialogClose asChild>
@@ -146,7 +146,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
       </div>
 
       {/* Content */}
-      <div className="max-h-[calc(95vh-280px)] overflow-y-auto">
+      <div className=" ">
         <div className="p-6 space-y-8">
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-3">

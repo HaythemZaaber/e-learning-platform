@@ -1,25 +1,16 @@
-import React, { useState } from "react";
-import { Upload, X, Plus } from "lucide-react";
+"use client";
 
-// Types
-type CourseLevel = "beginner" | "intermediate" | "advanced";
-
-interface CourseData {
-  title: string;
-  description: string;
-  category: string;
-  level: CourseLevel;
-  thumbnail?: string;
-  price: number;
-  objectives: string[];
-  prerequisites: string[];
-}
-
-interface StepValidation {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
+import React, { useState, useCallback } from "react";
+import { Upload, X, Plus, Loader2, ImageIcon } from "lucide-react";
+import {
+  CourseData,
+  StepValidation,
+  COURSE_CATEGORIES,
+  COURSE_LEVELS,
+} from "../../types";
+import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
+import { useCreateCourseMutation } from "../../hooks/useCreateCourseMutation";
+import { useNotifications } from "../../hooks/useNotifications";
 
 interface CourseInformationProps {
   data: CourseData;
@@ -35,54 +26,125 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
   const [thumbnailPreview, setThumbnailPreview] = useState<string | undefined>(
     data.thumbnail
   );
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setThumbnailPreview(result);
-        updateData({ thumbnail: result });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const notifications = useNotifications();
+  const { /* uploadThumbnail, */ ...restMutation } = useCreateCourseMutation();
+  const { addGlobalError } = useCourseCreationStore();
 
-  const handleObjectiveAdd = () => {
+  const handleThumbnailChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Validate file
+      if (!file.type.startsWith("image/")) {
+        notifications.error("Please select a valid image file");
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        notifications.error("Image file size must be less than 10MB");
+        return;
+      }
+
+      try {
+        setUploadingThumbnail(true);
+
+        // Create preview immediately
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setThumbnailPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to server if course exists
+        if (data.id) {
+          // const result = await uploadThumbnail(data.id, file);
+          // updateData({ thumbnail: result.thumbnailUrl });
+          notifications.success("Thumbnail uploaded successfully");
+        } else {
+          // Store for later upload when course is created
+          updateData({ thumbnail: URL.createObjectURL(file) });
+          notifications.info("Thumbnail will be uploaded when course is saved");
+        }
+      } catch (error) {
+        console.error("Thumbnail upload failed:", error);
+        addGlobalError("Failed to upload thumbnail");
+        // Reset preview on error
+        setThumbnailPreview(data.thumbnail);
+      } finally {
+        setUploadingThumbnail(false);
+      }
+    },
+    [
+      data.id,
+      data.thumbnail,
+      updateData,
+      // uploadThumbnail,
+      notifications,
+      addGlobalError,
+    ]
+  );
+   
+
+  const handleRemoveThumbnail = useCallback(() => {
+    setThumbnailPreview(undefined);
+    updateData({ thumbnail: undefined });
+    notifications.success("Thumbnail removed");
+  }, [updateData, notifications]);
+
+  const handleObjectiveAdd = useCallback(() => {
     updateData({
       objectives: [...(data.objectives || []), ""],
     });
-  };
+  }, [data.objectives, updateData]);
 
-  const handleObjectiveChange = (index: number, value: string) => {
-    const newObjectives = [...(data.objectives || [])];
-    newObjectives[index] = value;
-    updateData({ objectives: newObjectives });
-  };
+  const handleObjectiveChange = useCallback(
+    (index: number, value: string) => {
+      const newObjectives = [...(data.objectives || [])];
+      newObjectives[index] = value;
+      updateData({ objectives: newObjectives });
+    },
+    [data.objectives, updateData]
+  );
 
-  const handleObjectiveRemove = (index: number) => {
-    const newObjectives = [...(data.objectives || [])];
-    newObjectives.splice(index, 1);
-    updateData({ objectives: newObjectives });
-  };
+  const handleObjectiveRemove = useCallback(
+    (index: number) => {
+      const newObjectives = [...(data.objectives || [])];
+      newObjectives.splice(index, 1);
+      updateData({ objectives: newObjectives });
+    },
+    [data.objectives, updateData]
+  );
 
-  const handlePrerequisiteAdd = () => {
+  const handlePrerequisiteAdd = useCallback(() => {
     updateData({
       prerequisites: [...(data.prerequisites || []), ""],
     });
-  };
+  }, [data.prerequisites, updateData]);
 
-  const handlePrerequisiteChange = (index: number, value: string) => {
-    const newPrerequisites = [...(data.prerequisites || [])];
-    newPrerequisites[index] = value;
-    updateData({ prerequisites: newPrerequisites });
-  };
+  const handlePrerequisiteChange = useCallback(
+    (index: number, value: string) => {
+      const newPrerequisites = [...(data.prerequisites || [])];
+      newPrerequisites[index] = value;
+      updateData({ prerequisites: newPrerequisites });
+    },
+    [data.prerequisites, updateData]
+  );
 
-  const handlePrerequisiteRemove = (index: number) => {
-    const newPrerequisites = [...(data.prerequisites || [])];
-    newPrerequisites.splice(index, 1);
-    updateData({ prerequisites: newPrerequisites });
+  const handlePrerequisiteRemove = useCallback(
+    (index: number) => {
+      const newPrerequisites = [...(data.prerequisites || [])];
+      newPrerequisites.splice(index, 1);
+      updateData({ prerequisites: newPrerequisites });
+    },
+    [data.prerequisites, updateData]
+  );
+
+  const getFieldError = (fieldName: string) => {
+    return validation.errors.includes(fieldName);
   };
 
   return (
@@ -100,6 +162,7 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
         </div>
 
         <div className="space-y-6">
+          {/* Course Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Course Title *
@@ -109,23 +172,30 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               value={data.title}
               onChange={(e) => updateData({ title: e.target.value })}
               className={`w-full p-3 border rounded-lg transition-colors ${
-                validation.errors.includes("title")
+                getFieldError("title")
                   ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               }`}
               placeholder="e.g., Complete Web Development Bootcamp"
+              maxLength={100}
             />
-            {validation.errors.includes("title") && (
+            {getFieldError("title") && (
               <p className="text-red-500 text-sm mt-1">
                 Course title is required
               </p>
             )}
-            <p className="text-gray-500 text-sm mt-1">
-              Keep it clear and descriptive. This is what students will see
-              first.
-            </p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-gray-500 text-sm">
+                Keep it clear and descriptive. This is what students will see
+                first.
+              </p>
+              <span className="text-xs text-gray-400">
+                {data.title?.length || 0}/100
+              </span>
+            </div>
           </div>
 
+          {/* Course Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Course Description *
@@ -135,13 +205,14 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               onChange={(e) => updateData({ description: e.target.value })}
               rows={5}
               className={`w-full p-3 border rounded-lg transition-colors resize-none ${
-                validation.errors.includes("description")
+                getFieldError("description")
                   ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               }`}
               placeholder="Describe what students will learn, the skills they'll gain, and how this course will help them achieve their goals..."
+              maxLength={1000}
             />
-            {validation.errors.includes("description") && (
+            {getFieldError("description") && (
               <p className="text-red-500 text-sm mt-1">
                 Course description is required
               </p>
@@ -157,6 +228,30 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
             </div>
           </div>
 
+          {/* Short Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Short Description
+            </label>
+            <textarea
+              value={data.shortDescription || ""}
+              onChange={(e) => updateData({ shortDescription: e.target.value })}
+              rows={2}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors resize-none"
+              placeholder="Brief summary for course cards and search results..."
+              maxLength={200}
+            />
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-gray-500 text-sm">
+                A concise summary that appears in course listings.
+              </p>
+              <span className="text-xs text-gray-400">
+                {data.shortDescription?.length || 0}/200
+              </span>
+            </div>
+          </div>
+
+          {/* Category, Level, and Price Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -165,36 +260,41 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               <select
                 value={data.category}
                 onChange={(e) => updateData({ category: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                className={`w-full p-3 border rounded-lg transition-colors ${
+                  getFieldError("category")
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                }`}
               >
                 <option value="">Select category</option>
-                <option value="technology">Technology</option>
-                <option value="business">Business</option>
-                <option value="design">Design</option>
-                <option value="marketing">Marketing</option>
-                <option value="programming">Programming</option>
-                <option value="data-science">Data Science</option>
-                <option value="photography">Photography</option>
-                <option value="music">Music</option>
-                <option value="health">Health & Fitness</option>
-                <option value="language">Language</option>
+                {COURSE_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category.charAt(0).toUpperCase() +
+                      category.slice(1).replace("-", " ")}
+                  </option>
+                ))}
               </select>
+              {getFieldError("category") && (
+                <p className="text-red-500 text-sm mt-1">
+                  Please select a category
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty Level
+                Difficulty Level *
               </label>
               <select
                 value={data.level}
-                onChange={(e) =>
-                  updateData({ level: e.target.value as CourseLevel })
-                }
+                onChange={(e) => updateData({ level: e.target.value as any })}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
               >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
+                {COURSE_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -242,9 +342,20 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
           <div className="flex items-center justify-center w-full">
             <label
               htmlFor="thumbnail"
-              className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors group"
+              className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl cursor-pointer transition-colors group ${
+                uploadingThumbnail
+                  ? "border-blue-300 bg-blue-50"
+                  : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+              }`}
             >
-              {thumbnailPreview ? (
+              {uploadingThumbnail ? (
+                <div className="flex flex-col items-center justify-center">
+                  <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                  <p className="text-sm text-blue-600 font-medium">
+                    Uploading thumbnail...
+                  </p>
+                </div>
+              ) : thumbnailPreview ? (
                 <div className="relative w-full h-full">
                   <img
                     src={thumbnailPreview}
@@ -257,16 +368,26 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                       <p className="text-sm font-medium">Click to change</p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRemoveThumbnail();
+                    }}
+                    className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-12 h-12 mb-4 text-gray-400 group-hover:text-gray-500 transition-colors" />
+                  <ImageIcon className="w-12 h-12 mb-4 text-gray-400 group-hover:text-gray-500 transition-colors" />
                   <p className="mb-2 text-sm text-gray-500 group-hover:text-gray-600">
                     <span className="font-semibold">Click to upload</span> or
                     drag and drop
                   </p>
                   <p className="text-xs text-gray-400">
-                    PNG, JPG or JPEG (Recommended: 1280x720px)
+                    PNG, JPG or JPEG (Recommended: 1280x720px, Max: 10MB)
                   </p>
                 </div>
               )}
@@ -276,6 +397,7 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                 className="hidden"
                 accept="image/*"
                 onChange={handleThumbnailChange}
+                disabled={uploadingThumbnail}
               />
             </label>
           </div>
@@ -321,7 +443,13 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
                     placeholder="e.g., Build responsive websites using HTML, CSS, and JavaScript"
+                    maxLength={200}
                   />
+                  <div className="text-right mt-1">
+                    <span className="text-xs text-gray-400">
+                      {objective.length}/200
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -389,7 +517,13 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
                     placeholder="e.g., Basic computer skills and internet familiarity"
+                    maxLength={200}
                   />
+                  <div className="text-right mt-1">
+                    <span className="text-xs text-gray-400">
+                      {prerequisite.length}/200
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"

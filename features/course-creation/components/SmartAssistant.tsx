@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SmartAssistantProps {
@@ -81,39 +83,20 @@ export function SmartAssistant({
   };
 
   return (
-    // <Sheet open={true} onOpenChange={onClose}>
-    //   <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-    //     <SheetHeader className="mb-6">
-    //       <SheetTitle className="text-xl flex items-center gap-2">
-    //         <Bot className="h-5 w-5" />
-    //         Smart Course Assistant
-    //       </SheetTitle>
-    //       <Button
-    //         variant="ghost"
-    //         size="icon"
-    //         className="absolute right-4 top-4"
-    //         onClick={onClose}
-    //       >
-    //         <X className="h-4 w-4" />
-    //       </Button>
-    //     </SheetHeader>
-    <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              AI Assistant
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600  "
-            >
-              <span className=" text-lg cursor-pointer">X</span>
-            </button>
-          </div>
-        </div>
-        <div className="p-6">
+    <Dialog
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            Smart Course Assistant
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-0 sm:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-2 mb-6">
               <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
@@ -295,7 +278,7 @@ export function SmartAssistant({
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

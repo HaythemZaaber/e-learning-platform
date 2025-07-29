@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   CheckCircle2,
   FileVideo,
@@ -23,28 +23,21 @@ import {
   Type,
   Calendar,
   Clock,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { CourseData } from "../../types";
+import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
+
+import { toast } from "sonner";
 
 interface ContentUploadProps {
   data: CourseData;
-  updateData: (data: any) => void;
+  updateData: (data: Partial<CourseData>) => void;
 }
 
 export function ContentUpload({ data, updateData }: ContentUploadProps) {
-  const [activeTab, setActiveTab] = useState("videos");
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-    {}
-  );
-  const [uploadStatus, setUploadStatus] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, any[]>>({
-    videos: [],
-    documents: [],
-    quizzes: [],
-    text: [],
-    assignments: [],
-    resources: [],
-  });
+  const [activeTab, setActiveTab] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
   const [selectedLecture, setSelectedLecture] = useState("");
   const [dragStates, setDragStates] = useState<Record<string, boolean>>({});
@@ -67,211 +60,364 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   const [resourceUrl, setResourceUrl] = useState("");
   const [resourceType, setResourceType] = useState("link");
 
-  const handleFileUpload = (file: File, type: string) => {
-    // Validate file
-    const maxSizes = {
-      videos: 500 * 1024 * 1024, // 500MB
-      documents: 50 * 1024 * 1024, // 50MB
-      resources: 10 * 1024 * 1024, // 10MB
-    };
+  const {
+    uploadProgress,
+    uploadedFiles,
+    setUploadProgress,
+    removeUpload,
+    addUploadedFile,
+    removeUploadedFile,
+    addGlobalError,
+    addGlobalWarning,
+  } = useCourseCreationStore();
 
-    const allowedTypes = {
-      videos: ["video/mp4", "video/webm", "video/mov"],
-      documents: [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-powerpoint",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      ],
-      resources: [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "application/zip",
-        "text/plain",
-      ],
-    };
+  console.log("uploadedFiles", uploadedFiles)
 
-    if (file.size > maxSizes[type as keyof typeof maxSizes]) {
-      alert(
-        `File too large. Maximum size for ${type} is ${Math.round(
-          maxSizes[type as keyof typeof maxSizes] / (1024 * 1024)
-        )}MB`
-      );
-      return;
-    }
+  // Determine the type of the selected lecture from the structure
+  const selectedLectureType = data.sections
+    ?.find((s) => s.id === selectedSection)
+    ?.lectures?.find((l) => l.id === selectedLecture)?.type;
 
-    if (!allowedTypes[type as keyof typeof allowedTypes].includes(file.type)) {
-      alert(`Invalid file type for ${type}`);
-      return;
-    }
+  
+  const handleFileUpload = useCallback(
+    async (file: File, type: string) => {
+      // Validate file
+      const maxSizes = {
+        videos: 500 * 1024 * 1024, // 500MB
+        documents: 50 * 1024 * 1024, // 50MB
+        images: 10 * 1024 * 1024, // 10MB
+        resources: 10 * 1024 * 1024, // 10MB
+      };
 
-    // Simulate file upload with progress
-    const fileId = `${type}-${Date.now()}`;
+      const allowedTypes = {
+        videos: ["video/mp4", "video/webm", "video/mov", "video/avi"],
+        documents: [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/msword",
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ],
+        images: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+        resources: [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "application/zip",
+          "text/plain",
+          "application/json",
+        ],
+      };
 
-    setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
-    setUploadStatus((prev) => ({ ...prev, [fileId]: "uploading" }));
+      if (file.size > maxSizes[type as keyof typeof maxSizes]) {
+        toast.error(
+          `File too large. Maximum size for ${type} is ${Math.round(
+            maxSizes[type as keyof typeof maxSizes] / (1024 * 1024)
+          )}MB`
+        );
+        return;
+      }
 
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        const newProgress = Math.min((prev[fileId] || 0) + 10, 100);
+      if (
+        !allowedTypes[type as keyof typeof allowedTypes].includes(file.type)
+      ) {
+        toast.error(`Invalid file type for ${type}`);
+        return;
+      }
 
-        if (newProgress === 100) {
-          clearInterval(interval);
-          setUploadStatus((prev) => ({ ...prev, [fileId]: "complete" }));
+      if (!selectedSection || !selectedLecture) {
+        toast.error("Please select a section and lecture first");
+        return;
+      }
 
-          // Add the file to the uploaded files
-          setUploadedFiles((prev) => ({
-            ...prev,
-            [type]: [
-              ...prev[type],
-              {
-                id: fileId,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                url: URL.createObjectURL(file),
-                section: selectedSection,
-                lecture: selectedLecture,
-                uploadedAt: new Date(),
-              },
-            ],
-          }));
-        }
+      const fileId = `${type}-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
-        return { ...prev, [fileId]: newProgress };
-      });
-    }, 300);
-  };
+      try {
+        // Initialize upload progress
+        setUploadProgress(fileId, {
+          progress: 0,
+          status: "uploading",
+          fileName: file.name,
+          fileSize: file.size,
+        });
 
-  const handleCreateTextContent = () => {
+        // TODO: Implement courseApiService.uploadFile
+        // const result = await courseApiService.uploadFile(
+        //   data.id || "temp", // Use temp ID if course not created yet
+        //   file,
+        //   type.toUpperCase(),
+        //   {
+        //     title: file.name,
+        //     lessonId: selectedLecture,
+        //     order: uploadedFiles[type as keyof typeof uploadedFiles].length,
+        //   },
+        //   (progress: number) => {
+        //     setUploadProgress(fileId, { progress });
+        //   }
+        // );
+        const result = {};
+
+        // Mark as complete
+        setUploadProgress(fileId, {
+          progress: 100,
+          status: "complete",
+        });
+
+        // Add to uploaded files
+        addUploadedFile(type, {
+          id: fileId,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: (result as any).fileInfo?.file_url || URL.createObjectURL(file),
+          section: selectedSection,
+          lecture: selectedLecture,
+          uploadedAt: new Date(),
+          serverData: result,
+        });
+
+        toast.success(`${file.name} uploaded successfully`);
+
+        // Remove from progress after a delay
+        setTimeout(() => {
+          removeUpload(fileId);
+        }, 3000);
+      } catch (error) {
+        console.error("Upload failed:", error);
+        setUploadProgress(fileId, {
+          progress: 0,
+          status: "error",
+        });
+        toast.error(`Failed to upload ${file.name}`);
+
+        // Remove failed upload after delay
+        setTimeout(() => {
+          removeUpload(fileId);
+        }, 5000);
+      }
+    },
+    [
+      selectedSection,
+      selectedLecture,
+      data.id,
+      uploadedFiles,
+      setUploadProgress,
+      addUploadedFile,
+      removeUpload,
+    ]
+  );
+
+  const handleCreateTextContent = useCallback(async () => {
     if (!textTitle.trim() || !textContent.trim()) {
-      alert("Please provide both title and content");
+      toast.error("Please provide both title and content");
       return;
     }
 
-    const textId = `text-${Date.now()}`;
-    setUploadedFiles((prev) => ({
-      ...prev,
-      text: [
-        ...prev.text,
-        {
-          id: textId,
-          title: textTitle,
-          content: textContent,
-          description: textDescription,
-          section: selectedSection,
-          lecture: selectedLecture,
-          createdAt: new Date(),
-          type: "text",
-        },
-      ],
-    }));
+    if (!selectedSection || !selectedLecture) {
+      toast.error("Please select a section and lecture first");
+      return;
+    }
 
-    // Reset form
-    setTextTitle("");
-    setTextContent("");
-    setTextDescription("");
-  };
+    try {
+      let result;
+      // TODO: Implement courseApiService.createTextContent
+      // if (data.id) {
+      //   result = await courseApiService.createTextContent(data.id, {
+      //     title: textTitle,
+      //     content: textContent,
+      //     description: textDescription,
+      //     lessonId: selectedLecture,
+      //     order: uploadedFiles.text.length,
+      //   });
+      // }
+      result = {};
 
-  const handleCreateAssignment = () => {
+      const textId = `text-${Date.now()}`;
+      addUploadedFile("text", {
+        id: textId,
+        title: textTitle,
+        content: textContent,
+        description: textDescription,
+        section: selectedSection,
+        lecture: selectedLecture,
+        createdAt: new Date(),
+        type: "text",
+        serverData: result,
+      });
+
+      // Reset form
+      setTextTitle("");
+      setTextContent("");
+      setTextDescription("");
+
+      toast.success("Text content created successfully");
+    } catch (error) {
+      console.error("Failed to create text content:", error);
+      toast.error("Failed to create text content");
+    }
+  }, [
+    textTitle,
+    textContent,
+    textDescription,
+    selectedSection,
+    selectedLecture,
+    data.id,
+    uploadedFiles.text.length,
+    addUploadedFile,
+  ]);
+
+  const handleCreateAssignment = useCallback(async () => {
     if (!assignmentTitle.trim() || !assignmentDescription.trim()) {
-      alert("Please provide title and description");
+      toast.error("Please provide title and description");
       return;
     }
 
-    const assignmentId = `assignment-${Date.now()}`;
-    setUploadedFiles((prev) => ({
-      ...prev,
-      assignments: [
-        ...prev.assignments,
-        {
-          id: assignmentId,
-          title: assignmentTitle,
-          description: assignmentDescription,
-          instructions: assignmentInstructions,
-          dueDate: assignmentDueDate,
-          points: assignmentPoints ? parseInt(assignmentPoints) : null,
-          section: selectedSection,
-          lecture: selectedLecture,
-          createdAt: new Date(),
-          type: "assignment",
-        },
-      ],
-    }));
+    if (!selectedSection || !selectedLecture) {
+      toast.error("Please select a section and lecture first");
+      return;
+    }
 
-    // Reset form
-    setAssignmentTitle("");
-    setAssignmentDescription("");
-    setAssignmentInstructions("");
-    setAssignmentDueDate("");
-    setAssignmentPoints("");
-  };
+    try {
+      let result;
+      // TODO: Implement courseApiService.createAssignment
+      // if (data.id) {
+      //   result = await courseApiService.createAssignment(data.id, {
+      //     title: assignmentTitle,
+      //     description: assignmentDescription,
+      //     instructions: assignmentInstructions,
+      //     dueDate: assignmentDueDate,
+      //     points: assignmentPoints ? parseInt(assignmentPoints) : undefined,
+      //     lessonId: selectedLecture,
+      //     order: uploadedFiles.assignments.length,
+      //   });
+      // }
+      result = {};
 
-  const handleCreateResource = () => {
+      const assignmentId = `assignment-${Date.now()}`;
+      addUploadedFile("assignments", {
+        id: assignmentId,
+        title: assignmentTitle,
+        description: assignmentDescription,
+        instructions: assignmentInstructions,
+        dueDate: assignmentDueDate,
+        points: assignmentPoints ? parseInt(assignmentPoints) : null,
+        section: selectedSection,
+        lecture: selectedLecture,
+        createdAt: new Date(),
+        type: "assignment",
+        serverData: result,
+      });
+
+      // Reset form
+      setAssignmentTitle("");
+      setAssignmentDescription("");
+      setAssignmentInstructions("");
+      setAssignmentDueDate("");
+      setAssignmentPoints("");
+
+      toast.success("Assignment created successfully");
+    } catch (error) {
+      console.error("Failed to create assignment:", error);
+      toast.error("Failed to create assignment");
+    }
+  }, [
+    assignmentTitle,
+    assignmentDescription,
+    assignmentInstructions,
+    assignmentDueDate,
+    assignmentPoints,
+    selectedSection,
+    selectedLecture,
+    data.id,
+    uploadedFiles.assignments.length,
+    addUploadedFile,
+  ]);
+
+  const handleCreateResource = useCallback(async () => {
     if (resourceType === "link" && !resourceUrl.trim()) {
-      alert("Please provide a valid URL");
+      toast.error("Please provide a valid URL");
       return;
     }
     if (!resourceTitle.trim()) {
-      alert("Please provide a title for the resource");
+      toast.error("Please provide a title for the resource");
       return;
     }
 
-    const resourceId = `resource-${Date.now()}`;
-    setUploadedFiles((prev) => ({
-      ...prev,
-      resources: [
-        ...prev.resources,
-        {
-          id: resourceId,
-          title: resourceTitle,
-          description: resourceDescription,
-          url: resourceUrl,
-          resourceType: resourceType,
-          section: selectedSection,
-          lecture: selectedLecture,
-          createdAt: new Date(),
-          type: "resource",
-        },
-      ],
-    }));
+    if (!selectedSection || !selectedLecture) {
+      toast.error("Please select a section and lecture first");
+      return;
+    }
 
-    // Reset form
-    setResourceTitle("");
-    setResourceDescription("");
-    setResourceUrl("");
-    setResourceType("link");
-  };
+    try {
+      let result;
+      // TODO: Implement courseApiService.createResourceLink
+      // if (data.id && resourceType === "link") {
+      //   result = await courseApiService.createResourceLink(data.id, {
+      //     title: resourceTitle,
+      //     url: resourceUrl,
+      //     description: resourceDescription,
+      //     resourceType: resourceType,
+      //     lessonId: selectedLecture,
+      //     order: uploadedFiles.resources.length,
+      //   });
+      // }
+      result = {};
 
-  const handleRemoveFile = (fileId: string, type: string) => {
-    setUploadedFiles((prev) => ({
-      ...prev,
-      [type]: prev[type].filter((file) => file.id !== fileId),
-    }));
+      const resourceId = `resource-${Date.now()}`;
+      addUploadedFile("resources", {
+        id: resourceId,
+        title: resourceTitle,
+        description: resourceDescription,
+        url: resourceUrl,
+        resourceType: resourceType,
+        section: selectedSection,
+        lecture: selectedLecture,
+        createdAt: new Date(),
+        type: "resource",
+        serverData: result,
+      });
 
-    setUploadProgress((prev) => {
-      const newProgress = { ...prev };
-      delete newProgress[fileId];
-      return newProgress;
-    });
+      // Reset form
+      setResourceTitle("");
+      setResourceDescription("");
+      setResourceUrl("");
+      setResourceType("link");
 
-    setUploadStatus((prev) => {
-      const newStatus = { ...prev };
-      delete newStatus[fileId];
-      return newStatus;
-    });
-  };
+      toast.success("Resource created successfully");
+    } catch (error) {
+      console.error("Failed to create resource:", error);
+      toast.error("Failed to create resource");
+    }
+  }, [
+    resourceType,
+    resourceUrl,
+    resourceTitle,
+    resourceDescription,
+    selectedSection,
+    selectedLecture,
+    data.id,
+    uploadedFiles.resources.length,
+    addUploadedFile,
+  ]);
+
+  const handleRemoveFile = useCallback(
+    (fileId: string, type: string) => {
+      removeUploadedFile(type, fileId);
+      removeUpload(fileId);
+      toast.success("File removed successfully");
+    },
+    [removeUploadedFile, removeUpload]
+  );
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-    );
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const handleDragOver = (e: React.DragEvent, type: string) => {
@@ -290,18 +436,20 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
     const files = e.dataTransfer.files;
     if (files.length && (!selectedSection || !selectedLecture)) {
-      alert("Please select a section and lecture first");
+      toast.error("Please select a section and lecture first");
       return;
     }
 
     if (files.length) {
-      handleFileUpload(files[0], type);
+      Array.from(files).forEach((file) => {
+        handleFileUpload(file, type);
+      });
     }
   };
 
   const tabs = [
     {
-      id: "videos",
+      id: "video",
       label: "Videos",
       icon: Video,
       count: uploadedFiles.videos.length,
@@ -312,26 +460,26 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       icon: Type,
       count: uploadedFiles.text.length,
     },
+    // {
+    //   id: "document",
+    //   label: "Documents",
+    //   icon: BookOpen,
+    //   count: uploadedFiles.documents.length,
+    // },
     {
-      id: "documents",
-      label: "Documents",
-      icon: BookOpen,
-      count: uploadedFiles.documents.length,
-    },
-    {
-      id: "assignments",
+      id: "assignment",
       label: "Assignments",
       icon: Clipboard,
       count: uploadedFiles.assignments.length,
     },
     {
-      id: "resources",
+      id: "resource",
       label: "Resources",
       icon: Link2,
       count: uploadedFiles.resources.length,
     },
     {
-      id: "quizzes",
+      id: "quiz",
       label: "Quizzes",
       icon: FileCheck,
       count: uploadedFiles.quizzes.length,
@@ -366,6 +514,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               value={selectedSection}
               onChange={(e) => {
                 setSelectedSection(e.target.value);
+                setActiveTab("")
                 setSelectedLecture(""); // Reset lecture when section changes
               }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -384,7 +533,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
             </label>
             <select
               value={selectedLecture}
-              onChange={(e) => setSelectedLecture(e.target.value)}
+              onChange={(e) =>{ setSelectedLecture(e.target.value) ; setActiveTab("")}}
               disabled={!selectedSection}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
@@ -421,15 +570,22 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           <nav className="flex overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              // Only enable the tab that matches the selected lecture's type
+              const isTabEnabled = tab.id === selectedLectureType;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "border-blue-500 text-blue-600 bg-blue-50"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
+                  onClick={() => isTabEnabled && setActiveTab(tab.id)}
+                  disabled={!isTabEnabled}
+                  className={`
+                    flex items-center gap-3 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
+                    ${
+                      activeTab === tab.id
+                        ? "border-blue-500 text-blue-600 bg-blue-50"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }
+                    ${!isTabEnabled ? "opacity-50 cursor-not-allowed" : ""}
+                  `}
                 >
                   <Icon className="h-5 w-5" />
                   {tab.label}
@@ -446,7 +602,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
         <div className="p-8">
           {/* Videos Tab */}
-          {activeTab === "videos" && (
+          {activeTab === "video" && (
             <div className="space-y-8">
               {/* Upload Area */}
               <div
@@ -468,10 +624,15 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   if (selectedSection && selectedLecture) {
                     const input = document.createElement("input");
                     input.type = "file";
-                    input.accept = "video/mp4,video/webm,video/mov";
+                    input.accept = "video/mp4,video/webm,video/mov,video/avi";
+                    input.multiple = true;
                     input.onchange = (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) handleFileUpload(file, "videos");
+                      const files = (e.target as HTMLInputElement).files;
+                      if (files) {
+                        Array.from(files).forEach((file) => {
+                          handleFileUpload(file, "videos");
+                        });
+                      }
                     };
                     input.click();
                   }
@@ -494,12 +655,12 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   </h3>
                   <p className="text-gray-600 mb-4 max-w-md">
                     Drag and drop your video files here, or click to browse.
-                    Support for MP4, WebM, and MOV formats.
+                    Support for MP4, WebM, MOV, and AVI formats.
                   </p>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span>Maximum size: 500MB</span>
                     <span>•</span>
-                    <span>Formats: MP4, WebM, MOV</span>
+                    <span>Formats: MP4, WebM, MOV, AVI</span>
                   </div>
                   {selectedSection && selectedLecture && (
                     <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -511,44 +672,67 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
               {/* Upload Progress */}
               {Object.entries(uploadProgress)
-                .filter(
-                  ([key]) =>
-                    key.startsWith("videos-") && uploadProgress[key] < 100
-                )
-                .map(([fileId, progress]) => (
-                  <div
-                    key={fileId}
-                    className="bg-white border border-gray-200 rounded-lg p-6"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-lg">
-                        <FileVideo className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
-                          {fileId.replace("videos-", "Uploading video...")}
-                        </p>
-                        <div className="mt-2">
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-600 transition-all duration-300"
-                              style={{ width: `${progress}%` }}
-                            />
+                .filter(([key]) => key.startsWith("videos-"))
+                .map(
+                  ([fileId, progress]: [
+                    string,
+                    import("../../types").UploadProgressItem
+                  ]) => (
+                    <div
+                      key={fileId}
+                      className="bg-white border border-gray-200 rounded-lg p-6"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <FileVideo className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">
+                            {progress.fileName}
+                          </p>
+                          <div className="mt-2">
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-300 ${
+                                  progress.status === "error"
+                                    ? "bg-red-500"
+                                    : progress.status === "complete"
+                                    ? "bg-green-500"
+                                    : "bg-blue-600"
+                                }`}
+                                style={{ width: `${progress.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-sm text-gray-500">
+                              {progress.status === "uploading" &&
+                                `${progress.progress}% complete`}
+                              {progress.status === "complete" &&
+                                "Upload complete"}
+                              {progress.status === "error" && "Upload failed"}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {formatFileSize(progress.fileSize)}
+                            </p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {progress}% complete
-                        </p>
+                        {progress.status === "uploading" && (
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                        )}
+                        {progress.status === "complete" && (
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        )}
+                        <button
+                          onClick={() => removeUpload(fileId)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleRemoveFile(fileId, "videos")}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
 
               {/* Uploaded Videos */}
               <div>
@@ -557,50 +741,52 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 </h3>
                 {uploadedFiles.videos.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {uploadedFiles.videos.map((file) => (
-                      <div
-                        key={file.id}
-                        className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <div className="relative">
-                          <video
-                            src={file.url}
-                            className="w-full h-48 object-cover"
-                            poster=""
-                          />
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <button className="p-3 bg-white/90 rounded-full hover:bg-white transition-colors">
-                              <Play className="h-6 w-6 text-gray-900" />
-                            </button>
+                    {uploadedFiles.videos.map(
+                      (file: import("../../types").UploadedFile) => (
+                        <div
+                          key={file.id}
+                          className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+                        >
+                          <div className="relative">
+                            <video
+                              src={file.url}
+                              className="w-full h-48 object-cover"
+                              poster=""
+                            />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                              <button className="p-3 bg-white/90 rounded-full hover:bg-white transition-colors">
+                                <Play className="h-6 w-6 text-gray-900" />
+                              </button>
+                            </div>
+                            <div className="absolute top-3 right-3">
+                              <button
+                                onClick={() =>
+                                  handleRemoveFile(file.id, "videos")
+                                }
+                                className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="absolute top-3 right-3">
-                            <button
-                              onClick={() =>
-                                handleRemoveFile(file.id, "videos")
-                              }
-                              className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+                          <div className="p-4">
+                            <h4 className="font-medium text-gray-900 truncate mb-1">
+                              {file.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 mb-3">
+                              {formatFileSize(file.size)} •{" "}
+                              {file.uploadedAt.toLocaleDateString()}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              <span className="text-sm text-green-600 font-medium">
+                                Upload complete
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-4">
-                          <h4 className="font-medium text-gray-900 truncate mb-1">
-                            {file.name}
-                          </h4>
-                          <p className="text-sm text-gray-500 mb-3">
-                            {formatFileSize(file.size)} •{" "}
-                            {file.uploadedAt.toLocaleDateString()}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                            <span className="text-sm text-green-600 font-medium">
-                              Upload complete
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
@@ -697,53 +883,55 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 </h3>
                 {uploadedFiles.text.length > 0 ? (
                   <div className="space-y-4">
-                    {uploadedFiles.text.map((content) => (
-                      <div
-                        key={content.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-orange-100 rounded-lg">
-                            <Type className="h-6 w-6 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {content.title}
-                            </h4>
-                            {content.description && (
-                              <p className="text-sm text-gray-600 mb-2">
-                                {content.description}
+                    {uploadedFiles.text.map(
+                      (content: import("../../types").TextContent) => (
+                        <div
+                          key={content.id}
+                          className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-orange-100 rounded-lg">
+                              <Type className="h-6 w-6 text-orange-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 mb-1">
+                                {content.title}
+                              </h4>
+                              {content.description && (
+                                <p className="text-sm text-gray-600 mb-2">
+                                  {content.description}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                                {content.content.substring(0, 150)}...
                               </p>
-                            )}
-                            <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                              {content.content.substring(0, 150)}...
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Created {content.createdAt.toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Ready to publish
-                              </span>
+                              <p className="text-sm text-gray-500">
+                                Created {content.createdAt.toLocaleDateString()}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span className="text-sm text-green-600 font-medium">
+                                  Ready to publish
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Edit3 className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveFile(content.id, "text")
+                                }
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFile(content.id, "text")
-                              }
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
@@ -759,9 +947,9 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           )}
 
           {/* Documents Tab */}
-          {activeTab === "documents" && (
+          {/* {activeTab === "documents" && (
             <div className="space-y-8">
-              {/* Upload Area */}
+             
               <div
                 className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
                   dragStates.documents
@@ -781,10 +969,15 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   if (selectedSection && selectedLecture) {
                     const input = document.createElement("input");
                     input.type = "file";
-                    input.accept = ".pdf,.docx,.ppt,.pptx";
+                    input.accept = ".pdf,.docx,.doc,.ppt,.pptx";
+                    input.multiple = true;
                     input.onchange = (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) handleFileUpload(file, "documents");
+                      const files = (e.target as HTMLInputElement).files;
+                      if (files) {
+                        Array.from(files).forEach((file) => {
+                          handleFileUpload(file, "documents");
+                        });
+                      }
                     };
                     input.click();
                   }
@@ -824,56 +1017,58 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 </div>
               </div>
 
-              {/* Uploaded Documents */}
+            
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Uploaded Documents ({uploadedFiles.documents.length})
                 </h3>
                 {uploadedFiles.documents.length > 0 ? (
                   <div className="space-y-4">
-                    {uploadedFiles.documents.map((file) => (
-                      <div
-                        key={file.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-green-100 rounded-lg">
-                            <FileText className="h-6 w-6 text-green-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 truncate">
-                              {file.name}
-                            </h4>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {formatFileSize(file.size)} • Uploaded{" "}
-                              {file.uploadedAt.toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Ready to use
-                              </span>
+                    {uploadedFiles.documents.map(
+                      (file: import("../../types").UploadedFile) => (
+                        <div
+                          key={file.id}
+                          className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="p-3 bg-green-100 rounded-lg">
+                              <FileText className="h-6 w-6 text-green-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">
+                                {file.name}
+                              </h4>
+                              <p className="text-sm text-gray-500 mt-1">
+                                {formatFileSize(file.size)} • Uploaded{" "}
+                                {file.uploadedAt.toLocaleDateString()}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span className="text-sm text-green-600 font-medium">
+                                  Ready to use
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Eye className="h-5 w-5" />
+                              </button>
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Download className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveFile(file.id, "documents")
+                                }
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Eye className="h-5 w-5" />
-                            </button>
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Download className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFile(file.id, "documents")
-                              }
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
@@ -886,10 +1081,10 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Assignments Tab */}
-          {activeTab === "assignments" && (
+          {activeTab === "assignment" && (
             <div className="space-y-8">
               {/* Assignment Creator */}
               <div className="bg-gray-50 rounded-xl p-8">
@@ -1002,65 +1197,67 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 </h3>
                 {uploadedFiles.assignments.length > 0 ? (
                   <div className="space-y-4">
-                    {uploadedFiles.assignments.map((assignment) => (
-                      <div
-                        key={assignment.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-purple-100 rounded-lg">
-                            <Clipboard className="h-6 w-6 text-purple-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              {assignment.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-3">
-                              {assignment.description}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                              {assignment.dueDate && (
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  Due:{" "}
-                                  {new Date(
-                                    assignment.dueDate
-                                  ).toLocaleDateString()}
-                                </div>
-                              )}
-                              {assignment.points && (
-                                <div className="flex items-center gap-1">
-                                  <span>{assignment.points} points</span>
-                                </div>
-                              )}
+                    {uploadedFiles.assignments.map(
+                      (assignment: import("../../types").Assignment) => (
+                        <div
+                          key={assignment.id}
+                          className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-purple-100 rounded-lg">
+                              <Clipboard className="h-6 w-6 text-purple-600" />
                             </div>
-                            <p className="text-sm text-gray-500">
-                              Created{" "}
-                              {assignment.createdAt.toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Ready to assign
-                              </span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 mb-2">
+                                {assignment.title}
+                              </h4>
+                              <p className="text-sm text-gray-600 mb-3">
+                                {assignment.description}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                                {assignment.dueDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    Due:{" "}
+                                    {new Date(
+                                      assignment.dueDate
+                                    ).toLocaleDateString()}
+                                  </div>
+                                )}
+                                {assignment.points && (
+                                  <div className="flex items-center gap-1">
+                                    <span>{assignment.points} points</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                Created{" "}
+                                {assignment.createdAt.toLocaleDateString()}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span className="text-sm text-green-600 font-medium">
+                                  Ready to assign
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFile(assignment.id, "assignments")
-                              }
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Edit3 className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveFile(assignment.id, "assignments")
+                                }
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
@@ -1076,7 +1273,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           )}
 
           {/* Resources Tab */}
-          {activeTab === "resources" && (
+          {activeTab === "resource" && (
             <div className="space-y-8">
               {/* Resource Creator */}
               <div className="bg-gray-50 rounded-xl p-8">
@@ -1204,70 +1401,72 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 </h3>
                 {uploadedFiles.resources.length > 0 ? (
                   <div className="space-y-4">
-                    {uploadedFiles.resources.map((resource) => (
-                      <div
-                        key={resource.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-teal-100 rounded-lg">
-                            <Link2 className="h-6 w-6 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {resource.title}
-                            </h4>
-                            <p className="text-sm text-teal-600 mb-2 capitalize">
-                              {resource.resourceType}
-                            </p>
-                            {resource.description && (
-                              <p className="text-sm text-gray-600 mb-3">
-                                {resource.description}
+                    {uploadedFiles.resources.map(
+                      (resource: import("../../types").Resource) => (
+                        <div
+                          key={resource.id}
+                          className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-teal-100 rounded-lg">
+                              <Link2 className="h-6 w-6 text-teal-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 mb-1">
+                                {resource.title}
+                              </h4>
+                              <p className="text-sm text-teal-600 mb-2 capitalize">
+                                {resource.resourceType}
                               </p>
-                            )}
-                            {resource.url && (
-                              <p className="text-sm text-gray-500 mb-3 break-all">
-                                {resource.url}
+                              {resource.description && (
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {resource.description}
+                                </p>
+                              )}
+                              {resource.url && (
+                                <p className="text-sm text-gray-500 mb-3 break-all">
+                                  {resource.url}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-500">
+                                Added{" "}
+                                {resource.createdAt?.toLocaleDateString() ||
+                                  "Recently"}
                               </p>
-                            )}
-                            <p className="text-sm text-gray-500">
-                              Added{" "}
-                              {resource.createdAt?.toLocaleDateString() ||
-                                "Recently"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Available to students
-                              </span>
+                              <div className="flex items-center gap-2 mt-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span className="text-sm text-green-600 font-medium">
+                                  Available to students
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {resource.url && (
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </a>
+                              )}
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Edit3 className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveFile(resource.id, "resources")
+                                }
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {resource.url && (
-                              <a
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </a>
-                            )}
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFile(resource.id, "resources")
-                              }
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
@@ -1283,7 +1482,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           )}
 
           {/* Quizzes Tab */}
-          {activeTab === "quizzes" && (
+          {activeTab === "quiz" && (
             <div className="text-center py-16">
               <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                 <FileCheck className="h-10 w-10 text-purple-600" />
@@ -1308,11 +1507,17 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       </div>
 
       {/* Upload Statistics */}
-      {(uploadedFiles.videos.length > 0 ||
-        uploadedFiles.documents.length > 0 ||
-        uploadedFiles.text.length > 0 ||
-        uploadedFiles.assignments.length > 0 ||
-        uploadedFiles.resources.length > 0) && (
+      {Object.values(uploadedFiles).some(
+        (
+          files:
+            | import("../../types").UploadedFile[]
+            | import("../../types").TextContent[]
+            | import("../../types").Assignment[]
+            | import("../../types").Resource[]
+            | import("../../types").Quiz[]
+            | import("../../types").UploadedFile[]
+        ) => files.length > 0
+      ) && (
         <div className="bg-gradient-to-r from-blue-50 via-green-50 to-purple-50 rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Content Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

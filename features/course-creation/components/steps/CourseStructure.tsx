@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -15,42 +15,70 @@ import {
   FileSpreadsheet,
   FileArchive,
   X,
+  Save,
+  AlertCircle,
+  CheckCircle,
+  Copy,
+  Move,
+  Loader2,
 } from "lucide-react";
-import { CourseData, Lecture, Section } from "../../types";
-
-
-
-
-
-
+import { CourseData, Lecture, Section, LESSON_TYPES } from "../../types";
+import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
+import { useNotifications } from "../../hooks/useNotifications";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogClose,
+} from "../../../../components/ui/dialog";
 
 interface CourseStructureProps {
   data: CourseData;
   updateData: (data: Partial<CourseData>) => void;
 }
 
-const lectureTypes = [
-  { id: "video", name: "Video", icon: Video, color: "text-blue-600" },
-  { id: "text", name: "Text", icon: FileText, color: "text-green-600" },
-  { id: "quiz", name: "Quiz", icon: FileQuestion, color: "text-purple-600" },
-  {
-    id: "assignment",
+const lectureTypeConfig = {
+  video: {
+    name: "Video",
+    icon: Video,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+  },
+  text: {
+    name: "Text",
+    icon: FileText,
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+  },
+  quiz: {
+    name: "Quiz",
+    icon: FileQuestion,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+  },
+  assignment: {
     name: "Assignment",
     icon: FileSpreadsheet,
     color: "text-orange-600",
+    bgColor: "bg-orange-50",
   },
-  {
-    id: "resource",
+  resource: {
     name: "Resource",
     icon: FileArchive,
     color: "text-gray-600",
+    bgColor: "bg-gray-50",
   },
-];
+};
 
 export function CourseStructure({ data, updateData }: CourseStructureProps) {
   const [sections, setSections] = useState<Section[]>(
-    data.sections || [{ id: "section-1", title: "Introduction", lectures: [] }]
+    data.sections?.length > 0
+      ? data.sections
+      : [{ id: "section-1", title: "Introduction", lectures: [] }]
   );
+
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingLectureId, setEditingLectureId] = useState<string | null>(null);
   const [newSectionTitle, setNewSectionTitle] = useState("");
@@ -63,128 +91,251 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
   } | null>(null);
   const [newLecture, setNewLecture] = useState<Partial<Lecture>>({
     title: "",
-    type: "video",
+    type: LESSON_TYPES[0],
     duration: 0,
     description: "",
   });
   const [openSections, setOpenSections] = useState<string[]>(["section-1"]);
+  const [draggedItem, setDraggedItem] = useState<{
+    type: "section" | "lecture";
+    id: string;
+    sectionId?: string;
+  } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAddSection = () => {
+  const notifications = useNotifications();
+  const { addGlobalWarning } = useCourseCreationStore();
+
+  // Update parent data whenever sections change
+  const updateSections = useCallback(
+    (newSections: Section[]) => {
+      setSections(newSections);
+      updateData({ sections: newSections });
+    },
+    [updateData]
+  );
+
+  const handleAddSection = useCallback(() => {
     const newSection: Section = {
       id: `section-${Date.now()}`,
-      title: `New Section`,
+      title: `Section ${sections.length + 1}`,
       lectures: [],
     };
     const updatedSections = [...sections, newSection];
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
+    updateSections(updatedSections);
     setOpenSections([...openSections, newSection.id]);
     setEditingSectionId(newSection.id);
-    setNewSectionTitle("New Section");
-  };
+    setNewSectionTitle(newSection.title);
+    notifications.success("New section added");
+  }, [sections, openSections, updateSections, notifications]);
 
-  const handleUpdateSection = (id: string, title: string) => {
-    const updatedSections = sections.map((section) =>
-      section.id === id ? { ...section, title } : section
-    );
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
-    setEditingSectionId(null);
-    setNewSectionTitle("");
-  };
-
-  const handleDeleteSection = (id: string) => {
-    const updatedSections = sections.filter((section) => section.id !== id);
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
-    setOpenSections(openSections.filter((sId) => sId !== id));
-  };
-
-  const handleAddLecture = (sectionId: string) => {
-    const newLectureObj: Lecture = {
-      id: `lecture-${Date.now()}`,
-      title: newLecture.title || "",
-      type: newLecture.type || "video",
-      duration: newLecture.duration || 0,
-      description: newLecture.description,
-      status: "draft",
-    };
-
-    const updatedSections = sections.map((section) => {
-      if (section.id === sectionId) {
-        return {
-          ...section,
-          lectures: [...section.lectures, newLectureObj],
-        };
+  const handleUpdateSection = useCallback(
+    (id: string, title: string) => {
+      if (!title.trim()) {
+        notifications.error("Section title cannot be empty");
+        return;
       }
-      return section;
-    });
 
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
-    setNewLecture({
-      title: "",
-      type: "video",
-      duration: 0,
-      description: "",
-    });
-    setShowAddLectureModal(null);
-  };
+      const updatedSections = sections.map((section) =>
+        section.id === id ? { ...section, title: title.trim() } : section
+      );
+      updateSections(updatedSections);
+      setEditingSectionId(null);
+      setNewSectionTitle("");
+      notifications.success("Section updated");
+    },
+    [sections, updateSections, notifications]
+  );
 
-  const handleUpdateLecture = (
-    sectionId: string,
-    lectureId: string,
-    lectureData: Partial<Lecture>
-  ) => {
-    const updatedSections = sections.map((section) => {
-      if (section.id === sectionId) {
-        return {
-          ...section,
-          lectures: section.lectures.map((lecture) =>
-            lecture.id === lectureId ? { ...lecture, ...lectureData } : lecture
-          ),
-        };
+  const handleDeleteSection = useCallback(
+    (id: string) => {
+      const section = sections.find((s) => s.id === id);
+      if (section && section.lectures.length > 0) {
+        if (
+          !window.confirm(
+            `This section contains ${section.lectures.length} lecture(s). Are you sure you want to delete it?`
+          )
+        ) {
+          return;
+        }
       }
-      return section;
-    });
 
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
-    setShowEditLectureModal(null);
-    setNewLecture({
-      title: "",
-      type: "video",
-      duration: 0,
-      description: "",
-    });
-  };
+      const updatedSections = sections.filter((section) => section.id !== id);
+      updateSections(updatedSections);
+      setOpenSections(openSections.filter((sId) => sId !== id));
+      notifications.success("Section deleted");
+    },
+    [sections, openSections, updateSections, notifications]
+  );
 
-  const handleDeleteLecture = (sectionId: string, lectureId: string) => {
-    const updatedSections = sections.map((section) => {
-      if (section.id === sectionId) {
-        return {
-          ...section,
-          lectures: section.lectures.filter(
-            (lecture) => lecture.id !== lectureId
-          ),
-        };
+  const handleDuplicateSection = useCallback(
+    (id: string) => {
+      const sectionToDuplicate = sections.find((s) => s.id === id);
+      if (!sectionToDuplicate) return;
+
+      setIsProcessing(true);
+
+      const duplicatedSection: Section = {
+        id: `section-${Date.now()}`,
+        title: `${sectionToDuplicate.title} (Copy)`,
+        lectures: sectionToDuplicate.lectures.map((lecture) => ({
+          ...lecture,
+          id: `lecture-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`,
+        })),
+      };
+
+      const updatedSections = [...sections, duplicatedSection];
+      updateSections(updatedSections);
+      setOpenSections([...openSections, duplicatedSection.id]);
+      notifications.success("Section duplicated");
+      setIsProcessing(false);
+    },
+    [sections, openSections, updateSections, notifications]
+  );
+
+  const handleAddLecture = useCallback(
+    (sectionId: string) => {
+      if (!newLecture.title?.trim()) {
+        notifications.error("Lecture title is required");
+        return;
       }
-      return section;
-    });
 
-    setSections(updatedSections);
-    updateData({ sections: updatedSections });
-  };
+      const newLectureObj: Lecture = {
+        id: `lecture-${Date.now()}`,
+        title: newLecture.title.trim(),
+        type: newLecture.type || LESSON_TYPES[0],
+        duration: newLecture.duration || 0,
+        description: newLecture.description?.trim(),
+        status: "draft",
+      };
 
-  const toggleSection = (sectionId: string) => {
+      const updatedSections = sections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            lectures: [...section.lectures, newLectureObj],
+          };
+        }
+        return section;
+      });
+
+      updateSections(updatedSections);
+      setNewLecture({
+        title: "",
+        type: LESSON_TYPES[0],
+        duration: 0,
+        description: "",
+      });
+      setShowAddLectureModal(null);
+      notifications.success("Lecture added successfully");
+    },
+    [newLecture, sections, updateSections, notifications]
+  );
+
+  const handleUpdateLecture = useCallback(
+    (sectionId: string, lectureId: string, lectureData: Partial<Lecture>) => {
+      if (
+        !lectureData.title ||
+        typeof lectureData.title !== "string" ||
+        !lectureData.title.trim()
+      ) {
+        notifications.error("Lecture title is required");
+        return;
+      }
+
+      const updatedSections = sections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            lectures: section.lectures.map((lecture) =>
+              lecture.id === lectureId
+                ? {
+                    ...lecture,
+                    ...lectureData,
+                    title: lectureData.title ?? "",
+                  }
+                : lecture
+            ),
+          };
+        }
+        return section;
+      });
+
+      updateSections(updatedSections);
+      setShowEditLectureModal(null);
+      setNewLecture({
+        title: "",
+        type: LESSON_TYPES[0],
+        duration: 0,
+        description: "",
+      });
+      notifications.success("Lecture updated successfully");
+    },
+    [sections, updateSections, notifications]
+  );
+
+  const handleDeleteLecture = useCallback(
+    (sectionId: string, lectureId: string) => {
+      const updatedSections = sections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            lectures: section.lectures.filter(
+              (lecture) => lecture.id !== lectureId
+            ),
+          };
+        }
+        return section;
+      });
+
+      updateSections(updatedSections);
+      notifications.success("Lecture deleted");
+    },
+    [sections, updateSections, notifications]
+  );
+
+  const handleDuplicateLecture = useCallback(
+    (sectionId: string, lectureId: string) => {
+      const section = sections.find((s) => s.id === sectionId);
+      const lectureToDuplicate = section?.lectures.find(
+        (l) => l.id === lectureId
+      );
+
+      if (!lectureToDuplicate) return;
+
+      const duplicatedLecture: Lecture = {
+        ...lectureToDuplicate,
+        id: `lecture-${Date.now()}`,
+        title: `${lectureToDuplicate.title} (Copy)`,
+      };
+
+      const updatedSections = sections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            lectures: [...section.lectures, duplicatedLecture],
+          };
+        }
+        return section;
+      });
+
+      updateSections(updatedSections);
+      notifications.success("Lecture duplicated");
+    },
+    [sections, updateSections, notifications]
+  );
+
+  const toggleSection = useCallback((sectionId: string) => {
     setOpenSections((prev) =>
       prev.includes(sectionId)
         ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId]
     );
-  };
+  }, []);
 
-  const getTotalDuration = () => {
+  const getTotalDuration = useCallback(() => {
     let total = 0;
     sections.forEach((section) => {
       section.lectures.forEach((lecture) => {
@@ -195,33 +346,154 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
     const hours = Math.floor(total / 60);
     const minutes = total % 60;
 
-    return `${hours}h ${minutes}m`;
-  };
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  }, [sections]);
 
-  const getTotalLectures = () => {
+  const getTotalLectures = useCallback(() => {
     return sections.reduce(
-      (total, section) => total + section.lectures.length,
+      (total: number, section: Section) => total + section.lectures.length,
       0
     );
-  };
+  }, [sections]);
 
-  const getLectureTypeInfo = (type: string) => {
-    return lectureTypes.find((lt) => lt.id === type) || lectureTypes[0];
-  };
+  const getLectureTypeInfo = useCallback((type: string) => {
+    return (
+      lectureTypeConfig[type as keyof typeof lectureTypeConfig] ||
+      lectureTypeConfig.video
+    );
+  }, []);
 
-  const openEditLectureModal = (lecture: Lecture, sectionId: string) => {
-    setNewLecture({
-      title: lecture.title,
-      type: lecture.type,
-      duration: lecture.duration,
-      description: lecture.description,
-    });
-    setShowEditLectureModal({ sectionId, lectureId: lecture.id });
-  };
+  const openEditLectureModal = useCallback(
+    (lecture: Lecture, sectionId: string) => {
+      setNewLecture({
+        title: lecture.title,
+        type: lecture.type,
+        duration: lecture.duration,
+        description: lecture.description,
+      });
+      setShowEditLectureModal({ sectionId, lectureId: lecture.id });
+    },
+    []
+  );
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback(
+    (
+      e: React.DragEvent,
+      type: "section" | "lecture",
+      id: string,
+      sectionId?: string
+    ) => {
+      setDraggedItem({ type, id, sectionId });
+      e.dataTransfer.effectAllowed = "move";
+    },
+    []
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleDrop = useCallback(
+    (
+      e: React.DragEvent,
+      targetType: "section" | "lecture",
+      targetId: string,
+      dropTargetSectionId?: string
+    ) => {
+      e.preventDefault();
+      if (!draggedItem) return;
+
+      // Handle section reordering
+      if (
+        draggedItem.type === "section" &&
+        targetType === "section" &&
+        draggedItem.id !== targetId
+      ) {
+        const draggedIndex = sections.findIndex((s) => s.id === draggedItem.id);
+        const targetIndex = sections.findIndex((s) => s.id === targetId);
+
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+          const newSections = [...sections];
+          const [draggedSection] = newSections.splice(draggedIndex, 1);
+          newSections.splice(targetIndex, 0, draggedSection);
+          updateSections(newSections);
+          notifications.success("Section reordered");
+        }
+      }
+
+      // Handle lecture reordering
+      if (
+        draggedItem.type === "lecture" &&
+        targetType === "lecture" &&
+        draggedItem.id !== targetId
+      ) {
+        const sourceSectionId = draggedItem.sectionId!;
+        const targetSectionId = dropTargetSectionId!;
+
+        const sourceSection = sections.find((s) => s.id === sourceSectionId);
+        const targetSection = sections.find((s) => s.id === targetSectionId);
+
+        if (sourceSection && targetSection) {
+          const draggedLecture = sourceSection.lectures.find(
+            (l) => l.id === draggedItem.id
+          );
+          const targetLectureIndex = targetSection.lectures.findIndex(
+            (l) => l.id === targetId
+          );
+
+          if (draggedLecture && targetLectureIndex !== -1) {
+            const newSections = sections.map((section) => {
+              if (section.id === sourceSectionId) {
+                return {
+                  ...section,
+                  lectures: section.lectures.filter(
+                    (l) => l.id !== draggedItem.id
+                  ),
+                };
+              }
+              if (section.id === targetSectionId) {
+                const newLectures = [...section.lectures];
+                newLectures.splice(targetLectureIndex, 0, draggedLecture);
+                return { ...section, lectures: newLectures };
+              }
+              return section;
+            });
+
+            updateSections(newSections);
+            notifications.success("Lecture moved");
+          }
+        }
+      }
+
+      setDraggedItem(null);
+    },
+    [draggedItem, sections, updateSections, notifications]
+  );
+
+  const getStructureStats = useCallback(() => {
+    const totalSections = sections.length;
+    const totalLectures = getTotalLectures();
+    const totalDuration = getTotalDuration();
+    const lectureTypes = sections.reduce(
+      (acc: Record<string, number>, section: Section) => {
+        section.lectures.forEach((lecture: Lecture) => {
+          acc[lecture.type] = (acc[lecture.type] || 0) + 1;
+        });
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    return { totalSections, totalLectures, totalDuration, lectureTypes };
+  }, [sections, getTotalLectures, getTotalDuration]);
+
+  const stats = getStructureStats();
 
   return (
     <div className="space-y-6">
-      {/* Header Section with improved styling */}
+      {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
         <div className="flex items-center justify-between">
           <div>
@@ -237,37 +509,86 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
             <div className="bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
               <div className="flex items-center text-sm text-gray-600">
                 <Clock className="h-4 w-4 mr-1 text-blue-500" />
-                <span className="font-medium">{getTotalDuration()}</span>
+                <span className="font-medium">{stats.totalDuration}</span>
               </div>
             </div>
             <div className="bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
               <div className="flex items-center text-sm text-gray-600">
                 <Video className="h-4 w-4 mr-1 text-green-500" />
                 <span className="font-medium">
-                  {getTotalLectures()} lectures
+                  {stats.totalLectures} lectures
                 </span>
               </div>
             </div>
             <button
               onClick={handleAddSection}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" />
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               Add Section
             </button>
           </div>
         </div>
+
+        {/* Quick Stats */}
+        {stats.totalLectures > 0 && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+            {Object.entries(stats.lectureTypes).map(([type, count]) => {
+              const typeInfo = getLectureTypeInfo(type);
+              const TypeIcon = typeInfo.icon;
+              return (
+                <div key={type} className="bg-white rounded-lg p-3 text-center">
+                  <TypeIcon
+                    className={`h-5 w-5 mx-auto mb-1 ${typeInfo.color}`}
+                  />
+                  <div className="text-lg font-semibold text-gray-900">
+                    {count}
+                  </div>
+                  <div className="text-xs text-gray-500">{typeInfo.name}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Structure Guidelines */}
+      {sections.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-amber-800">
+                Structure Guidelines
+              </h4>
+              <p className="text-amber-700 text-sm mt-1">
+                A well-structured course typically has 3-8 sections with 3-10
+                lectures each. Start with an introduction section and end with a
+                conclusion or next steps.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sections List */}
       <div className="space-y-4">
-        {sections.map((section, index) => (
+        {sections.map((section, sectionIndex) => (
           <div
             key={section.id}
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+            draggable
+            onDragStart={(e) => handleDragStart(e, "section", section.id)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, "section", section.id)}
           >
             {/* Section Header */}
-            <div className="flex items-center p-4 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center p-4 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors">
               <button
                 onClick={() => toggleSection(section.id)}
                 className="mr-3 p-1 hover:bg-gray-200 rounded transition-colors"
@@ -279,8 +600,14 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 )}
               </button>
 
-              <div className="flex items-center mr-3 text-gray-400">
-                <Grip className="h-5 w-5 cursor-grab hover:text-gray-600 transition-colors" />
+              <div className="flex items-center mr-3 text-gray-400 cursor-grab">
+                <Grip className="h-5 w-5 hover:text-gray-600 transition-colors" />
+              </div>
+
+              <div className="flex items-center gap-2 mr-4">
+                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+                  {sectionIndex + 1}
+                </div>
               </div>
 
               {editingSectionId === section.id ? (
@@ -307,10 +634,11 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                         setNewSectionTitle("");
                       }
                     }}
+                    maxLength={100}
                   />
                 </div>
               ) : (
-                <h3 className="text-lg font-semibold flex-1 text-gray-900 mr-4">
+                <h3 className="text-lg font-semibold flex-1 text-gray-900 mr-4 truncate">
                   {section.title}
                 </h3>
               )}
@@ -320,18 +648,42 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   {section.lectures.length}{" "}
                   {section.lectures.length === 1 ? "lecture" : "lectures"}
                 </span>
+
+                {section.lectures.length > 0 && (
+                  <div className="text-sm text-gray-500 bg-blue-100 px-3 py-1 rounded-full">
+                    {section.lectures.reduce(
+                      (total: number, lecture: Lecture) =>
+                        total + (lecture.duration || 0),
+                      0
+                    )}
+                    m
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleDuplicateSection(section.id)}
+                  disabled={isProcessing}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Duplicate section"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+
                 <button
                   onClick={() => {
                     setEditingSectionId(section.id);
                     setNewSectionTitle(section.title);
                   }}
                   className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Edit section"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
+
                 <button
                   onClick={() => handleDeleteSection(section.id)}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete section"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -351,13 +703,34 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                         <div
                           key={lecture.id}
                           className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors group"
+                          draggable
+                          onDragStart={(e) =>
+                            handleDragStart(
+                              e,
+                              "lecture",
+                              lecture.id,
+                              section.id
+                            )
+                          }
+                          onDragOver={handleDragOver}
+                          onDrop={(e) =>
+                            handleDrop(e, "lecture", lecture.id, section.id)
+                          }
                         >
-                          <Grip className="h-4 w-4 text-gray-400 cursor-grab hover:text-gray-600 transition-colors" />
+                          <div className="cursor-grab">
+                            <Grip className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                          </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center text-xs font-medium">
+                            {lectureIndex + 1}
+                          </div>
+
+                          <div
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full ${typeInfo.bgColor}`}
+                          >
                             <TypeIcon className={`h-4 w-4 ${typeInfo.color}`} />
                             <span
-                              className={`text-xs font-medium px-2 py-1 rounded-full bg-white border ${typeInfo.color}`}
+                              className={`text-xs font-medium ${typeInfo.color}`}
                             >
                               {typeInfo.name}
                             </span>
@@ -375,23 +748,39 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center text-xs text-gray-500 bg-white px-2 py-1 rounded border">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {lecture.duration} min
-                            </div>
+                            {lecture.duration > 0 && (
+                              <div className="flex items-center text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {lecture.duration}m
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() =>
+                                handleDuplicateLecture(section.id, lecture.id)
+                              }
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Duplicate lecture"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+
                             <button
                               onClick={() =>
                                 openEditLectureModal(lecture, section.id)
                               }
                               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Edit lecture"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
+
                             <button
                               onClick={() =>
                                 handleDeleteLecture(section.id, lecture.id)
                               }
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete lecture"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -448,28 +837,25 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
       {/* Add Lecture Modal */}
       {showAddLectureModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Add New Lecture</h2>
-                <button
-                  onClick={() => {
-                    setShowAddLectureModal(null);
-                    setNewLecture({
-                      title: "",
-                      type: "video",
-                      duration: 0,
-                      description: "",
-                    });
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
+        <Dialog
+          open={!!showAddLectureModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddLectureModal(null);
+              setNewLecture({
+                title: "",
+                type: LESSON_TYPES[0],
+                duration: 0,
+                description: "",
+              });
+            }
+          }}
+        >
+          <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Lecture</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Lecture Title *
@@ -485,6 +871,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                     }))
                   }
                   className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  maxLength={100}
                 />
               </div>
 
@@ -493,25 +880,27 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   Lecture Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {lectureTypes.map((type) => {
-                    const TypeIcon = type.icon;
+                  {LESSON_TYPES.map((type) => {
+                    const typeInfo = getLectureTypeInfo(type);
+                    const TypeIcon = typeInfo.icon;
                     return (
                       <button
-                        key={type.id}
+                        key={type}
+                        type="button"
                         onClick={() =>
                           setNewLecture((prev) => ({
                             ...prev,
-                            type: type.id as Lecture["type"],
+                            type: type,
                           }))
                         }
                         className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
-                          newLecture.type === type.id
+                          newLecture.type === type
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-300 hover:bg-gray-50"
                         }`}
                       >
                         <TypeIcon className="h-5 w-5" />
-                        <span className="font-medium">{type.name}</span>
+                        <span className="font-medium">{typeInfo.name}</span>
                       </button>
                     );
                   })}
@@ -524,7 +913,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 </label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   placeholder="0"
                   value={newLecture.duration || ""}
                   onChange={(e) =>
@@ -552,16 +941,23 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                     }))
                   }
                   className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  maxLength={300}
                 />
+                <div className="text-right mt-1">
+                  <span className="text-xs text-gray-400">
+                    {(newLecture.description || "").length}/300
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 p-6 bg-gray-50 border-t border-gray-200">
+            <DialogFooter className="mt-6">
               <button
+                type="button"
                 onClick={() => {
                   setShowAddLectureModal(null);
                   setNewLecture({
                     title: "",
-                    type: "video",
+                    type: LESSON_TYPES[0],
                     duration: 0,
                     description: "",
                   });
@@ -571,45 +967,43 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (newLecture.title && showAddLectureModal) {
                     handleAddLecture(showAddLectureModal);
                   }
                 }}
-                disabled={!newLecture.title}
+                disabled={!newLecture.title?.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add Lecture
               </button>
-            </div>
-          </div>
-        </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Edit Lecture Modal */}
       {showEditLectureModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Edit Lecture</h2>
-                <button
-                  onClick={() => {
-                    setShowEditLectureModal(null);
-                    setNewLecture({
-                      title: "",
-                      type: "video",
-                      duration: 0,
-                      description: "",
-                    });
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
+        <Dialog
+          open={!!showEditLectureModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowEditLectureModal(null);
+              setNewLecture({
+                title: "",
+                type: LESSON_TYPES[0],
+                duration: 0,
+                description: "",
+              });
+            }
+          }}
+        >
+          <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Lecture</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Lecture Title *
@@ -625,7 +1019,13 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                     }))
                   }
                   className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  maxLength={100}
                 />
+                <div className="text-right mt-1">
+                  <span className="text-xs text-gray-400">
+                    {(newLecture.title || "").length}/100
+                  </span>
+                </div>
               </div>
 
               <div>
@@ -633,25 +1033,27 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   Lecture Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {lectureTypes.map((type) => {
-                    const TypeIcon = type.icon;
+                  {LESSON_TYPES.map((type) => {
+                    const typeInfo = getLectureTypeInfo(type);
+                    const TypeIcon = typeInfo.icon;
                     return (
                       <button
-                        key={type.id}
+                        key={type}
+                        type="button"
                         onClick={() =>
                           setNewLecture((prev) => ({
                             ...prev,
-                            type: type.id as Lecture["type"],
+                            type: type,
                           }))
                         }
                         className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
-                          newLecture.type === type.id
+                          newLecture.type === type
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-300 hover:bg-gray-50"
                         }`}
                       >
                         <TypeIcon className="h-5 w-5" />
-                        <span className="font-medium">{type.name}</span>
+                        <span className="font-medium">{typeInfo.name}</span>
                       </button>
                     );
                   })}
@@ -664,7 +1066,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 </label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   placeholder="0"
                   value={newLecture.duration || ""}
                   onChange={(e) =>
@@ -691,17 +1093,24 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                       description: e.target.value,
                     }))
                   }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-200 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  maxLength={300}
                 />
+                <div className="text-right mt-1">
+                  <span className="text-xs text-gray-400">
+                    {(newLecture.description || "").length}/300
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 p-6 bg-gray-50 border-t border-gray-200">
+            <DialogFooter className="mt-6">
               <button
+                type="button"
                 onClick={() => {
                   setShowEditLectureModal(null);
                   setNewLecture({
                     title: "",
-                    type: "video",
+                    type: LESSON_TYPES[0],
                     duration: 0,
                     description: "",
                   });
@@ -711,6 +1120,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (newLecture.title && showEditLectureModal) {
                     handleUpdateLecture(
@@ -720,11 +1130,110 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                     );
                   }
                 }}
-                disabled={!newLecture.title}
+                disabled={!newLecture.title?.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Changes
               </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bulk Actions */}
+      {sections.length > 1 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-blue-800">Bulk Actions</h4>
+              <p className="text-blue-700 text-sm mt-1">
+                Manage multiple sections at once
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setOpenSections(sections.map((s) => s.id));
+                  notifications.success("All sections expanded");
+                }}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Expand All
+              </button>
+              <button
+                onClick={() => {
+                  setOpenSections([]);
+                  notifications.success("All sections collapsed");
+                }}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Collapse All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Structure Tips */}
+      {sections.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-green-800">
+                Course Structure Tips
+              </h4>
+              <ul className="text-green-700 text-sm mt-2 space-y-1">
+                <li>• Use drag and drop to reorder sections and lectures</li>
+                <li>
+                  • Add different types of content to keep students engaged
+                </li>
+                <li>• Include quizzes and assignments to test understanding</li>
+                <li>
+                  • Keep individual lectures focused and under 15 minutes when
+                  possible
+                </li>
+                <li>
+                  • Use descriptive titles that clearly indicate what students
+                  will learn
+                </li>
+                <li>• Group related topics together in logical sections</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Structure Summary */}
+      {sections.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h4 className="font-semibold text-gray-900 mb-4">
+            Structure Summary
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.totalSections}
+              </div>
+              <div className="text-sm text-gray-600">Sections</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {stats.totalLectures}
+              </div>
+              <div className="text-sm text-gray-600">Lectures</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.totalDuration}
+              </div>
+              <div className="text-sm text-gray-600">Duration</div>
+            </div>
+            <div className="text-center p-4 bg-amber-50 rounded-lg">
+              <div className="text-2xl font-bold text-amber-600">
+                {Object.keys(stats.lectureTypes).length}
+              </div>
+              <div className="text-sm text-gray-600">Content Types</div>
             </div>
           </div>
         </div>

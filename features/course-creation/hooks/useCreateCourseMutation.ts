@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useApolloClient } from "@apollo/client";
 import { useCourseCreationStore } from "../../../stores/courseCreation.store";
 import { CourseData } from "../types";
+import { useAuth } from "@clerk/nextjs";
 
 export function useCreateCourseMutation() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const client = useApolloClient();
+  const { getToken } = useAuth();
 
   // Get all the store methods we need
   const {
@@ -27,8 +29,9 @@ export function useCreateCourseMutation() {
       // Update the store with the course data
       updateCourseData(courseDataParam);
 
-      // Submit the course using the store
-      await submitCourse();
+      // Get auth token and submit the course using the store
+      const authToken = await getToken({ template: "expiration" });
+      await submitCourse(authToken || undefined);
 
       return { success: true };
     } catch (err) {

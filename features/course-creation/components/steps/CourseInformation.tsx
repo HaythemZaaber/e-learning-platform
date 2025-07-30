@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Upload, X, Plus, Loader2, ImageIcon } from "lucide-react";
 import {
   CourseData,
@@ -9,7 +9,7 @@ import {
   COURSE_LEVELS,
 } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
-import { useCreateCourseMutation } from "../../hooks/useCreateCourseMutation";
+
 import { useNotifications } from "../../hooks/useNotifications";
 
 interface CourseInformationProps {
@@ -29,8 +29,26 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   const notifications = useNotifications();
-  const { /* uploadThumbnail, */ ...restMutation } = useCreateCourseMutation();
-  const { addGlobalError } = useCourseCreationStore();
+
+  const { addGlobalError, removeGlobalError } = useCourseCreationStore();
+
+  // check the validation errors and remove them when the fields contain values
+  useEffect(() => {
+    if (data.title && data.title.trim()) {
+      removeGlobalError("Course title is required");
+    }
+    if (data.description && data.description.trim()) {
+      removeGlobalError("Course description is required");
+    }
+    
+    // Clear validation warnings when required fields are filled
+    if (data.title && data.title.trim() && data.description && data.description.trim()) {
+      // Clear step validation warnings and validate all steps
+      const { clearStepValidationWarnings, validateStepsForCompletion } = useCourseCreationStore.getState();
+      clearStepValidationWarnings();
+      validateStepsForCompletion();
+    }
+  }, [data.title, data.description, removeGlobalError]);
 
   const handleThumbnailChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,17 +187,17 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
             </label>
             <input
               type="text"
-              value={data.title}
+              value={data.title || ""}
               onChange={(e) => updateData({ title: e.target.value })}
               className={`w-full p-3 border rounded-lg transition-colors ${
-                getFieldError("title")
+                getFieldError("title") && !data.title
                   ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               }`}
               placeholder="e.g., Complete Web Development Bootcamp"
               maxLength={100}
             />
-            {getFieldError("title") && (
+            {getFieldError("title") && !data.title && (
               <p className="text-red-500 text-sm mt-1">
                 Course title is required
               </p>
@@ -201,18 +219,18 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               Course Description *
             </label>
             <textarea
-              value={data.description}
+              value={data.description || ""}
               onChange={(e) => updateData({ description: e.target.value })}
               rows={5}
               className={`w-full p-3 border rounded-lg transition-colors resize-none ${
-                getFieldError("description")
+                getFieldError("description") && !data.description
                   ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               }`}
               placeholder="Describe what students will learn, the skills they'll gain, and how this course will help them achieve their goals..."
               maxLength={1000}
             />
-            {getFieldError("description") && (
+            {getFieldError("description") && !data.description && (
               <p className="text-red-500 text-sm mt-1">
                 Course description is required
               </p>

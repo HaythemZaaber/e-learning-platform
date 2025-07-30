@@ -29,6 +29,7 @@ import { CourseSettings } from "./steps/CourseSettings";
 import { useCourseCreationStore } from "../../../stores/courseCreation.store";
 import { useCourseCreationWithGraphQL } from "../hooks/useCourseCreationWithGraphQL";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/nextjs";
 import {
   Dialog,
   DialogContent,
@@ -100,6 +101,8 @@ export default function CourseCreation() {
     clearGlobalMessages,
   } = useCourseCreationStore();
 
+  const { getToken } = useAuth();
+
   // Get only the service initialization status from the custom hook
   const { isServiceInitialized } = useCourseCreationWithGraphQL();
 
@@ -119,6 +122,24 @@ export default function CourseCreation() {
       });
     }
   }, [mounted, isServiceInitialized]); // Removed loadDraft and isLoading from dependencies
+
+  // Clear validation warnings when draft is loaded and has valid data
+  useEffect(() => {
+    if (mounted && isServiceInitialized && !isLoading && courseData) {
+      // Clear validation warnings for step 0 (Course Information) if required fields are filled
+      if (currentStep === 0) {
+        const hasValidTitle = courseData.title && courseData.title.trim().length > 0;
+        const hasValidDescription = courseData.description && courseData.description.trim().length > 0;
+        
+        if (hasValidTitle && hasValidDescription) {
+          // Clear step validation warnings and validate all steps
+          const { clearStepValidationWarnings, validateStepsForCompletion } = useCourseCreationStore.getState();
+          clearStepValidationWarnings();
+          validateStepsForCompletion();
+        }
+      }
+    }
+  }, [mounted, isServiceInitialized, isLoading, courseData, currentStep]);
 
   // Validate current step when course data changes
   useEffect(() => {
@@ -147,14 +168,14 @@ export default function CourseCreation() {
     });
   }, [globalWarnings]);
 
-  const handleAutoSave = useCallback(async () => {
-    try {
-      await saveDraft();
-      toast.success("Draft saved automatically", { duration: 2000 });
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    }
-  }, [saveDraft]);
+  // const handleAutoSave = useCallback(async () => {
+  //   try {
+  //     await saveDraft();
+  //     toast.success("Draft saved automatically", { duration: 2000 });
+  //   } catch (error) {
+  //     console.error("Auto-save failed:", error);
+  //   }
+  // }, [saveDraft]);
 
   const handleManualSave = useCallback(async () => {
     try {
@@ -206,14 +227,15 @@ export default function CourseCreation() {
     }
 
     try {
-      await submitCourse();
+      const authToken = await getToken({ template: "expiration" });
+      await submitCourse(authToken || undefined);
       toast.success("Course created successfully!");
       clearGlobalMessages();
     } catch (error) {
       toast.error("Failed to create course");
       console.error("Course submission failed:", error);
     }
-  }, [validateAllSteps, submitCourse, clearGlobalMessages]);
+  }, [validateAllSteps, submitCourse, clearGlobalMessages, getToken]);
 
   const handlePublishCourse = useCallback(async () => {
     if (!courseData.id) {
@@ -405,8 +427,7 @@ export default function CourseCreation() {
                 {steps.map((step, index) => {
                   const StepIcon = step.icon;
                   const isActive = index === currentStep;
-                  const isCompleted =
-                    stepValidations[index]?.isValid && index < currentStep;
+                  const isCompleted = stepValidations[index]?.isValid;
                   const isClickable = canNavigateToStep(index);
                   const hasError =
                     !stepValidations[index]?.isValid && index <= currentStep;
@@ -602,7 +623,7 @@ export default function CourseCreation() {
                         <span className="text-gray-600">{step.title}</span>
                         <span
                           className={`font-medium ${
-                            validation?.isValid && index < currentStep
+                            validation?.isValid
                               ? "text-green-600"
                               : index === currentStep
                               ? "text-blue-600"
@@ -611,7 +632,7 @@ export default function CourseCreation() {
                               : "text-gray-400"
                           }`}
                         >
-                          {validation?.isValid && index < currentStep
+                          {validation?.isValid
                             ? "Complete"
                             : index === currentStep
                             ? "In Progress"

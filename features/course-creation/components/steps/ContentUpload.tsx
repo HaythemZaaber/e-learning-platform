@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   CheckCircle2,
   FileVideo,
@@ -9,6 +9,7 @@ import {
   Play,
   FileText,
   AlertCircle,
+  AlertTriangle,
   Download,
   Eye,
   Plus,
@@ -28,11 +29,14 @@ import {
   FileAudio,
   FileArchive,
   FileImage,
+  Users,
+  Layers,
 } from "lucide-react";
 import { CourseData } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs";
+import { useCourseCreationWithGraphQL } from "../../hooks/useCourseCreationWithGraphQL";
 
 interface ContentUploadProps {
   data: CourseData;
@@ -62,10 +66,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   const [resourceDescription, setResourceDescription] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
   const [resourceType, setResourceType] = useState("link");
+  const [deletingContent, setDeletingContent] = useState<Record<string, boolean>>({});
 
   const {
     uploadProgress,
-    uploadedFiles,
+    contentByLecture,
     isUploading,
     setUploadProgress,
     removeUpload,
@@ -73,17 +78,24 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     createTextContent,
     createAssignment,
     createResource,
-    removeTempUploadedFile,
+    createQuiz,
     addGlobalError,
-    addGlobalWarning,
+    getContentForLecture,
+    getLectureContentCounts,
+    removeContentFromLecture,
+    deleteContentFromLecture,
   } = useCourseCreationStore();
 
   const { getToken } = useAuth();
+  const { isServiceInitialized } = useCourseCreationWithGraphQL();
 
-  // Determine the type of the selected lecture from the structure
-  const selectedLectureType = data.sections
-    ?.find((s) => s.id === selectedSection)
-    ?.lectures?.find((l) => l.id === selectedLecture)?.type;
+  // Get content for selected lecture
+  const selectedLectureContent = selectedLecture ? getContentForLecture(selectedLecture) : null;
+  const contentCounts = selectedLecture ? getLectureContentCounts(selectedLecture) : {};
+
+  // Find selected section and lecture objects
+  const selectedSectionObj = data.sections?.find((s) => s.id === selectedSection);
+  const selectedLectureObj = selectedSectionObj?.lectures?.find((l) => l.id === selectedLecture);
 
   const handleFileUpload = useCallback(
     async (file: File, type: string) => {
@@ -119,9 +131,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         return;
       }
 
-      if (
-        !allowedTypes[type as keyof typeof allowedTypes].includes(file.type)
-      ) {
+      if (!allowedTypes[type as keyof typeof allowedTypes].includes(file.type)) {
         toast.error(`Invalid file type for ${type}`);
         return;
       }
@@ -131,14 +141,23 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         return;
       }
 
+      // Check if content already exists for this lecture type
+      const existingContent = selectedLectureContent?.[type] || [];
+      if (existingContent.length > 0) {
+        toast.error(`This lecture already has ${type} content. Please delete the existing content first before uploading new files.`);
+        return;
+      }
+
       try {
         const authToken = await getToken({ template: "expiration" });
         await uploadFile(file, type, {
-          title: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
-          description: `Uploaded ${type.slice(0, -1)} file`, // Remove 's' from type
-          section: selectedSection,
-          lecture: selectedLecture,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          description: `Uploaded ${type.slice(0, -1)} file`,
+          sectionId: selectedSection,
+          lectureId: selectedLecture,
         }, authToken || undefined);
+        
+        toast.success("File uploaded successfully!");
       } catch (error) {
         console.error("Failed to get auth token:", error);
         toast.error("Authentication failed");
@@ -158,12 +177,19 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       return;
     }
 
+    // Check if content already exists
+    const existingTextContent = selectedLectureContent?.text || [];
+    if (existingTextContent.length > 0) {
+      toast.error("This lecture already has text content. Please delete the existing content first.");
+      return;
+    }
+
     createTextContent({
       title: textTitle,
       content: textContent,
       description: textDescription,
-      section: selectedSection,
-      lecture: selectedLecture,
+      sectionId: selectedSection,
+      lectureId: selectedLecture,
     });
 
     // Reset form
@@ -172,7 +198,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     setTextDescription("");
 
     toast.success("Text content created successfully");
-  }, [textTitle, textContent, textDescription, selectedSection, selectedLecture, createTextContent]);
+  }, [textTitle, textContent, textDescription, selectedSection, selectedLecture, createTextContent, selectedLectureContent]);
 
   const handleCreateAssignment = useCallback(async () => {
     if (!assignmentTitle.trim() || !assignmentDescription.trim()) {
@@ -185,14 +211,21 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       return;
     }
 
+    // Check if content already exists
+    const existingAssignment = selectedLectureContent?.assignments || [];
+    if (existingAssignment.length > 0) {
+      toast.error("This lecture already has an assignment. Please delete the existing assignment first.");
+      return;
+    }
+
     createAssignment({
       title: assignmentTitle,
       description: assignmentDescription,
       instructions: assignmentInstructions,
       dueDate: assignmentDueDate,
       points: assignmentPoints ? parseInt(assignmentPoints) : undefined,
-      section: selectedSection,
-      lecture: selectedLecture,
+      sectionId: selectedSection,
+      lectureId: selectedLecture,
     });
 
     // Reset form
@@ -212,6 +245,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     selectedSection,
     selectedLecture,
     createAssignment,
+    selectedLectureContent,
   ]);
 
   const handleCreateResource = useCallback(async () => {
@@ -229,13 +263,20 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       return;
     }
 
+    // Check if content already exists
+    const existingResource = selectedLectureContent?.resources || [];
+    if (existingResource.length > 0) {
+      toast.error("This lecture already has a resource. Please delete the existing resource first.");
+      return;
+    }
+
     createResource({
       title: resourceTitle,
       description: resourceDescription,
       url: resourceUrl,
       resourceType: resourceType,
-      section: selectedSection,
-      lecture: selectedLecture,
+      sectionId: selectedSection,
+      lectureId: selectedLecture,
     });
 
     // Reset form
@@ -253,15 +294,34 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     selectedSection,
     selectedLecture,
     createResource,
+    selectedLectureContent,
   ]);
 
-  const handleRemoveFile = useCallback(
-    (fileId: string, type: string) => {
-      removeTempUploadedFile(type, fileId);
-      removeUpload(fileId);
-      toast.success("File removed successfully");
+  const handleRemoveContent = useCallback(
+    async (contentId: string, type: string) => {
+      if (!selectedLecture) return;
+      
+      // Check if service is initialized
+      if (!isServiceInitialized) {
+        toast.error("Service is not ready. Please wait a moment and try again.");
+        return;
+      }
+      
+      const deleteKey = `${type}-${contentId}`;
+      setDeletingContent(prev => ({ ...prev, [deleteKey]: true }));
+      
+      try {
+        const authToken = await getToken({ template: "expiration" });
+        await deleteContentFromLecture(selectedLecture, type, contentId, authToken || undefined);
+        toast.success("Content deleted successfully");
+      } catch (error) {
+        console.error("Failed to delete content:", error);
+        toast.error("Failed to delete content. Please try again.");
+      } finally {
+        setDeletingContent(prev => ({ ...prev, [deleteKey]: false }));
+      }
     },
-    [removeTempUploadedFile, removeUpload]
+    [selectedLecture, deleteContentFromLecture, getToken, isServiceInitialized]
   );
 
   const formatFileSize = (bytes: number) => {
@@ -321,74 +381,113 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       id: "video",
       label: "Videos",
       icon: Video,
-      count: uploadedFiles.temp.videos.length,
+      count: contentCounts.videos || 0,
+      availableFor: ["video", "text", "quiz", "assignment", "resource"],
     },
     {
       id: "text",
       label: "Text Content",
       icon: Type,
-      count: uploadedFiles.temp.text.length,
+      count: contentCounts.text || 0,
+      availableFor: ["text", "video", "quiz", "assignment", "resource"],
     },
     {
       id: "document",
       label: "Documents",
       icon: BookOpen,
-      count: uploadedFiles.temp.documents.length,
+      count: contentCounts.documents || 0,
+      availableFor: ["text", "video", "quiz", "assignment", "resource"],
     },
     {
       id: "image",
       label: "Images",
       icon: FileImage,
-      count: uploadedFiles.temp.images.length,
+      count: contentCounts.images || 0,
+      availableFor: ["text", "video", "quiz", "assignment", "resource"],
     },
     {
       id: "audio",
       label: "Audio",
       icon: FileAudio,
-      count: uploadedFiles.temp.audio.length,
+      count: contentCounts.audio || 0,
+      availableFor: ["video", "text", "quiz", "assignment", "resource"],
     },
     {
       id: "archive",
       label: "Archives",
       icon: FileArchive,
-      count: uploadedFiles.temp.archives.length,
+      count: contentCounts.archives || 0,
+      availableFor: ["resource", "text", "video", "quiz", "assignment"],
     },
     {
       id: "assignment",
       label: "Assignments",
       icon: Clipboard,
-      count: uploadedFiles.temp.assignments.length,
+      count: contentCounts.assignments || 0,
+      availableFor: ["assignment", "quiz", "text", "video"],
     },
     {
       id: "resource",
       label: "Resources",
       icon: Link2,
-      count: uploadedFiles.temp.resources.length,
+      count: contentCounts.resources || 0,
+      availableFor: ["resource", "text", "video", "quiz", "assignment"],
     },
     {
       id: "quiz",
       label: "Quizzes",
       icon: FileCheck,
-      count: uploadedFiles.temp.quizzes.length,
+      count: contentCounts.quizzes || 0,
+      availableFor: ["quiz", "text", "video", "assignment"],
     },
   ];
 
+  // Filter tabs to show only the specific content type chosen for the lecture
+  const availableTabs = selectedLectureObj 
+    ? tabs.filter(tab => tab.id === selectedLectureObj.type)
+    : tabs;
+
+  // Set active tab to the lecture type if available
+  useEffect(() => {
+    if (selectedLectureObj && selectedLectureObj.type) {
+      setActiveTab(selectedLectureObj.type);
+    }
+  }, [selectedLectureObj]);
+
   const renderFileUploadSection = (type: string, title: string, acceptedFormats: string[], maxSize: string) => {
     const FileIcon = getFileIcon(type);
-    const files = uploadedFiles.temp[type as keyof typeof uploadedFiles.temp] || [];
+    const files = selectedLectureContent?.[type] || [];
+    const hasExistingContent = files.length > 0;
     
     return (
       <div className="space-y-8">
+                          {/* Content Limit Warning */}
+                  {hasExistingContent && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-800">
+                            Content Already Uploaded
+                          </h4>
+                          <p className="text-red-700 text-sm mt-1">
+                            This lecture already has {title} content. You cannot upload new content until you delete the existing one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
         {/* Upload Area */}
         <div
           className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
             dragStates[type]
               ? "border-blue-500 bg-blue-50"
-              : selectedSection && selectedLecture
+              : selectedSection && selectedLecture && !hasExistingContent
               ? "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
               : "border-gray-200 bg-gray-50"
           } ${
-            !selectedSection || !selectedLecture || isUploading
+            !selectedSection || !selectedLecture || isUploading || hasExistingContent
               ? "cursor-not-allowed"
               : "cursor-pointer"
           }`}
@@ -396,7 +495,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           onDragLeave={(e) => handleDragLeave(e, type)}
           onDrop={(e) => handleDrop(e, type)}
           onClick={() => {
-            if (selectedSection && selectedLecture && !isUploading) {
+            if (selectedSection && selectedLecture && !isUploading && !hasExistingContent) {
               const input = document.createElement("input");
               input.type = "file";
               input.accept = acceptedFormats.join(",");
@@ -436,7 +535,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               <span>•</span>
               <span>Formats: {acceptedFormats.join(", ").replace(/\./g, "").toUpperCase()}</span>
             </div>
-            {selectedSection && selectedLecture && !isUploading && (
+            {selectedSection && selectedLecture && !isUploading && !hasExistingContent && (
               <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 Browse Files
               </button>
@@ -508,16 +607,16 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
             </div>
           ))}
 
-        {/* Uploaded Files */}
+        {/* Uploaded Files for Selected Lecture */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Uploaded {title} ({files.length})
+            {title} for "{selectedLectureObj?.title || 'Selected Lecture'}" ({files.length})
           </h3>
           {files.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {files.map((file: any) => (
                 <div
-                  key={file.id || file.tempId}
+                  key={file.id}
                   className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
                 >
                   <div className="relative">
@@ -548,10 +647,15 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                     </div>
                     <div className="absolute top-3 right-3">
                       <button
-                        onClick={() => handleRemoveFile(file.id || file.tempId, type)}
-                        className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors"
+                        onClick={() => handleRemoveContent(file.id, type)}
+                        disabled={deletingContent[`${type}-${file.id}`]}
+                        className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <X className="h-4 w-4" />
+                        {deletingContent[`${type}-${file.id}`] ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -565,7 +669,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                       </p>
                     )}
                     <p className="text-sm text-gray-500 mb-3">
-                      {formatFileSize(file.size)} • {file.uploadedAt?.toLocaleDateString()}
+                      {formatFileSize(file.size)} • {file.uploadedAt?.toLocaleDateString?.() || 'Recently uploaded'}
                     </p>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -580,9 +684,9 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           ) : (
             <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
               <FileIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No {type} uploaded yet</p>
+              <p className="text-gray-500">No {type} uploaded for this lecture yet</p>
               <p className="text-sm text-gray-400 mt-1">
-                Start by uploading your first {type.slice(0, -1)} file
+                Upload your first {type.slice(0, -1)} file for this lecture
               </p>
             </div>
           )}
@@ -598,7 +702,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Content Upload</h2>
           <p className="text-gray-600 mt-1">
-            Create and upload all types of course content
+            Create and upload content for each lecture
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -607,9 +711,12 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         </div>
       </div>
 
-      {/* Content Selection */}
+      {/* Enhanced Content Selection */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Target Location</h3>
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Layers className="h-5 w-5 text-blue-500" />
+          Select Target Lecture
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -619,7 +726,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               value={selectedSection}
               onChange={(e) => {
                 setSelectedSection(e.target.value);
-                setActiveTab("")
+                setActiveTab("");
                 setSelectedLecture("");
               }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -627,7 +734,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               <option value="">Select a section</option>
               {data.sections?.map((section) => (
                 <option key={section.id} value={section.id}>
-                  {section.title}
+                  {section.title} ({section.lectures?.length || 0} lectures)
                 </option>
               ))}
             </select>
@@ -638,22 +745,43 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
             </label>
             <select
               value={selectedLecture}
-              onChange={(e) =>{ setSelectedLecture(e.target.value) ; setActiveTab("")}}
+              onChange={(e) => {
+                setSelectedLecture(e.target.value);
+                setActiveTab("");
+              }}
               disabled={!selectedSection}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
               <option value="">Select a lecture</option>
               {data.sections
                 ?.find((s) => s.id === selectedSection)
-                ?.lectures?.map((lecture) => (
-                  <option key={lecture.id} value={lecture.id}>
-                    {lecture.title}
-                  </option>
-                ))}
+                ?.lectures?.map((lecture) => {
+                  const counts = getLectureContentCounts(lecture.id);
+                  const totalContent = Object.values(counts).reduce((sum, count) => sum + count, 0);
+                  return (
+                    <option key={lecture.id} value={lecture.id}>
+                      {lecture.title} ({totalContent} content items)
+                    </option>
+                  );
+                })}
             </select>
           </div>
         </div>
-        {(!selectedSection || !selectedLecture) && (
+        
+        {/* Selection Status */}
+        {selectedSection && selectedLecture ? (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-green-800">
+                Ready to add content
+              </p>
+              <p className="text-sm text-green-700 mt-1">
+                Section: {selectedSectionObj?.title} • Lecture: {selectedLectureObj?.title}
+              </p>
+            </div>
+          </div>
+        ) : (
           <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div>
@@ -661,7 +789,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 Selection Required
               </p>
               <p className="text-sm text-amber-700 mt-1">
-                Please select both a section and lecture before creating content.
+                Please select both a section and lecture to start adding content.
               </p>
             </div>
           </div>
@@ -672,14 +800,13 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="border-b border-gray-200">
           <nav className="flex overflow-x-auto">
-            {tabs.map((tab) => {
+            {availableTabs.map((tab) => {
               const Icon = tab.icon;
-              const isTabEnabled = selectedLectureType ? tab.id === selectedLectureType : true;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => isTabEnabled && setActiveTab(tab.id)}
-                  disabled={!isTabEnabled}
+                  onClick={() => setActiveTab(tab.id)}
+                  disabled={!selectedLecture}
                   className={`
                     flex items-center gap-3 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
                     ${
@@ -687,7 +814,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                         ? "border-blue-500 text-blue-600 bg-blue-50"
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     }
-                    ${!isTabEnabled ? "opacity-50 cursor-not-allowed" : ""}
+                    ${!selectedLecture ? "opacity-50 cursor-not-allowed" : ""}
                   `}
                 >
                   <Icon className="h-5 w-5" />
@@ -704,616 +831,731 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         </div>
 
         <div className="p-8">
-          {/* Videos Tab */}
-          {activeTab === "video" && renderFileUploadSection(
-            "videos", 
-            "Videos", 
-            [".mp4", ".webm", ".mov", ".avi"], 
-            "500MB"
-          )}
+          {!selectedLecture ? (
+            <div className="text-center py-16">
+              <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-500 mb-2">
+                Select a Lecture First
+              </h3>
+              <p className="text-gray-400 max-w-md mx-auto">
+                Choose a section and lecture from the dropdown above to start adding content.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Videos Tab */}
+              {activeTab === "video" && renderFileUploadSection(
+                "videos", 
+                "Videos", 
+                [".mp4", ".webm", ".mov", ".avi"], 
+                "500MB"
+              )}
 
-          {/* Documents Tab */}
-          {activeTab === "document" && renderFileUploadSection(
-            "documents", 
-            "Documents", 
-            [".pdf", ".docx", ".pptx", ".xlsx"], 
-            "50MB"
-          )}
+              {/* Documents Tab */}
+              {activeTab === "document" && renderFileUploadSection(
+                "documents", 
+                "Documents", 
+                [".pdf", ".docx", ".pptx", ".xlsx"], 
+                "50MB"
+              )}
 
-          {/* Images Tab */}
-          {activeTab === "image" && renderFileUploadSection(
-            "images", 
-            "Images", 
-            [".jpg", ".jpeg", ".png", ".gif", ".webp"], 
-            "10MB"
-          )}
+              {/* Images Tab */}
+              {activeTab === "image" && renderFileUploadSection(
+                "images", 
+                "Images", 
+                [".jpg", ".jpeg", ".png", ".gif", ".webp"], 
+                "10MB"
+              )}
 
-          {/* Audio Tab */}
-          {activeTab === "audio" && renderFileUploadSection(
-            "audio", 
-            "Audio Files", 
-            [".mp3", ".wav", ".ogg"], 
-            "100MB"
-          )}
+              {/* Audio Tab */}
+              {activeTab === "audio" && renderFileUploadSection(
+                "audio", 
+                "Audio Files", 
+                [".mp3", ".wav", ".ogg"], 
+                "100MB"
+              )}
 
-          {/* Archives Tab */}
-          {activeTab === "archive" && renderFileUploadSection(
-            "archives", 
-            "Archive Files", 
-            [".zip", ".rar", ".7z"], 
-            "100MB"
-          )}
+              {/* Archives Tab */}
+              {activeTab === "archive" && renderFileUploadSection(
+                "archives", 
+                "Archive Files", 
+                [".zip", ".rar", ".7z"], 
+                "100MB"
+              )}
 
-          {/* Text Content Tab */}
-          {activeTab === "text" && (
-            <div className="space-y-8">
-              {/* Text Content Creator */}
-              <div className="bg-gray-50 rounded-xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-orange-100 rounded-lg">
-                    <Type className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Create Text Lecture
-                    </h3>
-                    <p className="text-gray-600">
-                      Write rich text content for your course
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={textTitle}
-                      onChange={(e) => setTextTitle(e.target.value)}
-                      placeholder="Enter the title for this text content"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={textDescription}
-                      onChange={(e) => setTextDescription(e.target.value)}
-                      placeholder="Brief description of the content"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Content *
-                    </label>
-                    <textarea
-                      value={textContent}
-                      onChange={(e) => setTextContent(e.target.value)}
-                      placeholder="Write your lecture content here..."
-                      rows={12}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleCreateTextContent}
-                    disabled={
-                      !selectedSection ||
-                      !selectedLecture ||
-                      !textTitle.trim() ||
-                      !textContent.trim()
-                    }
-                    className="w-full px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Save className="h-5 w-5" />
-                    Create Text Content
-                  </button>
-                </div>
-              </div>
-
-              {/* Created Text Content */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Text Content ({uploadedFiles.temp.text.length})
-                </h3>
-                {uploadedFiles.temp.text.length > 0 ? (
-                  <div className="space-y-4">
-                    {uploadedFiles.temp.text.map((content: any) => (
-                      <div
-                        key={content.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-orange-100 rounded-lg">
-                            <Type className="h-6 w-6 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {content.title}
-                            </h4>
-                            {content.description && (
-                              <p className="text-sm text-gray-600 mb-2">
-                                {content.description}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                              {content.content.substring(0, 150)}...
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Created {content.createdAt.toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Ready to publish
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveFile(content.id, "text")}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
+              {/* Text Content Tab */}
+              {activeTab === "text" && (
+                <div className="space-y-8">
+                  {/* Content Limit Warning */}
+                  {selectedLectureContent?.text?.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-800">
+                            Text Content Already Created
+                          </h4>
+                          <p className="text-red-700 text-sm mt-1">
+                            This lecture already has text content. You cannot create new content until you delete the existing one.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
-                    <Type className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No text content created yet</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Create your first text-based lecture
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                    </div>
+                  )}
 
-          {/* Assignment Tab */}
-          {activeTab === "assignment" && (
-            <div className="space-y-8">
-              <div className="bg-gray-50 rounded-xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <Clipboard className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Create Assignment
-                    </h3>
-                    <p className="text-gray-600">
-                      Design assignments and tasks for your students
-                    </p>
-                  </div>
-                </div>
+                  {/* Text Content Creator */}
+                  <div className="bg-gray-50 rounded-xl p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-orange-100 rounded-lg">
+                        <Type className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Create Text Content
+                        </h3>
+                        <p className="text-gray-600">
+                          Write rich text content for "{selectedLectureObj?.title}"
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assignment Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={assignmentTitle}
-                      onChange={(e) => setAssignmentTitle(e.target.value)}
-                      placeholder="Enter assignment title"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description *
-                    </label>
-                    <textarea
-                      value={assignmentDescription}
-                      onChange={(e) => setAssignmentDescription(e.target.value)}
-                      placeholder="Describe what students need to do"
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Detailed Instructions
-                    </label>
-                    <textarea
-                      value={assignmentInstructions}
-                      onChange={(e) => setAssignmentInstructions(e.target.value)}
-                      placeholder="Provide step-by-step instructions"
-                      rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Due Date
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Title *
+                        </label>
                         <input
-                          type="date"
-                          value={assignmentDueDate}
-                          onChange={(e) => setAssignmentDueDate(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                          type="text"
+                          value={textTitle}
+                          onChange={(e) => setTextTitle(e.target.value)}
+                          placeholder="Enter the title for this text content"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Points
-                      </label>
-                      <input
-                        type="number"
-                        value={assignmentPoints}
-                        onChange={(e) => setAssignmentPoints(e.target.value)}
-                        placeholder="Total points"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleCreateAssignment}
-                    disabled={
-                      !selectedSection ||
-                      !selectedLecture ||
-                      !assignmentTitle.trim() ||
-                      !assignmentDescription.trim()
-                    }
-                    className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Save className="h-5 w-5" />
-                    Create Assignment
-                  </button>
-                </div>
-              </div>
-
-              {/* Created Assignments */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Assignments ({uploadedFiles.temp.assignments.length})
-                </h3>
-                {uploadedFiles.temp.assignments.length > 0 ? (
-                  <div className="space-y-4">
-                    {uploadedFiles.temp.assignments.map((assignment: any) => (
-                      <div
-                        key={assignment.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-purple-100 rounded-lg">
-                            <Clipboard className="h-6 w-6 text-purple-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              {assignment.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-3">
-                              {assignment.description}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                              {assignment.dueDate && (
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                </div>
-                              )}
-                              {assignment.points && (
-                                <div className="flex items-center gap-1">
-                                  <span>{assignment.points} points</span>
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500">
-                              Created {assignment.createdAt.toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Ready to assign
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveFile(assignment.id, "assignments")}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={textDescription}
+                          onChange={(e) => setTextDescription(e.target.value)}
+                          placeholder="Brief description of the content"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                        />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
-                    <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No assignments created yet</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Create your first assignment for students
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          {/* Resources Tab */}
-          {activeTab === "resource" && (
-            <div className="space-y-8">
-              <div className="bg-gray-50 rounded-xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-teal-100 rounded-lg">
-                    <Link2 className="h-6 w-6 text-teal-600" />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Content *
+                        </label>
+                        <textarea
+                          value={textContent}
+                          onChange={(e) => setTextContent(e.target.value)}
+                          placeholder="Write your lecture content here..."
+                          rows={12}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleCreateTextContent}
+                        disabled={!textTitle.trim() || !textContent.trim() || selectedLectureContent?.text?.length > 0}
+                        className="w-full px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-5 w-5" />
+                        Create Text Content
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Created Text Content for Selected Lecture */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Add Resource
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Text Content for "{selectedLectureObj?.title}" ({selectedLectureContent?.text?.length || 0})
                     </h3>
-                    <p className="text-gray-600">
-                      Share external links, tools, or upload resource files
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Resource Type
-                    </label>
-                    <select
-                      value={resourceType}
-                      onChange={(e) => setResourceType(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-                    >
-                      <option value="link">External Link</option>
-                      <option value="tool">Online Tool</option>
-                      <option value="article">Article/Blog</option>
-                      <option value="reference">Reference Material</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={resourceTitle}
-                      onChange={(e) => setResourceTitle(e.target.value)}
-                      placeholder="Enter resource title"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={resourceDescription}
-                      onChange={(e) => setResourceDescription(e.target.value)}
-                      placeholder="Describe what this resource is about"
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      URL *
-                    </label>
-                    <input
-                      type="url"
-                      value={resourceUrl}
-                      onChange={(e) => setResourceUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleCreateResource}
-                    disabled={
-                      !selectedSection ||
-                      !selectedLecture ||
-                      !resourceTitle.trim() ||
-                      !resourceUrl.trim()
-                    }
-                    className="w-full px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Save className="h-5 w-5" />
-                    Add Resource
-                  </button>
-                </div>
-              </div>
-
-              {/* Created Resources */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Resources ({uploadedFiles.temp.resources.length})
-                </h3>
-                {uploadedFiles.temp.resources.length > 0 ? (
-                  <div className="space-y-4">
-                    {uploadedFiles.temp.resources.map((resource: any) => (
-                      <div
-                        key={resource.id}
-                        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-teal-100 rounded-lg">
-                            <Link2 className="h-6 w-6 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {resource.title}
-                            </h4>
-                            <p className="text-sm text-teal-600 mb-2 capitalize">
-                              {resource.resourceType}
-                            </p>
-                            {resource.description && (
-                              <p className="text-sm text-gray-600 mb-3">
-                                {resource.description}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-500 mb-3 break-all">
-                              {resource.url}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Added {resource.createdAt?.toLocaleDateString() || "Recently"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600 font-medium">
-                                Available to students
-                              </span>
+                    {selectedLectureContent?.text?.length > 0 ? (
+                      <div className="space-y-4">
+                        {selectedLectureContent.text.map((content: any) => (
+                          <div
+                            key={content.id}
+                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 bg-orange-100 rounded-lg">
+                                <Type className="h-6 w-6 text-orange-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {content.title}
+                                </h4>
+                                {content.description && (
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    {content.description}
+                                  </p>
+                                )}
+                                <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                                  {content.content.substring(0, 150)}...
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Created {content.createdAt ? new Date(content.createdAt).toLocaleDateString() : 'Recently'}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span className="text-sm text-green-600 font-medium">
+                                    Ready to publish
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                  <Edit3 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveContent(content.id, "text")}
+                                  disabled={deletingContent[`text-${content.id}`]}
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {deletingContent[`text-${content.id}`] ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-5 w-5" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <Eye className="h-5 w-5" />
-                            </a>
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveFile(resource.id, "resources")}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
+                        <Type className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No text content created for this lecture yet</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Create your first text-based content for this lecture
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Assignment Tab */}
+              {activeTab === "assignment" && (
+                <div className="space-y-8">
+                  {/* Content Limit Warning */}
+                  {selectedLectureContent?.assignments?.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-800">
+                            Assignment Already Created
+                          </h4>
+                          <p className="text-red-700 text-sm mt-1">
+                            This lecture already has an assignment. You cannot create a new one until you delete the existing one.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
-                    <Link2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No resources added yet</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Share helpful links and resources with your students
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                    </div>
+                  )}
 
-          {/* Quizzes Tab */}
-          {activeTab === "quiz" && (
-            <div className="text-center py-16">
-              <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <FileCheck className="h-10 w-10 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Quiz Builder Coming Soon
-              </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Create interactive quizzes and assessments to test your
-                students' knowledge and track their progress.
-              </p>
-              <button
-                disabled
-                className="px-6 py-3 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed"
-              >
-                <Plus className="h-5 w-5 inline mr-2" />
-                Create Quiz
-              </button>
-            </div>
+                  <div className="bg-gray-50 rounded-xl p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-purple-100 rounded-lg">
+                        <Clipboard className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Create Assignment
+                        </h3>
+                        <p className="text-gray-600">
+                          Design assignments for "{selectedLectureObj?.title}"
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Assignment Title *
+                        </label>
+                        <input
+                          type="text"
+                          value={assignmentTitle}
+                          onChange={(e) => setAssignmentTitle(e.target.value)}
+                          placeholder="Enter assignment title"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description *
+                        </label>
+                        <textarea
+                          value={assignmentDescription}
+                          onChange={(e) => setAssignmentDescription(e.target.value)}
+                          placeholder="Describe what students need to do"
+                          rows={4}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Detailed Instructions
+                        </label>
+                        <textarea
+                          value={assignmentInstructions}
+                          onChange={(e) => setAssignmentInstructions(e.target.value)}
+                          placeholder="Provide step-by-step instructions"
+                          rows={6}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Due Date
+                          </label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                            <input
+                              type="date"
+                              value={assignmentDueDate}
+                              onChange={(e) => setAssignmentDueDate(e.target.value)}
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Points
+                          </label>
+                          <input
+                            type="number"
+                            value={assignmentPoints}
+                            onChange={(e) => setAssignmentPoints(e.target.value)}
+                            placeholder="Total points"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleCreateAssignment}
+                        disabled={!assignmentTitle.trim() || !assignmentDescription.trim() || selectedLectureContent?.assignments?.length > 0}
+                        className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-5 w-5" />
+                        Create Assignment
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Created Assignments for Selected Lecture */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Assignments for "{selectedLectureObj?.title}" ({selectedLectureContent?.assignments?.length || 0})
+                    </h3>
+                    {selectedLectureContent?.assignments?.length > 0 ? (
+                      <div className="space-y-4">
+                        {selectedLectureContent.assignments.map((assignment: any) => (
+                          <div
+                            key={assignment.id}
+                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 bg-purple-100 rounded-lg">
+                                <Clipboard className="h-6 w-6 text-purple-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 mb-2">
+                                  {assignment.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {assignment.description}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                                  {assignment.dueDate && (
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-4 w-4" />
+                                      Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                  {assignment.points && (
+                                    <div className="flex items-center gap-1">
+                                      <span>{assignment.points} points</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                  Created {assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : 'Recently'}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span className="text-sm text-green-600 font-medium">
+                                    Ready to assign
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                  <Edit3 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveContent(assignment.id, "assignments")}
+                                  disabled={deletingContent[`assignments-${assignment.id}`]}
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {deletingContent[`assignments-${assignment.id}`] ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-5 w-5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
+                        <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No assignments created for this lecture yet</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Create your first assignment for this lecture
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Resources Tab */}
+              {activeTab === "resource" && (
+                <div className="space-y-8">
+                  {/* Content Limit Warning */}
+                  {selectedLectureContent?.resources?.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-800">
+                            Resource Already Added
+                          </h4>
+                          <p className="text-red-700 text-sm mt-1">
+                            This lecture already has a resource. You cannot add a new one until you delete the existing one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-gray-50 rounded-xl p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-teal-100 rounded-lg">
+                        <Link2 className="h-6 w-6 text-teal-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Add Resource
+                        </h3>
+                        <p className="text-gray-600">
+                          Share external links and resources for "{selectedLectureObj?.title}"
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Resource Type
+                        </label>
+                        <select
+                          value={resourceType}
+                          onChange={(e) => setResourceType(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                        >
+                          <option value="link">External Link</option>
+                          <option value="tool">Online Tool</option>
+                          <option value="article">Article/Blog</option>
+                          <option value="reference">Reference Material</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Title *
+                        </label>
+                        <input
+                          type="text"
+                          value={resourceTitle}
+                          onChange={(e) => setResourceTitle(e.target.value)}
+                          placeholder="Enter resource title"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={resourceDescription}
+                          onChange={(e) => setResourceDescription(e.target.value)}
+                          placeholder="Describe what this resource is about"
+                          rows={3}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          URL *
+                        </label>
+                        <input
+                          type="url"
+                          value={resourceUrl}
+                          onChange={(e) => setResourceUrl(e.target.value)}
+                          placeholder="https://example.com"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleCreateResource}
+                        disabled={!resourceTitle.trim() || !resourceUrl.trim() || selectedLectureContent?.resources?.length > 0}
+                        className="w-full px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-5 w-5" />
+                        Add Resource
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Created Resources for Selected Lecture */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Resources for "{selectedLectureObj?.title}" ({selectedLectureContent?.resources?.length || 0})
+                    </h3>
+                    {selectedLectureContent?.resources?.length > 0 ? (
+                      <div className="space-y-4">
+                        {selectedLectureContent.resources.map((resource: any) => (
+                          <div
+                            key={resource.id}
+                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 bg-teal-100 rounded-lg">
+                                <Link2 className="h-6 w-6 text-teal-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {resource.title}
+                                </h4>
+                                <p className="text-sm text-teal-600 mb-2 capitalize">
+                                  {resource.resourceType}
+                                </p>
+                                {resource.description && (
+                                  <p className="text-sm text-gray-600 mb-3">
+                                    {resource.description}
+                                  </p>
+                                )}
+                                <p className="text-sm text-gray-500 mb-3 break-all">
+                                  {resource.url}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Added {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString() : "Recently"}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <span className="text-sm text-green-600 font-medium">
+                                    Available to students
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </a>
+                                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                  <Edit3 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveContent(resource.id, "resources")}
+                                  disabled={deletingContent[`resources-${resource.id}`]}
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {deletingContent[`resources-${resource.id}`] ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-5 w-5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
+                        <Link2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No resources added for this lecture yet</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Share helpful links and resources for this lecture
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Quizzes Tab */}
+              {activeTab === "quiz" && (
+                <div className="text-center py-16">
+                  {/* Content Limit Warning */}
+                  {selectedLectureContent?.quizzes?.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-800">
+                            Quiz Already Created
+                          </h4>
+                          <p className="text-red-700 text-sm mt-1">
+                            This lecture already has a quiz. You cannot create a new one until you delete the existing one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                                    <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                    <FileCheck className="h-10 w-10 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    Quiz Builder
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Create interactive quizzes and assessments to test your
+                    students' knowledge for "{selectedLectureObj?.title}".
+                  </p>
+                  <button
+                    onClick={() => {
+                      // Check if content already exists
+                      const existingQuiz = selectedLectureContent?.quizzes || [];
+                      if (existingQuiz.length > 0) {
+                        toast.error("This lecture already has a quiz. Please delete the existing quiz first.");
+                        return;
+                      }
+
+                      // Create a basic quiz for the selected lecture
+                      createQuiz({
+                        title: `Quiz for ${selectedLectureObj?.title}`,
+                        description: "Interactive quiz to test student knowledge",
+                        questions: [
+                          {
+                            id: `q-${Date.now()}`,
+                            type: "multiple-choice" as const,
+                            question: "Sample question 1",
+                            options: ["Option A", "Option B", "Option C", "Option D"],
+                            correctAnswer: "Option A",
+                            points: 10
+                          }
+                        ],
+                        timeLimit: 30,
+                        attempts: 3,
+                        passingScore: 70,
+                        sectionId: selectedSection,
+                        lectureId: selectedLecture,
+                      });
+                      toast.success("Quiz created successfully!");
+                    }}
+                    disabled={selectedLectureContent?.quizzes?.length > 0}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="h-5 w-5 inline mr-2" />
+                    Create Quiz
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Upload Statistics */}
-      {Object.values(uploadedFiles.temp).some((files: any[]) => files.length > 0) && (
+      {/* Content Summary for Selected Lecture */}
+      {selectedLecture && (
         <div className="bg-gradient-to-r from-blue-50 via-green-50 to-purple-50 rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Content Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Layers className="h-5 w-5 text-blue-500" />
+            Content Summary for "{selectedLectureObj?.title}"
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {uploadedFiles.temp.videos.length}
+                {contentCounts.videos || 0}
               </div>
               <div className="text-sm text-gray-600">Videos</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {uploadedFiles.temp.text.length}
+                {contentCounts.text || 0}
               </div>
               <div className="text-sm text-gray-600">Text</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {uploadedFiles.temp.documents.length}
+                {contentCounts.documents || 0}
               </div>
               <div className="text-sm text-gray-600">Documents</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-pink-600">
-                {uploadedFiles.temp.images.length}
+                {contentCounts.images || 0}
               </div>
               <div className="text-sm text-gray-600">Images</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-indigo-600">
-                {uploadedFiles.temp.audio.length}
+                {contentCounts.audio || 0}
               </div>
               <div className="text-sm text-gray-600">Audio</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
-                {uploadedFiles.temp.archives.length}
-              </div>
-              <div className="text-sm text-gray-600">Archives</div>
-            </div>
           </div>
           
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {uploadedFiles.temp.assignments.length}
+                {contentCounts.assignments || 0}
               </div>
               <div className="text-sm text-gray-600">Assignments</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-teal-600">
-                {uploadedFiles.temp.resources.length}
+                {contentCounts.resources || 0}
               </div>
               <div className="text-sm text-gray-600">Resources</div>
             </div>
             <div className="text-center">
+              <div className="text-2xl font-bold text-gray-600">
+                {contentCounts.archives || 0}
+              </div>
+              <div className="text-sm text-gray-600">Archives</div>
+            </div>
+            <div className="text-center">
               <div className="text-2xl font-bold text-indigo-600">
-                {uploadedFiles.temp.quizzes.length}
+                {contentCounts.quizzes || 0}
               </div>
               <div className="text-sm text-gray-600">Quizzes</div>
             </div>

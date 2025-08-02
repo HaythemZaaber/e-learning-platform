@@ -73,7 +73,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
   // Add index signatures to settings sub-objects for dynamic key access
   const settings = data.settings || {
     isPublic: true,
-    enrollmentType: "free",
+    enrollmentType: "FREE",
     language: "en",
     certificate: false,
     seoDescription: "",
@@ -140,7 +140,17 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
   const handleDirectSettingsChange = useCallback(
     (key: string, value: any) => {
       const newSettings = { ...settings, [key]: value };
-      updateData({ settings: newSettings });
+      
+      // If enrollment type is being changed to FREE, automatically set price to 0
+      if (key === "enrollmentType" && (value as string) === "FREE") {
+        updateData({ 
+          settings: newSettings,
+          price: 0,
+          originalPrice: 0
+        });
+      } else {
+        updateData({ settings: newSettings });
+      }
     },
     [settings, updateData]
   );
@@ -167,14 +177,15 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
 
   const validatePricing = useCallback(() => {
     if (
-      settings.enrollmentType === "paid" &&
+      settings.enrollmentType === "PAID" &&
       (!data.price || data.price <= 0)
     ) {
       addGlobalError("Paid courses must have a price greater than 0");
       return false;
     }
-    if (settings.enrollmentType === "free" && data.price > 0) {
-      addGlobalWarning("Free courses should have a price of 0");
+    if ((settings.enrollmentType as string) === "FREE" && data.price > 0) {
+      addGlobalError("Free courses cannot have a price greater than 0");
+      return false;
     }
     return true;
   }, [settings.enrollmentType, data.price, addGlobalError, addGlobalWarning]);
@@ -203,8 +214,8 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
     // Pricing (20 points)
     maxScore += 20;
     if (
-      settings.enrollmentType === "free" ||
-      (settings.enrollmentType === "paid" && data.price > 0)
+      (settings.enrollmentType as string) === "FREE" ||
+      ((settings.enrollmentType as string) === "PAID" && data.price > 0)
     ) {
       score += 20;
     }
@@ -362,21 +373,21 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                           }`}
                         >
                           <div className="mb-2">
-                            {type === "free" && (
+                            {type === "FREE" && (
                               <Users className="h-6 w-6 mx-auto text-green-500" />
                             )}
-                            {type === "paid" && (
+                            {type === "PAID" && (
                               <CreditCard className="h-6 w-6 mx-auto text-green-500" />
                             )}
-                            {type === "subscription" && (
+                            {type === "SUBSCRIPTION" && (
                               <Calendar className="h-6 w-6 mx-auto text-green-500" />
                             )}
                           </div>
                           <h6 className="font-semibold capitalize">{type}</h6>
                           <p className="text-sm text-gray-600">
-                            {type === "free" && "No payment required"}
-                            {type === "paid" && "One-time payment"}
-                            {type === "subscription" && "Recurring billing"}
+                            {type === "FREE" && "No payment required"}
+                            {type === "PAID" && "One-time payment"}
+                            {type === "SUBSCRIPTION" && "Recurring billing"}
                           </p>
                         </div>
                       ))}
@@ -443,7 +454,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
 
                 <div className="space-y-8">
                   {/* Pricing Details */}
-                  {settings.enrollmentType !== "free" && (
+                  {settings.enrollmentType !== "FREE" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
                         <label className="block text-sm font-medium text-gray-900">
@@ -474,8 +485,11 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                             onChange={(e) =>
                               updateData({ price: parseFloat(e.target.value) })
                             }
-                            className="flex-1 p-3 border border-gray-300 rounded-r-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            className={`flex-1 p-3 border border-gray-300 rounded-r-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${
+                              (settings.enrollmentType as string) === "FREE" ? "bg-gray-100 cursor-not-allowed" : ""
+                            }`}
                             placeholder="0.00"
+                            disabled={(settings.enrollmentType as string) === "FREE"}
                           />
                         </div>
                       </div>
@@ -516,7 +530,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                   )}
 
                   {/* Free Course Message */}
-                  {settings.enrollmentType === "free" && (
+                  {(settings.enrollmentType as string) === "FREE" && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                       <Users className="h-12 w-12 text-green-500 mx-auto mb-3" />
                       <h4 className="text-lg font-semibold text-green-800 mb-2">
@@ -526,11 +540,21 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         Your course will be available to all students at no
                         cost. You can always change this to paid later.
                       </p>
+                      {data.price > 0 && (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            <p className="text-sm text-amber-700">
+                              Free courses cannot have a price. The price will be automatically set to 0.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Additional Pricing Options */}
-                  {settings.enrollmentType !== "free" && (
+                    {(settings.enrollmentType as string) !== "FREE" && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>

@@ -26,10 +26,15 @@ export const CREATE_COURSE = gql`
     createCourse(input: $input) {
       success
       message
-      course
-      completionPercentage
+      course {
+        id
+        title
+        description
+        status
+    
+       
+      }
       errors
-      warnings
     }
   }
 `;

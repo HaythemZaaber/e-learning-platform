@@ -10,8 +10,7 @@ export const GET_CURRENT_USER = gql`
       lastName
       profileImage
       role
-      createdAt
-      updatedAt
+     
     }
   }
 `;
@@ -26,8 +25,7 @@ export const GET_ALL_USERS = gql`
       lastName
       profileImage
       role
-      createdAt
-      updatedAt
+      
     }
   }
 `;

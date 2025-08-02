@@ -1,7 +1,7 @@
 // types/course.ts
 
 export type CourseLevel = "beginner" | "intermediate" | "advanced";
-export type EnrollmentType = "free" | "paid" | "subscription";
+export type EnrollmentType = "FREE" | "PAID" | "SUBSCRIPTION";
 export type ContentType =
   | "video"
   | "audio"
@@ -365,9 +365,9 @@ export const COURSE_LEVELS: CourseLevel[] = [
 ];
 
 export const ENROLLMENT_TYPES: EnrollmentType[] = [
-  "free",
-  "paid",
-  "subscription",
+  "FREE",
+  "PAID",
+  "SUBSCRIPTION",
 ];
 
 export const CONTENT_TYPES: ContentType[] = [

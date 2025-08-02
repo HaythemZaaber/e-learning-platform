@@ -8,30 +8,49 @@ const CONTENT_TYPE_IMAGE = 'image' as ContentType;
 const CONTENT_TYPE_AUDIO = 'audio' as ContentType;
 const CONTENT_TYPE_ARCHIVE = 'archive' as ContentType;
 
+export interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  title: string;
+  description?: string;
+  contentType: string;
+  sectionId: string;
+  lectureId: string;
+  uploadedAt: Date;
+  status: 'uploaded' | 'error';
+}
+
 export class UploadApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = '/api') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') {
     this.baseUrl = baseUrl;
   }
 
   // ============================================
-  // TEMPORARY UPLOADS
+  // DIRECT FILE UPLOADS
   // ============================================
 
-  async uploadTempFile(
+  async uploadFile(
     file: File,
     contentType: ContentType,
     metadata: {
       title: string;
       description?: string;
-      tempId?: string;
-    }
-  ) {
+      sectionId: string;
+      lectureId: string;
+    },
+    authToken?: string
+  ): Promise<UploadedFile> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', metadata.title);
-    formData.append('tempId', metadata.tempId || `temp-${Date.now()}`);
+    formData.append('contentType', contentType);
+    formData.append('sectionId', metadata.sectionId);
+    formData.append('lectureId', metadata.lectureId);
     
     if (metadata.description) {
       formData.append('description', metadata.description);
@@ -41,29 +60,34 @@ export class UploadApiService {
     let endpoint = '';
     switch (contentType) {
       case CONTENT_TYPE_VIDEO:
-        endpoint = `${this.baseUrl}/upload/temp/video`;
+        endpoint = `${this.baseUrl}/upload/video`;
         break;
       case CONTENT_TYPE_DOCUMENT:
-        endpoint = `${this.baseUrl}/upload/temp/document`;
+        endpoint = `${this.baseUrl}/upload/document`;
         break;
       case CONTENT_TYPE_IMAGE:
-        endpoint = `${this.baseUrl}/upload/temp/image`;
+        endpoint = `${this.baseUrl}/upload/image`;
         break;
       case CONTENT_TYPE_AUDIO:
-        endpoint = `${this.baseUrl}/upload/temp/audio`;
+        endpoint = `${this.baseUrl}/upload/audio`;
         break;
       case CONTENT_TYPE_ARCHIVE:
-        endpoint = `${this.baseUrl}/upload/temp/archive`;
+        endpoint = `${this.baseUrl}/upload/archive`;
         break;
       default:
-        endpoint = `${this.baseUrl}/upload/temp/batch`;
+        endpoint = `${this.baseUrl}/upload/file`;
         formData.append('contentType', contentType);
+    }
+
+    const headers: Record<string, string> = {};
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      headers,
     });
 
     if (!response.ok) {
@@ -71,154 +95,110 @@ export class UploadApiService {
       throw new Error(`Upload failed: ${error}`);
     }
 
+    const result = await response.json();
+    
+    return {
+      id: result.fileInfo?.filePath || `file-${Date.now()}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: result.fileInfo?.file_url,
+      title: metadata.title,
+      description: metadata.description,
+      contentType: contentType,
+      sectionId: metadata.sectionId,
+      lectureId: metadata.lectureId,
+      uploadedAt: new Date(result.fileInfo?.uploadedAt || Date.now()),
+      status: 'uploaded',
+    };
+  }
+
+  // ============================================
+  // FILE DELETION
+  // ============================================
+
+  async deleteFile(filePath: string, authToken?: string): Promise<{ success: boolean; message: string }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    // Encode the file path to handle special characters in the URL
+    const encodedPath = encodeURIComponent(filePath);
+
+    const response = await fetch(`${this.baseUrl}/upload/file/${encodedPath}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Delete failed: ${error}`);
+    }
+
     return response.json();
   }
 
   // ============================================
-  // PERMANENT UPLOADS
+  // THUMBNAIL UPLOADS
   // ============================================
 
-  async uploadPermanentFile(
+  async uploadThumbnail(
     file: File,
-    courseId: string,
-    contentType: ContentType,
-    metadata: {
-      title: string;
+    courseId?: string,
+    metadata?: {
+      title?: string;
       description?: string;
-      lessonId?: string;
-      order?: number;
-    }
+    },
+    authToken?: string
   ) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('title', metadata.title);
-    formData.append('contentType', contentType);
     
-    if (metadata.description) {
+    if (metadata?.title) {
+      formData.append('title', metadata.title);
+    }
+    if (metadata?.description) {
       formData.append('description', metadata.description);
     }
-    if (metadata.lessonId) {
-      formData.append('lessonId', metadata.lessonId);
-    }
-    if (metadata.order !== undefined) {
-      formData.append('order', metadata.order.toString());
+
+    const endpoint = `${this.baseUrl}/upload/image`;
+
+    const headers: Record<string, string> = {};
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${this.baseUrl}/upload/course/${courseId}/permanent`, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      headers,
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Upload failed: ${error}`);
+      throw new Error(`Thumbnail upload failed: ${error}`);
     }
 
     return response.json();
   }
 
-  // ============================================
-  // CONVERSION METHODS
-  // ============================================
-
-  async convertTempToPermanent(
-    tempUploadId: string,
-    courseId: string,
-    lessonId?: string,
-    order?: number
-  ) {
-    const response = await fetch(`${this.baseUrl}/upload/convert/${tempUploadId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        courseId,
-        lessonId,
-        order,
-      }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Conversion failed: ${error}`);
+  async deleteThumbnail(courseId: string, authToken?: string) {
+    const headers: Record<string, string> = {};
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    return response.json();
-  }
-
-  // ============================================
-  // MANAGEMENT METHODS
-  // ============================================
-
-  async getMyTempUploads() {
-    const response = await fetch(`${this.baseUrl}/upload/temp/my-uploads`, {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch temporary uploads');
-    }
-
-    return response.json();
-  }
-
-  async cleanupTempUploads() {
-    const response = await fetch(`${this.baseUrl}/upload/temp/cleanup`, {
+    const response = await fetch(`${this.baseUrl}/upload/delete/thumbnail/${courseId}`, {
       method: 'DELETE',
-      credentials: 'include',
+      headers,
     });
 
     if (!response.ok) {
-      throw new Error('Failed to cleanup temporary uploads');
-    }
-
-    return response.json();
-  }
-
-  async deleteTempUpload(tempUploadId: string) {
-    const response = await fetch(`${this.baseUrl}/upload/temp/${tempUploadId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete temporary upload');
-    }
-
-    return response.json();
-  }
-
-  // ============================================
-  // LEGACY METHODS (for backward compatibility)
-  // ============================================
-
-  async uploadFile(
-    file: File,
-    fileName?: string,
-    folderPath?: string
-  ) {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    if (fileName) {
-      formData.append('fileName', fileName);
-    }
-    if (folderPath) {
-      formData.append('folderPath', folderPath);
-    }
-
-    const response = await fetch(`${this.baseUrl}/upload/file`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Upload failed: ${error}`);
+      throw new Error('Failed to delete thumbnail');
     }
 
     return response.json();
@@ -231,30 +211,24 @@ export class UploadApiService {
   async uploadMultipleFiles(
     files: File[],
     contentType: ContentType,
-    courseId?: string,
-    lessonId?: string
+    metadata: {
+      sectionId: string;
+      lectureId: string;
+    },
+    authToken?: string
   ) {
     const results = [];
     
     for (const file of files) {
       try {
-        const metadata = {
+        const fileMetadata = {
           title: file.name.replace(/\.[^/.]+$/, ''),
           description: `Uploaded ${contentType.toLowerCase()} file`,
-          tempId: `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          sectionId: metadata.sectionId,
+          lectureId: metadata.lectureId,
         };
 
-        let result;
-        if (courseId) {
-          // Upload directly as permanent
-          result = await this.uploadPermanentFile(file, courseId, contentType, {
-            ...metadata,
-            lessonId,
-          });
-        } else {
-          // Upload as temporary
-          result = await this.uploadTempFile(file, contentType, metadata);
-        }
+        const result = await this.uploadFile(file, contentType, fileMetadata, authToken);
 
         results.push({
           success: true,

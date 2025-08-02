@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Upload, X, Plus, Loader2, ImageIcon } from "lucide-react";
+import { Upload, X, Plus, Loader2, ImageIcon, AlertCircle, AlertTriangle } from "lucide-react";
 import {
   CourseData,
   StepValidation,
@@ -9,8 +9,11 @@ import {
   COURSE_LEVELS,
 } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
+import { useAuth } from "@clerk/nextjs";
+import { useCourseCreationWithGraphQL } from "../../hooks/useCourseCreationWithGraphQL";
 
 import { useNotifications } from "../../hooks/useNotifications";
+import Image from "next/image";
 
 interface CourseInformationProps {
   data: CourseData;
@@ -27,10 +30,20 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
     data.thumbnail
   );
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   const notifications = useNotifications();
+  const { getToken } = useAuth();
+  const { isServiceInitialized } = useCourseCreationWithGraphQL();
 
-  const { addGlobalError, removeGlobalError } = useCourseCreationStore();
+  const { addGlobalError, removeGlobalError, uploadThumbnail, deleteThumbnail } = useCourseCreationStore();
+
+  // Update thumbnail preview when data.thumbnail changes
+  useEffect(() => {
+    console.log("Setting thumbnail preview from data.thumbnail:", data.thumbnail);
+    setThumbnailPreview(data.thumbnail);
+    setImageLoadError(false);
+  }, [data.thumbnail]);
 
   // check the validation errors and remove them when the fields contain values
   useEffect(() => {
@@ -55,6 +68,12 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
       const file = e.target.files?.[0];
       if (!file) return;
 
+      // Check if service is initialized
+      if (!isServiceInitialized) {
+        notifications.error("Service is not ready. Please wait a moment and try again.");
+        return;
+      }
+
       // Validate file
       if (!file.type.startsWith("image/")) {
         notifications.error("Please select a valid image file");
@@ -73,25 +92,43 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
         // Create preview immediately
         const reader = new FileReader();
         reader.onloadend = () => {
-          setThumbnailPreview(reader.result as string);
+          
+          const dataUrl = reader.result as string;
+          setThumbnailPreview(dataUrl);
+          setImageLoadError(false); // Reset error state when new preview is set
+          
+          // Test if the data URL is valid
+          if (dataUrl && dataUrl.startsWith('data:image/')) {
+            console.log("Valid image data URL created");
+          } else {
+            console.error("Invalid image data URL:", dataUrl);
+          }
+        };
+        reader.onerror = (error) => {
+          console.error("FileReader error:", error);
+          notifications.error("Failed to read image file");
         };
         reader.readAsDataURL(file);
 
-        // Upload to server if course exists
-        if (data.id) {
-          // const result = await uploadThumbnail(data.id, file);
-          // updateData({ thumbnail: result.thumbnailUrl });
-          notifications.success("Thumbnail uploaded successfully");
-        } else {
-          // Store for later upload when course is created
-          updateData({ thumbnail: URL.createObjectURL(file) });
-          notifications.info("Thumbnail will be uploaded when course is saved");
-        }
+        // Upload to server
+        const authToken = await getToken({ template: "expiration" });
+        const result = await uploadThumbnail(file, data.id, {
+          title: data.title || "Course thumbnail",
+          description: "Course thumbnail image"
+        }, authToken || undefined);
+
+        console.log("Upload result:", result);
+
+        // Update the thumbnail URL - prioritize server URL if available
+        const thumbnailUrl = result?.fileInfo?.file_url;
+        updateData({ thumbnail: thumbnailUrl });
+        notifications.success("Thumbnail uploaded successfully");
       } catch (error) {
         console.error("Thumbnail upload failed:", error);
         addGlobalError("Failed to upload thumbnail");
         // Reset preview on error
         setThumbnailPreview(data.thumbnail);
+        notifications.error("Failed to upload thumbnail. Please try again.");
       } finally {
         setUploadingThumbnail(false);
       }
@@ -99,19 +136,40 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
     [
       data.id,
       data.thumbnail,
+      data.title,
       updateData,
-      // uploadThumbnail,
+      uploadThumbnail,
       notifications,
       addGlobalError,
+      getToken,
+      isServiceInitialized,
     ]
   );
    
 
-  const handleRemoveThumbnail = useCallback(() => {
-    setThumbnailPreview(undefined);
-    updateData({ thumbnail: undefined });
-    notifications.success("Thumbnail removed");
-  }, [updateData, notifications]);
+  const handleRemoveThumbnail = useCallback(async () => {
+    // Check if service is initialized
+    if (!isServiceInitialized) {
+      notifications.error("Service is not ready. Please wait a moment and try again.");
+      return;
+    }
+
+    try {
+      // If course exists, delete thumbnail from server
+      if (data.id) {
+        const authToken = await getToken({ template: "expiration" });
+        await deleteThumbnail(data.id, authToken || undefined);
+      }
+      
+      setThumbnailPreview(undefined);
+      setImageLoadError(false);
+      updateData({ thumbnail: undefined });
+      notifications.success("Thumbnail removed");
+    } catch (error) {
+      console.error("Failed to remove thumbnail:", error);
+      notifications.error("Failed to remove thumbnail. Please try again.");
+    }
+  }, [data.id, updateData, notifications, deleteThumbnail, isServiceInitialized, getToken]);
 
   const handleObjectiveAdd = useCallback(() => {
     updateData({
@@ -162,7 +220,42 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
   );
 
   const getFieldError = (fieldName: string) => {
-    return validation.errors.includes(fieldName);
+    return validation.errors.find((error: string) => 
+      error.toLowerCase().includes(fieldName.toLowerCase())
+    );
+  };
+
+  const getFieldWarning = (fieldName: string) => {
+    return validation.warnings.find((warning: string) => 
+      warning.toLowerCase().includes(fieldName.toLowerCase())
+    );
+  };
+
+  const isFieldRequired = (fieldName: string) => {
+    const requiredFields = ['title', 'description'];
+    return requiredFields.includes(fieldName);
+  };
+
+  const getFieldClassName = (fieldName: string) => {
+    const hasError = getFieldError(fieldName);
+    const hasWarning = getFieldWarning(fieldName);
+    const isEmpty = !data[fieldName as keyof CourseData] || 
+                   (typeof data[fieldName as keyof CourseData] === 'string' && 
+                    (data[fieldName as keyof CourseData] as string).trim() === '');
+    
+    let baseClass = "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors";
+    
+    if (hasError) {
+      baseClass += " border-red-300 focus:border-red-500 focus:ring-red-200 bg-red-50";
+    } else if (hasWarning) {
+      baseClass += " border-amber-300 focus:border-amber-500 focus:ring-amber-200 bg-amber-50";
+    } else if (isEmpty && isFieldRequired(fieldName)) {
+      baseClass += " border-gray-300 bg-gray-50";
+    } else {
+      baseClass += " border-gray-300";
+    }
+    
+    return baseClass;
   };
 
   return (
@@ -189,17 +282,19 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               type="text"
               value={data.title || ""}
               onChange={(e) => updateData({ title: e.target.value })}
-              className={`w-full p-3 border rounded-lg transition-colors ${
-                getFieldError("title") && !data.title
-                  ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              }`}
-              placeholder="e.g., Complete Web Development Bootcamp"
-              maxLength={100}
+              placeholder="Enter your course title"
+              className={getFieldClassName('title')}
             />
-            {getFieldError("title") && !data.title && (
-              <p className="text-red-500 text-sm mt-1">
-                Course title is required
+            {getFieldError('title') && (
+              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {getFieldError('title')}
+              </p>
+            )}
+            {getFieldWarning('title') && (
+              <p className="text-amber-600 text-sm mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-4 w-4" />
+                {getFieldWarning('title')}
               </p>
             )}
             <div className="flex justify-between items-center mt-1">
@@ -221,18 +316,20 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
             <textarea
               value={data.description || ""}
               onChange={(e) => updateData({ description: e.target.value })}
-              rows={5}
-              className={`w-full p-3 border rounded-lg transition-colors resize-none ${
-                getFieldError("description") && !data.description
-                  ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              }`}
-              placeholder="Describe what students will learn, the skills they'll gain, and how this course will help them achieve their goals..."
-              maxLength={1000}
+              placeholder="Describe what students will learn in this course"
+              rows={4}
+              className={getFieldClassName('description')}
             />
-            {getFieldError("description") && !data.description && (
-              <p className="text-red-500 text-sm mt-1">
-                Course description is required
+            {getFieldError('description') && (
+              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {getFieldError('description')}
+              </p>
+            )}
+            {getFieldWarning('description') && (
+              <p className="text-amber-600 text-sm mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-4 w-4" />
+                {getFieldWarning('description')}
               </p>
             )}
             <div className="flex justify-between items-center mt-1">
@@ -339,6 +436,16 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               <p className="text-gray-500 text-sm mt-1">
                 Set to 0 for free courses
               </p>
+              {data.settings?.enrollmentType === "FREE" && data.price > 0 && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <p className="text-sm text-amber-700">
+                      Free courses should have a price of 0. The price will be automatically set to 0 when you save.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -357,13 +464,25 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
         </div>
 
         <div>
+          {!isServiceInitialized && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <p className="text-sm text-amber-700">
+                  Service is initializing. Please wait a moment before uploading thumbnails.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-center w-full">
             <label
               htmlFor="thumbnail"
-              className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl cursor-pointer transition-colors group ${
+              className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl transition-colors group ${
                 uploadingThumbnail
                   ? "border-blue-300 bg-blue-50"
-                  : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                  : !isServiceInitialized
+                  ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+                  : "border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer"
               }`}
             >
               {uploadingThumbnail ? (
@@ -375,24 +494,26 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                 </div>
               ) : thumbnailPreview ? (
                 <div className="relative w-full h-full">
-                  <img
+                  <Image
                     src={thumbnailPreview}
                     alt="Course thumbnail preview"
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-contain rounded-xl"
+                    width={100}
+                    height={100}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-xl flex items-center justify-center">
-                    <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-xl flex items-center justify-center">
+                    <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200  bg-black/20 backdrop-blur-sm rounded-full w-fit h-fit p-5 ">
                       <Upload className="w-8 h-8 mx-auto mb-2" />
                       <p className="text-sm font-medium">Click to change</p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
-                      handleRemoveThumbnail();
+                      await handleRemoveThumbnail();
                     }}
-                    className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -415,7 +536,7 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                 className="hidden"
                 accept="image/*"
                 onChange={handleThumbnailChange}
-                disabled={uploadingThumbnail}
+                disabled={uploadingThumbnail || !isServiceInitialized}
               />
             </label>
           </div>

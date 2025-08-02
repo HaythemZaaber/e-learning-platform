@@ -26,6 +26,7 @@ import { CourseStructure } from "./steps/CourseStructure";
 import { ContentUpload } from "./steps/ContentUpload";
 import { SmartAssistant } from "./SmartAssistant";
 import { CourseSettings } from "./steps/CourseSettings";
+import { ValidationComponent } from "./ValidationComponent";
 import { useCourseCreationStore } from "../../../stores/courseCreation.store";
 import { useCourseCreationWithGraphQL } from "../hooks/useCourseCreationWithGraphQL";
 import { toast } from "sonner";
@@ -68,6 +69,7 @@ const steps = [
 export default function CourseCreation() {
   const topRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const {
     courseData,
@@ -82,6 +84,7 @@ export default function CourseCreation() {
     globalWarnings,
     showPreview,
     showAssistant,
+    contentByLecture,
 
     // Actions
     updateCourseData,
@@ -99,6 +102,8 @@ export default function CourseCreation() {
     addGlobalError,
     removeGlobalError,
     clearGlobalMessages,
+    clearStepValidationWarnings,
+    validateStepsForCompletion,
   } = useCourseCreationStore();
 
   const { getToken } = useAuth();
@@ -126,20 +131,10 @@ export default function CourseCreation() {
   // Clear validation warnings when draft is loaded and has valid data
   useEffect(() => {
     if (mounted && isServiceInitialized && !isLoading && courseData) {
-      // Clear validation warnings for step 0 (Course Information) if required fields are filled
-      if (currentStep === 0) {
-        const hasValidTitle = courseData.title && courseData.title.trim().length > 0;
-        const hasValidDescription = courseData.description && courseData.description.trim().length > 0;
-        
-        if (hasValidTitle && hasValidDescription) {
-          // Clear step validation warnings and validate all steps
-          const { clearStepValidationWarnings, validateStepsForCompletion } = useCourseCreationStore.getState();
-          clearStepValidationWarnings();
-          validateStepsForCompletion();
-        }
-      }
+      // Validate all steps when draft is loaded
+      validateAllSteps();
     }
-  }, [mounted, isServiceInitialized, isLoading, courseData, currentStep]);
+  }, [mounted, isServiceInitialized, isLoading, courseData, validateAllSteps]);
 
   // Validate current step when course data changes
   useEffect(() => {
@@ -167,15 +162,6 @@ export default function CourseCreation() {
       });
     });
   }, [globalWarnings]);
-
-  // const handleAutoSave = useCallback(async () => {
-  //   try {
-  //     await saveDraft();
-  //     toast.success("Draft saved automatically", { duration: 2000 });
-  //   } catch (error) {
-  //     console.error("Auto-save failed:", error);
-  //   }
-  // }, [saveDraft]);
 
   const handleManualSave = useCallback(async () => {
     try {
@@ -227,14 +213,15 @@ export default function CourseCreation() {
     }
 
     try {
-      const authToken = await getToken({ template: "expiration" });
-      await submitCourse(authToken || undefined);
-      toast.success("Course created successfully!");
-      clearGlobalMessages();
-    } catch (error) {
-      toast.error("Failed to create course");
-      console.error("Course submission failed:", error);
-    }
+  
+    const authToken = await getToken({ template: "expiration" });
+    await submitCourse(authToken || undefined);
+    // Only handle success case
+    toast.success("Course created successfully!");
+    clearGlobalMessages();
+  } catch (error) {
+    console.error("Course submission failed:", error);
+  }
   }, [validateAllSteps, submitCourse, clearGlobalMessages, getToken]);
 
   const handlePublishCourse = useCallback(async () => {
@@ -312,6 +299,34 @@ export default function CourseCreation() {
               <span className="text-sm font-medium">{progress}% Complete</span>
             </div>
 
+            {/* Validation Panel */}
+            <button
+              onClick={() => setShowValidation(!showValidation)}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+                showValidation
+                  ? "bg-blue-50 border-blue-300 text-blue-700"
+                  : stepValidations.some(validation => !validation.isValid)
+                  ? "bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                  : stepValidations.every(validation => validation.isValid)
+                  ? "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {stepValidations.some(validation => !validation.isValid) ? (
+                <AlertCircle className="h-4 w-4" />
+              ) : stepValidations.every(validation => validation.isValid) ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Validation
+              {stepValidations.some(validation => !validation.isValid) && (
+                <span className="ml-1 px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">
+                  {stepValidations.filter(validation => !validation.isValid).length}
+                </span>
+              )}
+            </button>
+
             {/* AI Assistant */}
             <button
               onClick={() => setShowAssistant(!showAssistant)}
@@ -350,7 +365,7 @@ export default function CourseCreation() {
             </button>
 
             {/* Submit/Publish Buttons */}
-            {currentStep === steps.length - 1 && (
+            {stepValidations.every(validation => validation.isValid) && (
               <div className="flex gap-2">
                 <button
                   onClick={handleSubmitCourse}
@@ -570,19 +585,36 @@ export default function CourseCreation() {
                 </button>
 
                 <div className="text-sm text-gray-500">
-                  Step {currentStep + 1} of {steps.length}
+                  {stepValidations.every(validation => validation.isValid) ? (
+                    <span className="text-green-600 font-medium">✓ Ready to Create</span>
+                  ) : (
+                    `Step ${currentStep + 1} of ${steps.length}`
+                  )}
                 </div>
 
                 <button
-                  onClick={handleNext}
+                  onClick={stepValidations.every(validation => validation.isValid) ? handleSubmitCourse : handleNext}
                   disabled={
-                    currentStep === steps.length - 1 ||
-                    !currentValidation.isValid
+                    !stepValidations.every(validation => validation.isValid) && 
+                    (currentStep === steps.length - 1 || !currentValidation.isValid)
                   }
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    stepValidations.every(validation => validation.isValid)
+                      ? "bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
                 >
-                  Next
-                  <ArrowRight className="h-4 w-4" />
+                  {stepValidations.every(validation => validation.isValid) ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Create Course
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -590,6 +622,23 @@ export default function CourseCreation() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Validation Panel */}
+            {showValidation && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  Course Validation
+                </h3>
+                <ValidationComponent
+                  stepValidations={stepValidations}
+                  currentStep={currentStep}
+                  courseData={courseData}
+                  contentByLecture={contentByLecture}
+                  onNavigateToStep={handleStepClick}
+                />
+              </div>
+            )}
+
             {/* Progress Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -647,6 +696,19 @@ export default function CourseCreation() {
               </div>
             </div>
 
+            {/* Completion Status */}
+            {stepValidations.every(validation => validation.isValid) && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <h3 className="font-semibold text-green-800">Course Ready!</h3>
+                </div>
+                <p className="text-green-700 text-sm">
+                  All steps are complete. You can now create and publish your course from any step.
+                </p>
+              </div>
+            )}
+
             {/* Quick Actions */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">
@@ -677,6 +739,34 @@ export default function CourseCreation() {
                   <Bot className="h-4 w-4" />
                   Get AI Help
                 </button>
+
+                <button
+                  onClick={() => setShowValidation(!showValidation)}
+                  className="w-full flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  {showValidation ? 'Hide Validation' : 'Show Validation'}
+                </button>
+
+                {stepValidations.every(validation => validation.isValid) && (
+                  <button
+                    onClick={handleSubmitCourse}
+                    disabled={isSubmitting}
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Create Course
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 

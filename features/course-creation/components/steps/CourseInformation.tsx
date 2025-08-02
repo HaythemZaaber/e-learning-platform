@@ -89,30 +89,25 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
       try {
         setUploadingThumbnail(true);
 
+        // Optimize image quality before upload
+        const optimizedFile = await optimizeImageQuality(file);
+
         // Create preview immediately
         const reader = new FileReader();
         reader.onloadend = () => {
-          
           const dataUrl = reader.result as string;
           setThumbnailPreview(dataUrl);
-          setImageLoadError(false); // Reset error state when new preview is set
-          
-          // Test if the data URL is valid
-          if (dataUrl && dataUrl.startsWith('data:image/')) {
-            console.log("Valid image data URL created");
-          } else {
-            console.error("Invalid image data URL:", dataUrl);
-          }
+          setImageLoadError(false);
         };
         reader.onerror = (error) => {
           console.error("FileReader error:", error);
           notifications.error("Failed to read image file");
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(optimizedFile);
 
-        // Upload to server
+        // Upload optimized file to server
         const authToken = await getToken({ template: "expiration" });
-        const result = await uploadThumbnail(file, data.id, {
+        const result = await uploadThumbnail(optimizedFile, data.id, {
           title: data.title || "Course thumbnail",
           description: "Course thumbnail image"
         }, authToken || undefined);
@@ -145,6 +140,56 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
       isServiceInitialized,
     ]
   );
+
+  // Helper function to optimize image quality
+  const optimizeImageQuality = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      
+      img.onload = () => {
+        // Set canvas size to maintain aspect ratio with good quality
+        const maxWidth = 1200;
+        const maxHeight = 800;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Enable image smoothing for better quality
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+        
+        // Convert to blob with high quality
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const optimizedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(optimizedFile);
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', 0.95); // High quality JPEG
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
    
 
   const handleRemoveThumbnail = useCallback(async () => {
@@ -498,8 +543,9 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                     src={thumbnailPreview}
                     alt="Course thumbnail preview"
                     className="w-full h-full object-contain rounded-xl"
-                    width={100}
-                    height={100}
+                    width={400}
+                    height={300}
+                    quality={95}
                   />
                   <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-xl flex items-center justify-center">
                     <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200  bg-black/20 backdrop-blur-sm rounded-full w-fit h-fit p-5 ">

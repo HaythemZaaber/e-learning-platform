@@ -12,7 +12,7 @@ export type ContentType =
   | "quiz"
   | "link"
   | "archive";
-export type LessonType = "video" | "text" | "quiz" | "assignment" | "resource";
+export type LessonType = "video" | "text" | "quiz" | "assignment" | "resource" | "audio" | "document" | "image" | "archive";
 
 export interface StepValidation {
   isValid: boolean;
@@ -388,6 +388,10 @@ export const LESSON_TYPES: LessonType[] = [
   "quiz",
   "assignment",
   "resource",
+  "audio",
+  "document",
+  "image",
+  "archive",
 ];
 
 export const SUPPORTED_VIDEO_FORMATS = [

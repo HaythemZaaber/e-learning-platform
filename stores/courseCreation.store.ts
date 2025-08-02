@@ -152,6 +152,9 @@ interface CourseCreationState {
   // Additional validation methods
   clearStepValidationWarnings: () => void;
   validateStepsForCompletion: () => boolean;
+  skipStepValidation: (stepIndex: number) => void;
+  continueToNextStep: () => void;
+  enableFlexibleNavigation: () => void;
   
   // Service actions
   setService: (service: CourseCreationService) => void;
@@ -221,10 +224,37 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
 
   // Basic actions
   updateCourseData: (data) => {
-    set((state) => ({
-      courseData: { ...state.courseData, ...data },
-      hasUnsavedChanges: true,
-    }));
+    set((state) => {
+      const newCourseData = { ...state.courseData, ...data };
+      
+      // Check if sections or lectures have changed
+      const sectionsChanged = JSON.stringify(state.courseData.sections) !== JSON.stringify(newCourseData.sections);
+      
+      // If sections changed and content upload step was completed, invalidate it
+      let newStepValidations = [...state.stepValidations];
+      if (sectionsChanged && newStepValidations[2]?.isValid) {
+        newStepValidations[2] = {
+          isValid: false,
+          errors: ["Course structure has changed. Please review and update content for new lectures."],
+          warnings: []
+        };
+        
+        // Also invalidate step 1 (Course Structure) if it was completed
+        if (newStepValidations[1]?.isValid) {
+          newStepValidations[1] = {
+            isValid: false,
+            errors: ["Course structure has been modified. Please review your sections and lectures."],
+            warnings: []
+          };
+        }
+      }
+      
+      return {
+        courseData: newCourseData,
+        hasUnsavedChanges: true,
+        stepValidations: newStepValidations,
+      };
+    });
   },
 
   setCurrentStep: (step) => set({ currentStep: step }),
@@ -328,27 +358,19 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
 
   // Enhanced delete content with server-side deletion
   deleteContentFromLecture: async (lectureId: string, type: string, contentId: string, authToken?: string) => {
-    const state = get();
-    const content = state.getContentForLecture(lectureId);
-    const contentKey = type as keyof typeof content;
-    const contentItem = content[contentKey].find((item: any) => 
-      item.id === contentId
-    );
-
-    if (!contentItem) {
-      throw new Error('Content not found');
-    }
+    
+    console.log("deleteContentFromLecture", lectureId, type, contentId);
 
     try {
       // If the content has an ID (was uploaded), delete it from server
-      if (contentItem.id) {
+      const state = get();
         const serviceToUse = state.service || get().service;
         if (!serviceToUse) {
           throw new Error('Service not initialized. Please wait a moment and try again.');
         }
         // Pass the file path (stored as id) to delete the file
-        await serviceToUse.deleteFile(contentItem.id, authToken);
-      }
+        await serviceToUse.deleteFile(contentId, authToken);
+      
 
       // Remove from local state
       get().removeContentFromLecture(lectureId, type, contentId);
@@ -785,12 +807,15 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
     // Can always go to current step or previous steps
     if (stepIndex <= currentStep) return true;
     
-    // Can go to next step only if current step is valid
+    // Allow navigation to next step even if current step is not completed
+    // This provides more flexibility for users to work on different steps
     if (stepIndex === currentStep + 1) {
-      return stepValidations[currentStep]?.isValid !== false;
+      return true; // Always allow next step navigation
     }
     
-    return false;
+    // Allow navigation to any step for better user experience
+    // Users can work on different steps in any order they prefer
+    return true;
   },
 
   calculateProgress: () => {
@@ -845,6 +870,39 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
     const { stepValidations } = get();
     const allValid = stepValidations.every(validation => validation.isValid);
     return allValid;
+  },
+
+  skipStepValidation: (stepIndex) => {
+    set((state) => {
+      const newValidations = [...state.stepValidations];
+      if (newValidations[stepIndex]) {
+        newValidations[stepIndex] = {
+          isValid: true,
+          errors: [],
+          warnings: [],
+        };
+      }
+      return { stepValidations: newValidations };
+    });
+  },
+
+  continueToNextStep: () => {
+    const { currentStep } = get();
+    const nextStep = currentStep + 1;
+    
+    // Skip validation for current step and move to next step
+    get().skipStepValidation(currentStep);
+    get().setCurrentStep(nextStep);
+    
+    // Add a warning that the step was skipped
+    get().addGlobalWarning(`Step ${currentStep + 1} was marked as complete. You can return to it later to add more content.`);
+  },
+
+  enableFlexibleNavigation: () => {
+    // This method allows users to work on steps in any order
+    // It's already implemented in the canNavigateToStep method
+    // This is just a placeholder for future enhancements
+    get().addGlobalWarning("Flexible navigation is enabled. You can work on steps in any order.");
   },
 
   // Service actions
@@ -962,9 +1020,10 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       console.log("Store: Course data:", courseData);
       console.log("Store: Content by lecture:", contentByLecture);
 
-      // Prepare course data with organized content
+      // Prepare course data with organized content and set status to draft
       const courseWithContent = {
         ...courseData,
+        status: "draft", // Set initial status to draft
         organizedContent: {
           contentByLecture,
           totalContent: Object.values(contentByLecture).reduce((total, lectureContent) => {
@@ -977,17 +1036,31 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
 
       console.log("Store: Course with content prepared:", courseWithContent);
 
-      await service.submitCourse(courseWithContent);
+      const result = await service.submitCourse(courseWithContent);
 
+      // Clear draft after successful submission
      
-        set({
-          draftId: null,
-          hasUnsavedChanges: false,
-          lastSaved: new Date(),
-        });
+        try {
+          await service.deleteDraft();
 
-        get().addGlobalWarning("Course created successfully!");
-        get().clearGlobalMessages();
+        } catch (draftError) {
+          console.warn("Failed to delete draft:", draftError);
+        }
+   
+
+      set({
+        draftId: null,
+        hasUnsavedChanges: false,
+        lastSaved: new Date(),
+        courseData: {
+          ...courseData,
+          status: "draft",
+          id: result.course?.id || courseData.id,
+        },
+      });
+
+      get().addGlobalWarning("Course created successfully! You can now publish it to make it visible to students.");
+      get().clearGlobalMessages();
     
     } catch (error) {
       console.error("Failed to submit course:", error);

@@ -164,6 +164,10 @@ export class UploadApiService {
     if (metadata?.description) {
       formData.append('description', metadata.description);
     }
+    
+    // Add quality parameters for better image processing
+    formData.append('quality', '95');
+    formData.append('optimize', 'true');
 
     const endpoint = `${this.baseUrl}/upload/image`;
 

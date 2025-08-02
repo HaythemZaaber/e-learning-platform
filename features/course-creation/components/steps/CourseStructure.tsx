@@ -14,6 +14,8 @@ import {
   FileQuestion,
   FileSpreadsheet,
   FileArchive,
+  FileAudio,
+  FileImage,
   X,
   Save,
   AlertCircle,
@@ -69,6 +71,30 @@ const lectureTypeConfig = {
     icon: FileArchive,
     color: "text-gray-600",
     bgColor: "bg-gray-50",
+  },
+  audio: {
+    name: "Audio",
+    icon: FileAudio,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-50",
+  },
+  document: {
+    name: "Document",
+    icon: FileText,
+    color: "text-teal-600",
+    bgColor: "bg-teal-50",
+  },
+  image: {
+    name: "Image",
+    icon: FileImage,
+    color: "text-pink-600",
+    bgColor: "bg-pink-50",
+  },
+  archive: {
+    name: "Archive",
+    icon: FileArchive,
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
   },
 };
 

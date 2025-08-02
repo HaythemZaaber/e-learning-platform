@@ -67,6 +67,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   const [resourceUrl, setResourceUrl] = useState("");
   const [resourceType, setResourceType] = useState("link");
   const [deletingContent, setDeletingContent] = useState<Record<string, boolean>>({});
+  const [previewFile, setPreviewFile] = useState<{ file: any; type: string } | null>(null);
 
   const {
     uploadProgress,
@@ -323,6 +324,14 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     },
     [selectedLecture, deleteContentFromLecture, getToken, isServiceInitialized]
   );
+
+  const handlePreviewFile = useCallback((file: any, type: string) => {
+    setPreviewFile({ file, type });
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewFile(null);
+  }, []);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -641,7 +650,10 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                     )}
                     
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <button className="p-3 bg-white/90 rounded-full hover:bg-white transition-colors">
+                      <button 
+                        onClick={() => handlePreviewFile(file, type)}
+                        className="p-3 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      >
                         <Eye className="h-6 w-6 text-gray-900" />
                       </button>
                     </div>
@@ -1494,80 +1506,104 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         </div>
       </div>
 
-      {/* Content Summary for Selected Lecture */}
-      {selectedLecture && (
-        <div className="bg-gradient-to-r from-blue-50 via-green-50 to-purple-50 rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Layers className="h-5 w-5 text-blue-500" />
-            Content Summary for "{selectedLectureObj?.title}"
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {contentCounts.videos || 0}
-              </div>
-              <div className="text-sm text-gray-600">Videos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {contentCounts.text || 0}
-              </div>
-              <div className="text-sm text-gray-600">Text</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {contentCounts.documents || 0}
-              </div>
-              <div className="text-sm text-gray-600">Documents</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-pink-600">
-                {contentCounts.images || 0}
-              </div>
-              <div className="text-sm text-gray-600">Images</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {contentCounts.audio || 0}
-              </div>
-              <div className="text-sm text-gray-600">Audio</div>
-            </div>
-          </div>
-          
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {contentCounts.assignments || 0}
-              </div>
-              <div className="text-sm text-gray-600">Assignments</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-teal-600">
-                {contentCounts.resources || 0}
-              </div>
-              <div className="text-sm text-gray-600">Resources</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
-                {contentCounts.archives || 0}
-              </div>
-              <div className="text-sm text-gray-600">Archives</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {contentCounts.quizzes || 0}
-              </div>
-              <div className="text-sm text-gray-600">Quizzes</div>
-            </div>
-          </div>
+      {/* Upload Status Indicator */}
+      {isUploading && (
+        <div className="mt-4 flex items-center justify-center gap-2 text-blue-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Uploading files...</span>
+        </div>
+      )}
 
-          {/* Upload Status Indicator */}
-          {isUploading && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-blue-600">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Uploading files...</span>
+      {/* File Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Preview: {previewFile.file.title || previewFile.file.name}
+              </h3>
+              <button
+                onClick={closePreview}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          )}
+            
+            <div className="p-4 max-h-[calc(90vh-120px)] overflow-auto">
+              {previewFile.type === 'videos' && (
+                <video
+                  src={previewFile.file.url}
+                  controls
+                  className="w-full max-h-[70vh] object-contain"
+                  autoPlay
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error("Video preview error:", e);
+                    toast.error("Failed to load video preview. The video file may be corrupted or in an unsupported format.");
+                  }}
+                >
+                  <source src={previewFile.file.url} type={previewFile.file.type || 'video/mp4'} />
+                  Your browser does not support the video tag.
+                </video>
+              )}
+              
+              {previewFile.type === 'images' && (
+                <img
+                  src={previewFile.file.url}
+                  alt={previewFile.file.title || previewFile.file.name}
+                  className="w-full max-h-[70vh] object-contain"
+                />
+              )}
+              
+              {previewFile.type === 'documents' && (
+                <div className="text-center py-12">
+                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Document preview not available
+                  </p>
+                  <a
+                    href={previewFile.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Document
+                  </a>
+                </div>
+              )}
+              
+              {previewFile.type === 'audio' && (
+                <div className="text-center py-12">
+                  <audio
+                    src={previewFile.file.url}
+                    controls
+                    className="w-full max-w-md mx-auto"
+                  />
+                </div>
+              )}
+              
+              {previewFile.type === 'archives' && (
+                <div className="text-center py-12">
+                  <FileArchive className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Archive preview not available
+                  </p>
+                  <a
+                    href={previewFile.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Archive
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -35,6 +35,7 @@ import {
 import { CourseData, ENROLLMENT_TYPES } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useAuth } from "@clerk/nextjs";
 
 interface CourseSettingsProps {
   data: CourseData;
@@ -66,9 +67,11 @@ const languages = [
 export function CourseSettings({ data, updateData }: CourseSettingsProps) {
   const [activeSection, setActiveSection] = useState("general");
   const [newTag, setNewTag] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const notifications = useNotifications();
-  const { addGlobalError, addGlobalWarning } = useCourseCreationStore();
+  const { addGlobalError, addGlobalWarning, publishCourse } = useCourseCreationStore();
+  const { getToken } = useAuth();
 
   // Add index signatures to settings sub-objects for dynamic key access
   const settings = data.settings || {
@@ -189,6 +192,24 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
     }
     return true;
   }, [settings.enrollmentType, data.price, addGlobalError, addGlobalWarning]);
+
+  const handlePublishCourse = async () => {
+    if (!data.id) {
+      notifications.error("Course ID is required to publish");
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      await publishCourse();
+      notifications.success("Course published successfully! It's now visible to students.");
+    } catch (error) {
+      console.error("Failed to publish course:", error);
+      notifications.error("Failed to publish course. Please try again.");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   const sections = [
     { id: "general", title: "General Settings", icon: Settings },
@@ -1171,10 +1192,13 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              Settings Complete!
+              {data.status === "published" ? "Course Published!" : "Settings Complete!"}
             </h3>
             <p className="text-gray-600">
-              Your course is configured and ready for the next step.
+              {data.status === "published" 
+                ? "Your course is live and visible to students."
+                : "Your course is configured and ready for publishing."
+              }
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -1191,6 +1215,25 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
               Validate Settings
               <ArrowRight className="h-4 w-4" />
             </button>
+            {data.status === "draft" && data.id && (
+              <button
+                onClick={handlePublishCourse}
+                disabled={isPublishing}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPublishing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4" />
+                    Publish Course
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -132,6 +132,27 @@ export const ValidationComponent: React.FC<ValidationComponentProps> = ({
       });
     }
 
+
+    if (!courseData.thumbnail) {
+      rules.push({
+        id: 'thumbnail-missing',
+        label: 'Course Thumbnail Recommended',
+        description: 'Add a thumbnail to attract students',
+        type: 'warning',
+        category: 'settings',
+        action: () => onNavigateToStep(0),
+        actionLabel: 'Add Thumbnail',
+      });
+    } else {
+      rules.push({
+        id: 'thumbnail-good',
+        label: 'Course Thumbnail Added',
+        description: 'Thumbnail uploaded successfully',
+        type: 'success',
+        category: 'settings',
+      });
+    }
+
     // Objectives validation
     if (!courseData.objectives?.some((obj: string) => obj.trim())) {
       rules.push({
@@ -273,25 +294,7 @@ export const ValidationComponent: React.FC<ValidationComponentProps> = ({
       });
     }
 
-    if (!courseData.thumbnail) {
-      rules.push({
-        id: 'thumbnail-missing',
-        label: 'Course Thumbnail Recommended',
-        description: 'Add a thumbnail to attract students',
-        type: 'warning',
-        category: 'settings',
-        action: () => onNavigateToStep(0),
-        actionLabel: 'Add Thumbnail',
-      });
-    } else {
-      rules.push({
-        id: 'thumbnail-good',
-        label: 'Course Thumbnail Added',
-        description: 'Thumbnail uploaded successfully',
-        type: 'success',
-        category: 'settings',
-      });
-    }
+   
 
     return rules;
   };

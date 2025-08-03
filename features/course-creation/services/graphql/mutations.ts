@@ -65,7 +65,14 @@ export const UPDATE_COURSE = gql`
     updateCourse(courseId: $courseId, input: $input) {
       success
       message
-      course
+      course {
+        id
+        title
+        description
+        status
+      }
+      errors
+     
     }
   }
 `;
@@ -75,10 +82,13 @@ export const PUBLISH_COURSE = gql`
     publishCourse(courseId: $courseId) {
       success
       message
-      course
+     course {
+        id
+        title
+        description
+        status
+      }
       errors
-      warnings
-      completionPercentage
     }
   }
 `;

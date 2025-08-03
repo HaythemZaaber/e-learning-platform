@@ -208,6 +208,69 @@ export class UploadApiService {
     return response.json();
   }
 
+  async deleteUnsavedThumbnail(thumbnailUrl: string, authToken?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}/upload/thumbnail/unsaved`, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify({ thumbnailUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete unsaved thumbnail');
+    }
+
+    return response.json();
+  }
+
+  async deleteDraftThumbnail(courseId: string, thumbnailUrl: string, authToken?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}/upload/thumbnail/draft/${courseId}`, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify({ thumbnailUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete draft thumbnail');
+    }
+
+    return response.json();
+  }
+
+  async deleteCourseThumbnail(courseId: string, thumbnailUrl: string, authToken?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}/upload/thumbnail/course/${courseId}`, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify({ thumbnailUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete course thumbnail');
+    }
+
+    return response.json();
+  }
+
   // ============================================
   // BATCH OPERATIONS
   // ============================================

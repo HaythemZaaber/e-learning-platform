@@ -4,6 +4,7 @@ import {
   CREATE_COURSE,
   PUBLISH_COURSE,
   DELETE_COURSE_DRAFT,
+  UPDATE_COURSE,
 } from "./mutations";
 import { GET_COURSE_DRAFT } from "./queries";
 import { CourseData, CourseLevel, ContentType } from "../../types";
@@ -102,6 +103,75 @@ export class CourseCreationService {
       }
     } catch (error) {
       console.error("Failed to load draft:", error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // COURSE UPDATING
+  // ============================================
+
+  async updateCourse(courseId: string, courseDataWithContent: any) {
+    try {
+      console.log("Updating course with organized content...");
+      console.log("Course ID:", courseId);
+      console.log("Full course data with content:", courseDataWithContent);
+
+      // Extract organized content
+      const { organizedContent, ...courseData } = courseDataWithContent;
+      console.log("Extracted course data:", courseData);
+      console.log("Extracted organized content:", organizedContent);
+
+      // Step 1: Transform course data to match GraphQL schema
+      const transformedData = this.transformCourseDataForSubmission(courseData);
+      console.log("Transformed data for update:", transformedData);
+
+      // Step 2: Enhance sections with content information
+      if (organizedContent?.contentByLecture) {
+        console.log("Enhancing sections with content information...");
+        transformedData.sections = this.enhanceSectionsWithContent(
+          transformedData.sections || [],
+          organizedContent.contentByLecture
+        );
+        console.log("Enhanced sections with content:", transformedData.sections);
+      } else {
+        console.warn("No organized content found in course data");
+      }
+
+      // Step 3: Update the course with content information
+      console.log("Sending to GraphQL mutation:", { courseId, input: transformedData });
+      const result = await this.client.mutate({
+        mutation: UPDATE_COURSE,
+        variables: { 
+          courseId,
+          input: transformedData 
+        },
+      });
+
+      console.log("GraphQL update mutation result:", result);
+
+      if (result.data?.updateCourse?.success) {
+        const updatedCourse = result.data.updateCourse.course;
+
+        return {
+          success: true,
+          course: updatedCourse,
+          message: result.data.updateCourse.message,
+         
+        };
+      } else {
+       
+        const message = result.data?.updateCourse?.message || "Failed to update course";
+
+        return {
+          success: false,
+          message,
+         
+        };
+      }
+
+    } catch (error) {
+      console.error("Failed to update course:", error);
       throw error;
     }
   }
@@ -338,6 +408,7 @@ export class CourseCreationService {
       } else {
         const errors = result.data?.publishCourse?.errors || [];
         const warnings = result.data?.publishCourse?.warnings || [];
+        
 
         return {
           success: false,
@@ -530,6 +601,36 @@ export class CourseCreationService {
       return result;
     } catch (error) {
       console.error("Failed to delete thumbnail:", error);
+      throw error;
+    }
+  }
+
+  async deleteUnsavedThumbnail(thumbnailUrl: string, authToken?: string) {
+    try {
+      const result = await this.uploadService.deleteUnsavedThumbnail(thumbnailUrl, authToken);
+      return result;
+    } catch (error) {
+      console.error("Failed to delete unsaved thumbnail:", error);
+      throw error;
+    }
+  }
+
+  async deleteDraftThumbnail(courseId: string, thumbnailUrl: string, authToken?: string) {
+    try {
+      const result = await this.uploadService.deleteDraftThumbnail(courseId, thumbnailUrl, authToken);
+      return result;
+    } catch (error) {
+      console.error("Failed to delete draft thumbnail:", error);
+      throw error;
+    }
+  }
+
+  async deleteCourseThumbnail(courseId: string, thumbnailUrl: string, authToken?: string) {
+    try {
+      const result = await this.uploadService.deleteCourseThumbnail(courseId, thumbnailUrl, authToken);
+      return result;
+    } catch (error) {
+      console.error("Failed to delete course thumbnail:", error);
       throw error;
     }
   }

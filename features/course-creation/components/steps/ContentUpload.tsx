@@ -31,6 +31,8 @@ import {
   FileImage,
   Users,
   Layers,
+  RefreshCw,
+  Info,
 } from "lucide-react";
 import { CourseData } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
@@ -66,8 +68,15 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   const [resourceDescription, setResourceDescription] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
   const [resourceType, setResourceType] = useState("link");
+  
+  // UI states
   const [deletingContent, setDeletingContent] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ file: any; type: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{
+    contentId: string;
+    type: string;
+    title: string;
+  } | null>(null);
 
   const {
     uploadProgress,
@@ -97,6 +106,17 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   // Find selected section and lecture objects
   const selectedSectionObj = data.sections?.find((s) => s.id === selectedSection);
   const selectedLectureObj = selectedSectionObj?.lectures?.find((l) => l.id === selectedLecture);
+
+  // Auto-select section and lecture if only one exists
+  useEffect(() => {
+    if (data.sections?.length === 1 && !selectedSection) {
+      setSelectedSection(data.sections[0].id);
+    }
+    
+    if (selectedSectionObj?.lectures?.length === 1 && !selectedLecture) {
+      setSelectedLecture(selectedSectionObj.lectures[0].id);
+    }
+  }, [data.sections, selectedSectionObj, selectedSection, selectedLecture]);
 
   const handleFileUpload = useCallback(
     async (file: File, type: string) => {
@@ -145,8 +165,23 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       // Check if content already exists for this lecture type
       const existingContent = selectedLectureContent?.[type] || [];
       if (existingContent.length > 0) {
-        toast.error(`This lecture already has ${type} content. Please delete the existing content first before uploading new files.`);
-        return;
+        const shouldReplace = window.confirm(
+          `This lecture already has ${type} content. Do you want to replace it with the new file?`
+        );
+        
+        if (!shouldReplace) {
+          return;
+        }
+        
+        // Delete existing content first
+        try {
+          const authToken = await getToken({ template: "expiration" });
+          await deleteContentFromLecture(selectedLecture, type, existingContent[0].id, authToken || undefined);
+        } catch (error) {
+          console.error("Failed to delete existing content:", error);
+          toast.error("Failed to replace existing content");
+          return;
+        }
       }
 
       try {
@@ -160,11 +195,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         
         toast.success("File uploaded successfully!");
       } catch (error) {
-        console.error("Failed to get auth token:", error);
-        toast.error("Authentication failed");
+        console.error("Failed to upload file:", error);
+        toast.error("Failed to upload file");
       }
     },
-    [selectedSection, selectedLecture, uploadFile, getToken]
+    [selectedSection, selectedLecture, uploadFile, getToken, selectedLectureContent, deleteContentFromLecture]
   );
 
   const handleCreateTextContent = useCallback(async () => {
@@ -181,8 +216,23 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     // Check if content already exists
     const existingTextContent = selectedLectureContent?.text || [];
     if (existingTextContent.length > 0) {
-      toast.error("This lecture already has text content. Please delete the existing content first.");
-      return;
+      const shouldReplace = window.confirm(
+        "This lecture already has text content. Do you want to replace it?"
+      );
+      
+      if (!shouldReplace) {
+        return;
+      }
+      
+      // Delete existing content first
+      try {
+        const authToken = await getToken({ template: "expiration" });
+        await deleteContentFromLecture(selectedLecture, "text", existingTextContent[0].id, authToken || undefined);
+      } catch (error) {
+        console.error("Failed to delete existing content:", error);
+        toast.error("Failed to replace existing content");
+        return;
+      }
     }
 
     createTextContent({
@@ -199,7 +249,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     setTextDescription("");
 
     toast.success("Text content created successfully");
-  }, [textTitle, textContent, textDescription, selectedSection, selectedLecture, createTextContent, selectedLectureContent]);
+  }, [textTitle, textContent, textDescription, selectedSection, selectedLecture, createTextContent, selectedLectureContent, deleteContentFromLecture, getToken]);
 
   const handleCreateAssignment = useCallback(async () => {
     if (!assignmentTitle.trim() || !assignmentDescription.trim()) {
@@ -215,8 +265,23 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     // Check if content already exists
     const existingAssignment = selectedLectureContent?.assignments || [];
     if (existingAssignment.length > 0) {
-      toast.error("This lecture already has an assignment. Please delete the existing assignment first.");
-      return;
+      const shouldReplace = window.confirm(
+        "This lecture already has an assignment. Do you want to replace it?"
+      );
+      
+      if (!shouldReplace) {
+        return;
+      }
+      
+      // Delete existing content first
+      try {
+        const authToken = await getToken({ template: "expiration" });
+        await deleteContentFromLecture(selectedLecture, "assignments", existingAssignment[0].id, authToken || undefined);
+      } catch (error) {
+        console.error("Failed to delete existing content:", error);
+        toast.error("Failed to replace existing content");
+        return;
+      }
     }
 
     createAssignment({
@@ -247,6 +312,8 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     selectedLecture,
     createAssignment,
     selectedLectureContent,
+    deleteContentFromLecture,
+    getToken,
   ]);
 
   const handleCreateResource = useCallback(async () => {
@@ -267,8 +334,23 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     // Check if content already exists
     const existingResource = selectedLectureContent?.resources || [];
     if (existingResource.length > 0) {
-      toast.error("This lecture already has a resource. Please delete the existing resource first.");
-      return;
+      const shouldReplace = window.confirm(
+        "This lecture already has a resource. Do you want to replace it?"
+      );
+      
+      if (!shouldReplace) {
+        return;
+      }
+      
+      // Delete existing content first
+      try {
+        const authToken = await getToken({ template: "expiration" });
+        await deleteContentFromLecture(selectedLecture, "resources", existingResource[0].id, authToken || undefined);
+      } catch (error) {
+        console.error("Failed to delete existing content:", error);
+        toast.error("Failed to replace existing content");
+        return;
+      }
     }
 
     createResource({
@@ -296,10 +378,12 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     selectedLecture,
     createResource,
     selectedLectureContent,
+    deleteContentFromLecture,
+    getToken,
   ]);
 
   const handleRemoveContent = useCallback(
-    async (contentId: string, type: string) => {
+    async (contentId: string, type: string, title: string) => {
       if (!selectedLecture) return;
       
       // Check if service is initialized
@@ -308,13 +392,26 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         return;
       }
       
+      // Show confirmation dialog
+      setShowDeleteConfirm({ contentId, type, title });
+    },
+    [selectedLecture, isServiceInitialized]
+  );
+
+  const confirmDeleteContent = useCallback(
+    async () => {
+      if (!showDeleteConfirm || !selectedLecture) return;
+      
+      const { contentId, type } = showDeleteConfirm;
       const deleteKey = `${type}-${contentId}`;
+      
       setDeletingContent(prev => ({ ...prev, [deleteKey]: true }));
       
       try {
         const authToken = await getToken({ template: "expiration" });
         await deleteContentFromLecture(selectedLecture, type, contentId, authToken || undefined);
         toast.success("Content deleted successfully");
+        setShowDeleteConfirm(null);
       } catch (error) {
         console.error("Failed to delete content:", error);
         toast.error("Failed to delete content. Please try again.");
@@ -322,7 +419,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         setDeletingContent(prev => ({ ...prev, [deleteKey]: false }));
       }
     },
-    [selectedLecture, deleteContentFromLecture, getToken, isServiceInitialized]
+    [showDeleteConfirm, selectedLecture, deleteContentFromLecture, getToken]
   );
 
   const handlePreviewFile = useCallback((file: any, type: string) => {
@@ -470,33 +567,47 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     
     return (
       <div className="space-y-8">
-                          {/* Content Limit Warning */}
-                  {hasExistingContent && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-medium text-red-800">
-                            Content Already Uploaded
-                          </h4>
-                          <p className="text-red-700 text-sm mt-1">
-                            This lecture already has {title} content. You cannot upload new content until you delete the existing one.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+        {/* Content Status */}
+        {hasExistingContent ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-green-800">
+                  Content Available
+                </h4>
+                <p className="text-green-700 text-sm mt-1">
+                  This lecture has {title} content. You can replace it by uploading a new file.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-800">
+                  No Content Yet
+                </h4>
+                <p className="text-amber-700 text-sm mt-1">
+                  Upload {title} content for this lecture to make it available to students.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upload Area */}
         <div
           className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
             dragStates[type]
               ? "border-blue-500 bg-blue-50"
-              : selectedSection && selectedLecture && !hasExistingContent
+              : selectedSection && selectedLecture
               ? "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
               : "border-gray-200 bg-gray-50"
           } ${
-            !selectedSection || !selectedLecture || isUploading || hasExistingContent
+            !selectedSection || !selectedLecture || isUploading
               ? "cursor-not-allowed"
               : "cursor-pointer"
           }`}
@@ -504,7 +615,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           onDragLeave={(e) => handleDragLeave(e, type)}
           onDrop={(e) => handleDrop(e, type)}
           onClick={() => {
-            if (selectedSection && selectedLecture && !isUploading && !hasExistingContent) {
+            if (selectedSection && selectedLecture && !isUploading) {
               const input = document.createElement("input");
               input.type = "file";
               input.accept = acceptedFormats.join(",");
@@ -534,19 +645,22 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Upload {title}
+              {hasExistingContent ? `Replace ${title}` : `Upload ${title}`}
             </h3>
             <p className="text-gray-600 mb-4 max-w-md">
-              Drag and drop your {type} files here, or click to browse.
+              {hasExistingContent 
+                ? `Upload a new file to replace the existing ${type} content.`
+                : `Drag and drop your ${type} files here, or click to browse.`
+              }
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-500">
               <span>Maximum size: {maxSize}</span>
               <span>•</span>
               <span>Formats: {acceptedFormats.join(", ").replace(/\./g, "").toUpperCase()}</span>
             </div>
-            {selectedSection && selectedLecture && !isUploading && !hasExistingContent && (
+            {selectedSection && selectedLecture && !isUploading && (
               <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Browse Files
+                {hasExistingContent ? "Replace File" : "Browse Files"}
               </button>
             )}
             {isUploading && (
@@ -659,14 +773,14 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                     </div>
                     <div className="absolute top-3 right-3">
                       <button
-                        onClick={() => handleRemoveContent(file.id, type)}
+                        onClick={() => handleRemoveContent(file.id, type, file.title)}
                         disabled={deletingContent[`${type}-${file.id}`]}
                         className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {deletingContent[`${type}-${file.id}`] ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         )}
                       </button>
                     </div>
@@ -772,7 +886,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   const totalContent = Object.values(counts).reduce((sum, count) => sum + count, 0);
                   return (
                     <option key={lecture.id} value={lecture.id}>
-                      {lecture.title} ({totalContent} content items)
+                      {lecture.title} ({lecture.type} - {totalContent} content items)
                     </option>
                   );
                 })}
@@ -789,7 +903,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                 Ready to add content
               </p>
               <p className="text-sm text-green-700 mt-1">
-                Section: {selectedSectionObj?.title} • Lecture: {selectedLectureObj?.title}
+                Section: {selectedSectionObj?.title} • Lecture: {selectedLectureObj?.title} • Type: {selectedLectureObj?.type}
               </p>
             </div>
           </div>
@@ -898,17 +1012,31 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               {/* Text Content Tab */}
               {activeTab === "text" && (
                 <div className="space-y-8">
-                  {/* Content Limit Warning */}
-                  {selectedLectureContent?.text?.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  {/* Content Status */}
+                  {selectedLectureContent?.text?.length > 0 ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h4 className="font-medium text-red-800">
-                            Text Content Already Created
+                          <h4 className="font-medium text-green-800">
+                            Text Content Available
                           </h4>
-                          <p className="text-red-700 text-sm mt-1">
-                            This lecture already has text content. You cannot create new content until you delete the existing one.
+                          <p className="text-green-700 text-sm mt-1">
+                            This lecture has text content. You can replace it by creating new content.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-amber-800">
+                            No Text Content Yet
+                          </h4>
+                          <p className="text-amber-700 text-sm mt-1">
+                            Create text content for this lecture to provide written material to students.
                           </p>
                         </div>
                       </div>
@@ -923,7 +1051,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Create Text Content
+                          {selectedLectureContent?.text?.length > 0 ? "Replace Text Content" : "Create Text Content"}
                         </h3>
                         <p className="text-gray-600">
                           Write rich text content for "{selectedLectureObj?.title}"
@@ -973,11 +1101,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
                       <button
                         onClick={handleCreateTextContent}
-                        disabled={!textTitle.trim() || !textContent.trim() || selectedLectureContent?.text?.length > 0}
+                        disabled={!textTitle.trim() || !textContent.trim()}
                         className="w-full px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                       >
                         <Save className="h-5 w-5" />
-                        Create Text Content
+                        {selectedLectureContent?.text?.length > 0 ? "Replace Text Content" : "Create Text Content"}
                       </button>
                     </div>
                   </div>
@@ -1025,7 +1153,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                                   <Edit3 className="h-5 w-5" />
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveContent(content.id, "text")}
+                                  onClick={() => handleRemoveContent(content.id, "text", content.title)}
                                   disabled={deletingContent[`text-${content.id}`]}
                                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1056,17 +1184,31 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               {/* Assignment Tab */}
               {activeTab === "assignment" && (
                 <div className="space-y-8">
-                  {/* Content Limit Warning */}
-                  {selectedLectureContent?.assignments?.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  {/* Content Status */}
+                  {selectedLectureContent?.assignments?.length > 0 ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h4 className="font-medium text-red-800">
-                            Assignment Already Created
+                          <h4 className="font-medium text-green-800">
+                            Assignment Available
                           </h4>
-                          <p className="text-red-700 text-sm mt-1">
-                            This lecture already has an assignment. You cannot create a new one until you delete the existing one.
+                          <p className="text-green-700 text-sm mt-1">
+                            This lecture has an assignment. You can replace it by creating a new one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-amber-800">
+                            No Assignment Yet
+                          </h4>
+                          <p className="text-amber-700 text-sm mt-1">
+                            Create an assignment for this lecture to test student understanding.
                           </p>
                         </div>
                       </div>
@@ -1080,7 +1222,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Create Assignment
+                          {selectedLectureContent?.assignments?.length > 0 ? "Replace Assignment" : "Create Assignment"}
                         </h3>
                         <p className="text-gray-600">
                           Design assignments for "{selectedLectureObj?.title}"
@@ -1160,11 +1302,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
                       <button
                         onClick={handleCreateAssignment}
-                        disabled={!assignmentTitle.trim() || !assignmentDescription.trim() || selectedLectureContent?.assignments?.length > 0}
+                        disabled={!assignmentTitle.trim() || !assignmentDescription.trim()}
                         className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                       >
                         <Save className="h-5 w-5" />
-                        Create Assignment
+                        {selectedLectureContent?.assignments?.length > 0 ? "Replace Assignment" : "Create Assignment"}
                       </button>
                     </div>
                   </div>
@@ -1220,7 +1362,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                                   <Edit3 className="h-5 w-5" />
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveContent(assignment.id, "assignments")}
+                                  onClick={() => handleRemoveContent(assignment.id, "assignments", assignment.title)}
                                   disabled={deletingContent[`assignments-${assignment.id}`]}
                                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1251,17 +1393,31 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               {/* Resources Tab */}
               {activeTab === "resource" && (
                 <div className="space-y-8">
-                  {/* Content Limit Warning */}
-                  {selectedLectureContent?.resources?.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  {/* Content Status */}
+                  {selectedLectureContent?.resources?.length > 0 ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h4 className="font-medium text-red-800">
-                            Resource Already Added
+                          <h4 className="font-medium text-green-800">
+                            Resource Available
                           </h4>
-                          <p className="text-red-700 text-sm mt-1">
-                            This lecture already has a resource. You cannot add a new one until you delete the existing one.
+                          <p className="text-green-700 text-sm mt-1">
+                            This lecture has a resource. You can replace it by adding a new one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-amber-800">
+                            No Resource Yet
+                          </h4>
+                          <p className="text-amber-700 text-sm mt-1">
+                            Add external links and resources for this lecture to provide additional materials.
                           </p>
                         </div>
                       </div>
@@ -1275,7 +1431,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Add Resource
+                          {selectedLectureContent?.resources?.length > 0 ? "Replace Resource" : "Add Resource"}
                         </h3>
                         <p className="text-gray-600">
                           Share external links and resources for "{selectedLectureObj?.title}"
@@ -1341,11 +1497,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
                       <button
                         onClick={handleCreateResource}
-                        disabled={!resourceTitle.trim() || !resourceUrl.trim() || selectedLectureContent?.resources?.length > 0}
+                        disabled={!resourceTitle.trim() || !resourceUrl.trim()}
                         className="w-full px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                       >
                         <Save className="h-5 w-5" />
-                        Add Resource
+                        {selectedLectureContent?.resources?.length > 0 ? "Replace Resource" : "Add Resource"}
                       </button>
                     </div>
                   </div>
@@ -1404,7 +1560,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                                   <Edit3 className="h-5 w-5" />
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveContent(resource.id, "resources")}
+                                  onClick={() => handleRemoveContent(resource.id, "resources", resource.title)}
                                   disabled={deletingContent[`resources-${resource.id}`]}
                                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1435,24 +1591,38 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               {/* Quizzes Tab */}
               {activeTab === "quiz" && (
                 <div className="text-center py-16">
-                  {/* Content Limit Warning */}
-                  {selectedLectureContent?.quizzes?.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                  {/* Content Status */}
+                  {selectedLectureContent?.quizzes?.length > 0 ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h4 className="font-medium text-red-800">
-                            Quiz Already Created
+                          <h4 className="font-medium text-green-800">
+                            Quiz Available
                           </h4>
-                          <p className="text-red-700 text-sm mt-1">
-                            This lecture already has a quiz. You cannot create a new one until you delete the existing one.
+                          <p className="text-green-700 text-sm mt-1">
+                            This lecture has a quiz. You can replace it by creating a new one.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-amber-800">
+                            No Quiz Yet
+                          </h4>
+                          <p className="text-amber-700 text-sm mt-1">
+                            Create a quiz for this lecture to test student knowledge and understanding.
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
 
-                                    <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                     <FileCheck className="h-10 w-10 text-purple-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
@@ -1464,13 +1634,6 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   </p>
                   <button
                     onClick={() => {
-                      // Check if content already exists
-                      const existingQuiz = selectedLectureContent?.quizzes || [];
-                      if (existingQuiz.length > 0) {
-                        toast.error("This lecture already has a quiz. Please delete the existing quiz first.");
-                        return;
-                      }
-
                       // Create a basic quiz for the selected lecture
                       createQuiz({
                         title: `Quiz for ${selectedLectureObj?.title}`,
@@ -1493,11 +1656,10 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                       });
                       toast.success("Quiz created successfully!");
                     }}
-                    disabled={selectedLectureContent?.quizzes?.length > 0}
-                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <Plus className="h-5 w-5 inline mr-2" />
-                    Create Quiz
+                    {selectedLectureContent?.quizzes?.length > 0 ? "Replace Quiz" : "Create Quiz"}
                   </button>
                 </div>
               )}
@@ -1602,6 +1764,42 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
                   </a>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Content
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{showDeleteConfirm.title}"? This action cannot be undone.
+            </p>
+            
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteContent}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
             </div>
           </div>
         </div>

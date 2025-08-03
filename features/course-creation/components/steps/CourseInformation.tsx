@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Upload, X, Plus, Loader2, ImageIcon, AlertCircle, AlertTriangle } from "lucide-react";
+import { Upload, X, Plus, Loader2, ImageIcon, AlertCircle, AlertTriangle, Eye } from "lucide-react";
 import {
   CourseData,
   StepValidation,
@@ -31,12 +31,13 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
   );
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
 
   const notifications = useNotifications();
   const { getToken } = useAuth();
   const { isServiceInitialized } = useCourseCreationWithGraphQL();
 
-  const { addGlobalError, removeGlobalError, uploadThumbnail, deleteThumbnail } = useCourseCreationStore();
+  const { addGlobalError, removeGlobalError, uploadThumbnail, deleteThumbnail, deleteThumbnailByType } = useCourseCreationStore();
 
   // Update thumbnail preview when data.thumbnail changes
   useEffect(() => {
@@ -200,10 +201,11 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
     }
 
     try {
-      // If course exists, delete thumbnail from server
-      if (data.id) {
-        const authToken = await getToken({ template: "expiration" });
-        await deleteThumbnail(data.id, authToken || undefined);
+      const authToken = await getToken({ template: "expiration" });
+      
+      // Use the new thumbnail deletion method that handles different scenarios
+      if (thumbnailPreview) {
+        await deleteThumbnailByType(thumbnailPreview, data.id, authToken || undefined);
       }
       
       setThumbnailPreview(undefined);
@@ -214,7 +216,7 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
       console.error("Failed to remove thumbnail:", error);
       notifications.error("Failed to remove thumbnail. Please try again.");
     }
-  }, [data.id, updateData, notifications, deleteThumbnail, isServiceInitialized, getToken]);
+  }, [data.id, thumbnailPreview, updateData, notifications, deleteThumbnailByType, isServiceInitialized, getToken]);
 
   const handleObjectiveAdd = useCallback(() => {
     updateData({
@@ -519,6 +521,21 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               </div>
             </div>
           )}
+          
+          {/* Preview button for existing thumbnail */}
+          {thumbnailPreview && (
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowThumbnailPreview(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                Preview Thumbnail
+              </button>
+            </div>
+          )}
+          
           <div className="flex items-center justify-center w-full">
             <label
               htmlFor="thumbnail"
@@ -553,6 +570,16 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
                       <p className="text-sm font-medium">Click to change</p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowThumbnailPreview(true);
+                    }}
+                    className="absolute top-3 left-3 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={async (e) => {
@@ -742,6 +769,44 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Thumbnail Preview Modal */}
+      {showThumbnailPreview && thumbnailPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Course Thumbnail Preview
+              </h3>
+              <button
+                onClick={() => setShowThumbnailPreview(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 max-h-[calc(90vh-120px)] overflow-auto">
+              <div className="text-center">
+                <Image
+                  src={thumbnailPreview}
+                  alt="Course thumbnail preview"
+                  className="w-full max-h-[70vh] object-contain rounded-lg"
+                  width={800}
+                  height={600}
+                  quality={95}
+                />
+                <div className="mt-4 text-sm text-gray-600">
+                  <p>This is how your course thumbnail will appear to students</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Recommended size: 1280x720px • Max file size: 10MB
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

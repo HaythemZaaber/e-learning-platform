@@ -34,10 +34,10 @@ interface CourseFiltersProps {
 }
 
 const COURSE_LEVELS: CourseLevel[] = [
-  "All Levels",
-  "Beginner",
-  "Intermediate",
-  "Advanced",
+  "ALL_LEVELS",
+  "BEGINNER",
+  "INTERMEDIATE",
+  "ADVANCED",
 ];
 const DURATION_OPTIONS = [
   { value: "any", label: "Any Duration" },
@@ -157,7 +157,10 @@ const CourseFilters = ({
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              {level}
+              {level === "ALL_LEVELS" ? "All Levels" : 
+               level === "BEGINNER" ? "Beginner" :
+               level === "INTERMEDIATE" ? "Intermediate" :
+               level === "ADVANCED" ? "Advanced" : level}
             </button>
           ))}
         </div>

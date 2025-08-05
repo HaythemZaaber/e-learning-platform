@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { CourseData, Section, Lecture } from "../types";
+import type { CourseData, CourseSection, CourseLecture } from "../types";
 
 interface CoursePreviewProps {
   data: CourseData;
@@ -31,7 +31,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
 
   const getTotalLectures = () => {
     let count = 0;
-    data.sections?.forEach((section: Section) => {
+    data.sections?.forEach((section: CourseSection) => {
       count += section.lectures?.length || 0;
     });
     return count;
@@ -39,8 +39,8 @@ export function CoursePreview({ data }: CoursePreviewProps) {
 
   const getTotalDuration = () => {
     let total = 0;
-    data.sections?.forEach((section: Section) => {
-      section.lectures?.forEach((lecture: Lecture) => {
+    data.sections?.forEach((section: CourseSection) => {
+      section.lectures?.forEach((lecture: CourseLecture) => {
         total += lecture.duration || 0;
       });
     });
@@ -60,7 +60,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
     }
   };
 
-  const getSectionProgress = (section: Section) => {
+  const getSectionProgress = (section: CourseSection) => {
     // Mock progress - in real app this would come from user data
     return Math.floor(Math.random() * 100);
   };
@@ -223,7 +223,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
             <CardContent className="p-0">
               <div className="divide-y divide-gray-100">
                 {data.sections?.map(
-                  (section: Section, sectionIndex: number) => {
+                  (section: CourseSection, sectionIndex: number) => {
                     const progress = getSectionProgress(section);
                     const sectionDuration =
                       section.lectures?.reduce(
@@ -240,7 +240,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
-                                Section {sectionIndex + 1}
+                                CourseSection {sectionIndex + 1}
                               </span>
                               <h3 className="font-semibold text-lg text-gray-900">
                                 {section.title}
@@ -268,7 +268,7 @@ export function CoursePreview({ data }: CoursePreviewProps) {
                         {section.lectures && section.lectures.length > 0 ? (
                           <div className="space-y-2 ml-4 border-l-2 border-gray-100 pl-4">
                             {section.lectures.map(
-                              (lecture: Lecture, lectureIndex: number) => (
+                              (lecture: CourseLecture, lectureIndex: number) => (
                                 <div
                                   key={lecture.id}
                                   className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white hover:shadow-sm transition-all group cursor-pointer"

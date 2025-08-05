@@ -66,7 +66,7 @@ export default function CourseDetailsPage({
           </div>
 
           <div id="instructor-section">
-            <InstructorCard instructor={courseData.instructor} />
+            <InstructorCard instructor={courseData.instructor as any} />
           </div>
 
           <div id="review-section">

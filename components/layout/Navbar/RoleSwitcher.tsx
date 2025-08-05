@@ -15,15 +15,18 @@ import {
 import { UserRole } from "./ClientNavbar";
 
 const RoleSwitcher = () => {
-  const { role, switchRole } = useAuthStore();
+  const { user } = useAuthStore();
   const roles: UserRole[] = ["visitor", "student", "teacher", "parent"];
 
   return (
     <div className="hidden sm:block">
       <Select
-        onValueChange={(e) => switchRole(e as UserRole)}
-        value={role}
-        defaultValue={role}
+        onValueChange={(e) => {
+          // Handle role switching logic here
+          console.log("Role switched to:", e);
+        }}
+        value={user?.role || "visitor"}
+        defaultValue={user?.role || "visitor"}
       >
         <SelectTrigger className="">
           <SelectValue placeholder="Select role" />

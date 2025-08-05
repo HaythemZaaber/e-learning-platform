@@ -25,6 +25,7 @@ Zap,
 Shield,
 PlayCircle,
 Edit,
+Plus,
 } from "lucide-react";
 import { CoursePreview } from "./CoursePreview";
 import { CourseInformation } from "./steps/CourseInformation";
@@ -35,6 +36,7 @@ import { CourseSettings } from "./steps/CourseSettings";
 import { ValidationComponent } from "./ValidationComponent";
 import { useCourseCreationStore } from "../../../stores/courseCreation.store";
 import { useCourseCreationWithGraphQL } from "../hooks/useCourseCreationWithGraphQL";
+import { useCourseEditing } from "../hooks/useCourseEditing";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs";
 import {
@@ -43,7 +45,7 @@ DialogContent,
 DialogHeader,
 DialogTitle,
 } from "@/components/ui/dialog";
-import { Section } from "../types";
+import { CourseSection } from "../types";
 
 const steps = [
 {
@@ -85,6 +87,9 @@ const topRef = useRef<HTMLDivElement>(null);
 const [mounted, setMounted] = useState(false);
 const [showValidation, setShowValidation] = useState(false);
 const [showPublishModal, setShowPublishModal] = useState(false);
+
+// Course editing functionality
+const { isEditMode, isDuplicateMode, isLoadingCourse, courseId, resetToNewCourse } = useCourseEditing();
 
 const {
 courseData,
@@ -283,7 +288,7 @@ warnings: [],
 
 const hasErrors = stepValidations.some(validation => validation.errors.length > 0);
 const canCreateCourse = !hasErrors;
-const canPublish = courseData.id && courseData.status === "draft";
+const canPublish = courseData.id && courseData.status === "DRAFT";
 
 // Show loading state while initializing
 if (!mounted || !isServiceInitialized) {
@@ -297,13 +302,20 @@ return (
 );
 }
 
-// Show loading state while loading draft
-if (isLoading) {
+// Show loading state while loading draft or course for editing
+if (isLoading || isLoadingCourse) {
 return (
   <div className="flex items-center justify-center min-h-screen">
     <div className="flex flex-col items-center gap-4">
       <Loader2 className="h-8 w-8 animate-spin" />
-      <p className="text-gray-600">Loading your draft...</p>
+      <p className="text-gray-600">
+        {isLoadingCourse 
+          ? isEditMode 
+            ? "Loading course for editing..." 
+            : "Loading course for duplication..."
+          : "Loading your draft..."
+        }
+      </p>
     </div>
   </div>
 );
@@ -319,11 +331,13 @@ return (
     <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          {courseData.status === "published" ? "Edit Published Course" : "Create New Course"}
+          {isEditMode ? "Edit Course" : isDuplicateMode ? "Duplicate Course" : "Create New Course"}
         </h1>
         <p className="text-muted-foreground mt-1">
-          {courseData.status === "published" 
-            ? "Your course is live and visible to students"
+          {isEditMode 
+            ? "Update your course information and content"
+            : isDuplicateMode
+            ? "Create a copy of an existing course"
             : "Complete all steps to create and publish your course"
           }
         </p>
@@ -391,6 +405,17 @@ return (
           AI Assistant
         </button>
 
+        {/* New Course Button (when in edit mode) */}
+        {(isEditMode || isDuplicateMode) && (
+          <button
+            onClick={resetToNewCourse}
+            className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-lg hover:bg-green-200 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Course
+          </button>
+        )}
+
         {/* Preview */}
         <button
           onClick={() => setShowPreview(!showPreview)}
@@ -441,7 +466,7 @@ return (
             </button>
           )}
 
-          {courseData.id && courseData.status === "draft" && (
+          {courseData.id && courseData.status === "DRAFT" && (
             <button
               onClick={handleSubmitCourse}
               disabled={isSubmitting}
@@ -472,7 +497,7 @@ return (
             </button>
           )}
 
-          {courseData.status === "published" && (
+          {courseData.status === "PUBLISHED" && (
             <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-300 rounded-lg text-green-700">
               <CheckCircle className="h-4 w-4" />
               Published
@@ -816,41 +841,41 @@ return (
         {/* Course Status */}
         {courseData.status && (
           <div className={`rounded-xl border p-6 ${
-            courseData.status === "published" 
+            courseData.status === "PUBLISHED" 
               ? "bg-green-50 border-green-200" 
-              : courseData.status === "draft"
+              : courseData.status === "DRAFT"
               ? "bg-blue-50 border-blue-200"
               : "bg-gray-50 border-gray-200"
           }`}>
             <div className="flex items-center gap-3 mb-3">
-              {courseData.status === "published" ? (
+              {courseData.status === "PUBLISHED" ? (
                 <Globe className="h-6 w-6 text-green-600" />
-              ) : courseData.status === "draft" ? (
+              ) : courseData.status === "DRAFT" ? (
                 <Edit className="h-6 w-6 text-blue-600" />
               ) : (
                 <Clock className="h-6 w-6 text-gray-600" />
               )}
               <h3 className={`font-semibold ${
-                courseData.status === "published" 
+                courseData.status === "PUBLISHED" 
                   ? "text-green-800" 
-                  : courseData.status === "draft"
+                  : courseData.status === "DRAFT"
                   ? "text-blue-800"
                   : "text-gray-800"
               }`}>
-                {courseData.status === "published" ? "Published Course" : 
-                 courseData.status === "draft" ? "Draft Course" : "Course Status"}
+                {courseData.status === "PUBLISHED" ? "Published Course" : 
+                 courseData.status === "DRAFT" ? "Draft Course" : "Course Status"}
               </h3>
             </div>
             <p className={`text-sm ${
-              courseData.status === "published" 
+              courseData.status === "PUBLISHED" 
                 ? "text-green-700" 
-                : courseData.status === "draft"
+                : courseData.status === "DRAFT"
                 ? "text-blue-700"
                 : "text-gray-700"
             }`}>
-              {courseData.status === "published" 
+              {courseData.status === "PUBLISHED" 
                 ? "Your course is live and visible to students. You can continue editing and updates will be reflected immediately."
-                : courseData.status === "draft"
+                : courseData.status === "DRAFT"
                 ? "Your course is saved as a draft. Publish it to make it available to students."
                 : "Complete all steps to create your course."
               }
@@ -980,7 +1005,7 @@ return (
               <span className="text-gray-600">Lectures</span>
               <span className="font-medium">
                 {courseData.sections?.reduce(
-                  (total: number, section: Section) =>
+                  (total: number, section: CourseSection) =>
                     total + (section.lectures?.length || 0),
                   0
                 ) || 0}
@@ -1076,7 +1101,7 @@ return (
                 <span className="text-gray-600">Lectures:</span>
                 <span>
                   {courseData.sections?.reduce(
-                    (total: number, section: Section) =>
+                    (total: number, section: CourseSection) =>
                       total + (section.lectures?.length || 0),
                     0
                   ) || 0}

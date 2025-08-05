@@ -148,7 +148,7 @@ export const coursesData: Course[] = [
     totalDuration: "45 hours",
     totalLectures: 234,
     totalSections: 12,
-    level: "Beginner",
+    level: "BEGINNER",
 
     // Badge & Features
     badge: "Bestseller",
@@ -177,7 +177,7 @@ export const coursesData: Course[] = [
         id: "intro",
         title: "Getting Started with Web Development",
         description: "Learn the basics and set up your development environment",
-        duration: "2h 30m",
+        duration: 150, // 2h 30m in minutes
         isLocked: false,
         order: 1,
         lectures: [
@@ -186,8 +186,8 @@ export const coursesData: Course[] = [
             title: "Course Introduction & What We'll Build",
             description:
               "Overview of the course and projects we'll create together",
-            duration: "8:45",
-            type: "video",
+            duration: 525, // 8:45 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -205,8 +205,8 @@ export const coursesData: Course[] = [
             id: "setup-environment",
             title: "Setting Up Your Development Environment",
             description: "Install VS Code, Node.js, and essential extensions",
-            duration: "15:20",
-            type: "video",
+            duration: 920, // 15:20 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             videoUrl:
@@ -223,8 +223,8 @@ export const coursesData: Course[] = [
             id: "html-basics",
             title: "HTML5 Fundamentals",
             description: "Learn HTML5 semantic elements and structure",
-            duration: "25:15",
-            type: "video",
+            duration: 1515, // 25:15 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             videoUrl:
@@ -237,15 +237,15 @@ export const coursesData: Course[] = [
         title: "Advanced CSS & Responsive Design",
         description:
           "Master CSS3, Flexbox, Grid, and responsive design principles",
-        duration: "8h 45m",
+        duration: 525, // 8h 45m in minutes
         isLocked: false,
         order: 2,
         lectures: [
           {
             id: "css-fundamentals",
             title: "CSS3 Fundamentals & Selectors",
-            duration: "22:30",
-            type: "video",
+            duration: 1350, // 22:30 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             videoUrl:
@@ -254,8 +254,8 @@ export const coursesData: Course[] = [
           {
             id: "flexbox-grid",
             title: "Flexbox & CSS Grid Layout",
-            duration: "35:45",
-            type: "video",
+            duration: 2145, // 35:45 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             videoUrl:
@@ -264,8 +264,8 @@ export const coursesData: Course[] = [
           {
             id: "responsive-design",
             title: "Responsive Design & Media Queries",
-            duration: "28:20",
-            type: "video",
+            duration: 1700, // 28:20 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             videoUrl:
@@ -312,33 +312,41 @@ export const coursesData: Course[] = [
       {
         id: "review-1",
         userId: "user-1",
-        userName: "Alex Thompson",
-        userAvatar: "/avatars/alex.jpg",
+        userName: "Sarah Johnson",
+        userAvatar: "/avatars/sarah.jpg",
         rating: 5,
-        title: "Excellent course for beginners!",
-        comment:
-          "Sarah explains complex concepts in a very simple way. The projects are practical and helped me build a strong portfolio. Highly recommended!",
+        title: "Excellent Course!",
+        comment: "This course exceeded my expectations. Clear explanations and practical examples.",
         createdAt: new Date("2023-11-15"),
-        helpful: 24,
+        helpful: 12,
         verified: true,
+        isVerified: true,
+        helpfulCount: 12,
+        status: "PUBLISHED",
+        flaggedCount: 0,
+        updatedAt: new Date("2023-11-15"),
       },
       {
         id: "review-2",
         userId: "user-2",
-        userName: "Maria Garcia",
-        userAvatar: "/avatars/maria.jpg",
-        rating: 5,
-        title: "Best investment I've made",
-        comment:
-          "This course helped me transition from marketing to web development. Got my first dev job 3 months after completing it!",
-        createdAt: new Date("2023-10-22"),
-        helpful: 18,
+        userName: "Michael Chen",
+        userAvatar: "/avatars/michael.jpg",
+        rating: 4,
+        title: "Good course, but could be better",
+        comment: "The course covers the basics well, but some advanced topics could be explained more clearly.",
+        createdAt: new Date("2023-11-10"),
+        helpful: 8,
         verified: true,
+        isVerified: true,
+        helpfulCount: 8,
+        status: "PUBLISHED",
+        flaggedCount: 0,
+        updatedAt: new Date("2023-11-10"),
       },
     ],
 
     // Metadata
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-01-15"),
     updatedAt: new Date("2023-11-20"),
     publishedAt: new Date("2023-02-01"),
@@ -353,8 +361,8 @@ export const coursesData: Course[] = [
     downloadableResources: 45,
     codingExercises: 28,
     articles: 12,
-    quizzes: 15,
-    assignments: 8,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -399,7 +407,7 @@ export const coursesData: Course[] = [
     totalDuration: "38 hours",
     totalLectures: 156,
     totalSections: 10,
-    level: "Intermediate",
+    level: "INTERMEDIATE",
 
     // Badge & Features
     badge: "Hot & New",
@@ -427,15 +435,15 @@ export const coursesData: Course[] = [
         id: "python-fundamentals",
         title: "Python Fundamentals for Data Science",
         description: "Essential Python skills for data analysis",
-        duration: "4h 20m",
+        duration: 260, // 4h 20m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "python-basics-ds",
             title: "Python Basics for Data Science",
-            duration: "18:30",
-            type: "video",
+            duration: 1110, // 18:30 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -496,7 +504,7 @@ export const coursesData: Course[] = [
     ],
 
     // Metadata
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-03-10"),
     updatedAt: new Date("2023-11-18"),
     publishedAt: new Date("2023-03-20"),
@@ -511,8 +519,8 @@ export const coursesData: Course[] = [
     downloadableResources: 38,
     codingExercises: 45,
     articles: 8,
-    quizzes: 12,
-    assignments: 15,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -540,7 +548,7 @@ export const coursesData: Course[] = [
     totalDuration: "42 hours",
     totalLectures: 198,
     totalSections: 14,
-    level: "All Levels",
+    level: "ALL_LEVELS",
     badge: "Bestseller",
     badgeColor: "success",
     featured: true,
@@ -562,15 +570,15 @@ export const coursesData: Course[] = [
         id: "design-fundamentals",
         title: "Design Fundamentals",
         description: "Learn the core principles of design",
-        duration: "6h 30m",
+        duration: 390, // 6h 30m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "design-principles",
             title: "Core Design Principles",
-            duration: "45:20",
-            type: "video",
+            duration: 2720, // 45:20 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -620,7 +628,7 @@ export const coursesData: Course[] = [
         verified: true,
       },
     ],
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-04-15"),
     updatedAt: new Date("2023-12-10"),
     publishedAt: new Date("2023-04-20"),
@@ -630,8 +638,8 @@ export const coursesData: Course[] = [
     downloadableResources: 42,
     codingExercises: 0,
     articles: 15,
-    quizzes: 10,
-    assignments: 12,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -665,7 +673,7 @@ export const coursesData: Course[] = [
     totalDuration: "36 hours",
     totalLectures: 168,
     totalSections: 12,
-    level: "All Levels",
+    level: "ALL_LEVELS",
     badge: "Popular",
     badgeColor: "info",
     featured: true,
@@ -687,15 +695,15 @@ export const coursesData: Course[] = [
         id: "marketing-fundamentals",
         title: "Digital Marketing Fundamentals",
         description: "Learn the basics of digital marketing",
-        duration: "5h 45m",
+        duration: 345, // 5h 45m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "marketing-intro",
             title: "Introduction to Digital Marketing",
-            duration: "35:15",
-            type: "video",
+            duration: 2115, // 35:15 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -745,7 +753,7 @@ export const coursesData: Course[] = [
         verified: true,
       },
     ],
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-05-10"),
     updatedAt: new Date("2023-12-05"),
     publishedAt: new Date("2023-05-15"),
@@ -755,8 +763,8 @@ export const coursesData: Course[] = [
     downloadableResources: 35,
     codingExercises: 0,
     articles: 20,
-    quizzes: 15,
-    assignments: 10,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -788,7 +796,7 @@ export const coursesData: Course[] = [
     totalDuration: "48 hours",
     totalLectures: 210,
     totalSections: 15,
-    level: "Advanced",
+    level: "ADVANCED",
     badge: "Popular",
     badgeColor: "info",
     featured: true,
@@ -810,15 +818,15 @@ export const coursesData: Course[] = [
         id: "calculus-fundamentals",
         title: "Calculus Fundamentals",
         description: "Master the basics of calculus",
-        duration: "8h 30m",
+        duration: 510, // 8h 30m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "calculus-intro",
             title: "Introduction to Calculus",
-            duration: "45:20",
-            type: "video",
+            duration: 2720, // 45:20 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -868,7 +876,7 @@ export const coursesData: Course[] = [
         verified: true,
       },
     ],
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-06-10"),
     updatedAt: new Date("2023-12-20"),
     publishedAt: new Date("2023-06-15"),
@@ -879,8 +887,8 @@ export const coursesData: Course[] = [
     downloadableResources: 50,
     codingExercises: 0,
     articles: 25,
-    quizzes: 20,
-    assignments: 15,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -913,7 +921,7 @@ export const coursesData: Course[] = [
     totalDuration: "40 hours",
     totalLectures: 180,
     totalSections: 12,
-    level: "All Levels",
+    level: "ALL_LEVELS",
     badge: "Bestseller",
     badgeColor: "success",
     featured: true,
@@ -935,15 +943,15 @@ export const coursesData: Course[] = [
         id: "camera-basics",
         title: "Camera Basics and Settings",
         description: "Learn essential camera settings and controls",
-        duration: "6h 45m",
+        duration: 405, // 6h 45m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "camera-intro",
             title: "Introduction to Camera Settings",
-            duration: "40:15",
-            type: "video",
+            duration: 2415, // 40:15 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -993,7 +1001,7 @@ export const coursesData: Course[] = [
         verified: true,
       },
     ],
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-07-10"),
     updatedAt: new Date("2023-12-15"),
     publishedAt: new Date("2023-07-15"),
@@ -1003,8 +1011,8 @@ export const coursesData: Course[] = [
     downloadableResources: 45,
     codingExercises: 0,
     articles: 18,
-    quizzes: 12,
-    assignments: 10,
+    quizzes: [],
+    assignments: [],
   },
 
   {
@@ -1038,7 +1046,7 @@ export const coursesData: Course[] = [
     totalDuration: "35 hours",
     totalLectures: 165,
     totalSections: 10,
-    level: "Intermediate",
+    level: "INTERMEDIATE",
     badge: "Hot & New",
     badgeColor: "error",
     featured: true,
@@ -1060,15 +1068,15 @@ export const coursesData: Course[] = [
         id: "analytics-fundamentals",
         title: "Business Analytics Fundamentals",
         description: "Learn the basics of business analytics",
-        duration: "5h 30m",
+        duration: 330, // 5h 30m in minutes
         isLocked: false,
         order: 1,
         lectures: [
           {
             id: "analytics-intro",
             title: "Introduction to Business Analytics",
-            duration: "35:20",
-            type: "video",
+            duration: 2120, // 35:20 in seconds
+            type: "VIDEO",
             isCompleted: false,
             isLocked: false,
             isFree: true,
@@ -1118,7 +1126,7 @@ export const coursesData: Course[] = [
         verified: true,
       },
     ],
-    status: "published",
+    status: "PUBLISHED",
     createdAt: new Date("2023-08-10"),
     updatedAt: new Date("2023-12-10"),
     publishedAt: new Date("2023-08-15"),
@@ -1129,8 +1137,8 @@ export const coursesData: Course[] = [
     downloadableResources: 40,
     codingExercises: 0,
     articles: 15,
-    quizzes: 10,
-    assignments: 8,
+    quizzes: [],
+    assignments: [],
   },
 ];
 

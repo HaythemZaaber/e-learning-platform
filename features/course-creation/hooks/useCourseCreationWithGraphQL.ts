@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApolloClient } from "@apollo/client";
-import { CourseCreationService } from "../services/graphql/courseCreationService";
+import { CourseCreationService } from "../services/courseCreationService";
 import { useCourseCreationStore } from "../../../stores/courseCreation.store";
 
 export function useCourseCreationWithGraphQL() {

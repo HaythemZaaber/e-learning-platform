@@ -241,7 +241,7 @@ export default function CourseLearnPage({
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                               <Clock className="w-4 h-4" />
                               <span>{lecture.duration}</span>
-                              {lecture.type === 'video' && (
+                              {lecture.type === 'VIDEO' && (
                                 <>
                                   <span>•</span>
                                   <span>Video</span>

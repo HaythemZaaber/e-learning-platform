@@ -5,8 +5,8 @@
 
 import { create } from "zustand";
 import { CourseData, StepValidation } from "../features/course-creation/types";
-import { CourseCreationService } from "../features/course-creation/services/graphql/courseCreationService";
-import { UploadedFile } from "../features/course-creation/services/graphql/uploadService";
+import { CourseCreationService } from "../features/course-creation/services/courseCreationService";
+import { UploadedFile } from "../features/course-creation/services/uploadService";
 import { toast } from "sonner";
 
 // Enhanced interfaces for better organization
@@ -183,14 +183,14 @@ const initialCourseData: CourseData = {
   title: "",
   description: "",
   category: "",
-  level: "beginner",
+  level: "BEGINNER",
   thumbnail: undefined,
   trailer: undefined,
   price: 0,
   objectives: [""],
   prerequisites: [""],
   sections: [],
-  status: "draft", // Add initial status
+  status: "DRAFT", // Add initial status
   settings: {
     isPublic: true,
     enrollmentType: "FREE",
@@ -385,6 +385,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
   // Enhanced delete content with server-side deletion and cleanup
   deleteContentFromLecture: async (lectureId: string, type: string, contentId: string, authToken?: string) => {
     try {
+      console.log("deleteContentFromLecture", lectureId, type, contentId);
       const state = get();
       const serviceToUse = state.service;
       
@@ -395,14 +396,10 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       // Delete from server if it's a file
       const content = state.contentByLecture[lectureId]?.[type as keyof typeof state.contentByLecture[typeof lectureId]]
         ?.find((item: any) => item.id === contentId);
-
-      if (content && (content.url || content.fileUrl)) {
-        try {
-          await serviceToUse.deleteFile(contentId, authToken);
-        } catch (deleteError) {
-          console.warn('Failed to delete file from server:', deleteError);
-          // Continue with local removal even if server deletion fails
-        }
+      if (content && content.url) {
+        
+          await serviceToUse.deleteFile(content.url, authToken);
+      
       }
 
       // Remove from local state
@@ -471,7 +468,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
                     if (!courseId) {
                       // Unsaved thumbnail (no course ID yet)
                       result = await state.service.deleteUnsavedThumbnail(thumbnailUrl, authToken);
-                    } else if (state.courseData.status === 'draft' || !state.courseData.status) {
+                    } else if (state.courseData.status === 'DRAFT' || !state.courseData.status) {
                       // Draft course or no status set yet
                       result = await state.service.deleteDraftThumbnail(courseId, thumbnailUrl, authToken);
                     } else {
@@ -1036,7 +1033,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       // Prepare course data with organized content and set status to draft
       const courseWithContent = {
         ...courseData,
-        status: "draft", // Set initial status to draft
+        status: "DRAFT", // Set initial status to draft
         organizedContent: {
           contentByLecture,
           totalContent: Object.values(contentByLecture).reduce((total, lectureContent) => {
@@ -1062,7 +1059,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
         lastSaved: new Date(),
         courseData: {
           ...courseData,
-          status: "draft",
+          status: "DRAFT",
           id: result.course?.id || courseData.id,
         },
       });
@@ -1105,7 +1102,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       const courseWithContent = {
         ...courseData,
         id: courseId, // Use the provided courseId for update
-        status: "draft", // Ensure status is draft for update
+        status: "DRAFT", // Ensure status is draft for update
         organizedContent: {
           contentByLecture,
           totalContent: Object.values(contentByLecture).reduce((total, lectureContent) => {
@@ -1126,7 +1123,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
           courseData: {
             ...courseData,
             id: courseId,
-            status: "draft",
+            status: "DRAFT",
           },
         });
         get().clearGlobalMessages();
@@ -1164,7 +1161,7 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
         set((state) => ({
           courseData: {
             ...state.courseData,
-            status: "published",
+            status: "PUBLISHED",
             publishedAt: new Date(),
           },
         }));

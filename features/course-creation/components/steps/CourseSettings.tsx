@@ -159,12 +159,12 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
   );
 
   const handleAddTag = useCallback(() => {
-    if (newTag && !settings.seoTags.includes(newTag)) {
-      const newTags = [...settings.seoTags, newTag];
+    if (newTag && !settings.seoTags?.includes(newTag)) {
+      const newTags = [...(settings.seoTags || []), newTag];
       handleDirectSettingsChange("seoTags", newTags);
       setNewTag("");
       notifications.success("Tag added successfully");
-    } else if (settings.seoTags.includes(newTag)) {
+    } else if (settings.seoTags?.includes(newTag)) {
       notifications.warning("Tag already exists");
     }
   }, [newTag, settings.seoTags, handleDirectSettingsChange, notifications]);
@@ -817,7 +817,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                           <input
                             type="checkbox"
                             checked={
-                              settings.accessibility?.[feature.key] || false
+                              (settings.accessibility as any)?.[feature.key] || false
                             }
                             onChange={(e) =>
                               handleSettingsChange(
@@ -986,7 +986,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                           <input
                             type="checkbox"
                             checked={
-                              settings.communication?.[feature.key] || false
+                              (settings.communication as any)?.[feature.key] || false
                             }
                             onChange={(e) =>
                               handleSettingsChange(
@@ -1165,7 +1165,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={settings.content?.[feature.key] !== false}
+                            checked={(settings.content as any)?.[feature.key] !== false}
                             onChange={(e) =>
                               handleSettingsChange(
                                 "content",
@@ -1192,10 +1192,10 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {data.status === "published" ? "Course Published!" : "Settings Complete!"}
+              {data.status === "PUBLISHED" ? "Course Published!" : "Settings Complete!"}
             </h3>
             <p className="text-gray-600">
-              {data.status === "published" 
+              {data.status === "PUBLISHED" 
                 ? "Your course is live and visible to students."
                 : "Your course is configured and ready for publishing."
               }
@@ -1215,7 +1215,7 @@ export function CourseSettings({ data, updateData }: CourseSettingsProps) {
               Validate Settings
               <ArrowRight className="h-4 w-4" />
             </button>
-            {data.status === "draft" && data.id && (
+            {data.status === "DRAFT" && data.id && (
               <button
                 onClick={handlePublishCourse}
                 disabled={isPublishing}

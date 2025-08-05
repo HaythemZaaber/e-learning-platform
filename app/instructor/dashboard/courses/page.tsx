@@ -1,13 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { CourseList } from "@/features/courses/shared/CourseList";
+import { InstructorCourseList } from "@/features/courses/components/instructor/InstructorCourseList";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
 export default function CoursesPage() {
-  const handleCourseAction = (action: string, courseId: string) => {
-    console.log(`${action} course:`, courseId);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -27,11 +23,9 @@ export default function CoursesPage() {
         </Link>
       </div>
 
-      <CourseList
+      <InstructorCourseList
         variant="grid"
-        cardVariant="detailed"
         showFilters={true}
-        showActions={true}
       />
     </div>
   );

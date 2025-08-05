@@ -120,6 +120,12 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
   const handleFileUpload = useCallback(
     async (file: File, type: string) => {
+      // Check if service is initialized
+      if (!isServiceInitialized) {
+        toast.error("Service is not ready. Please wait a moment and try again.");
+        return;
+      }
+
       // Validate file
       const maxSizes = {
         videos: 500 * 1024 * 1024, // 500MB
@@ -176,7 +182,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
         // Delete existing content first
         try {
           const authToken = await getToken({ template: "expiration" });
-          await deleteContentFromLecture(selectedLecture, type, existingContent[0].id, authToken || undefined);
+          if (!authToken) {
+            toast.error("Authentication required. Please log in again.");
+            return;
+          }
+          await deleteContentFromLecture(selectedLecture, type, existingContent[0].id, authToken);
         } catch (error) {
           console.error("Failed to delete existing content:", error);
           toast.error("Failed to replace existing content");
@@ -186,20 +196,49 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
 
       try {
         const authToken = await getToken({ template: "expiration" });
+        if (!authToken) {
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+
+        console.log("Starting file upload:", {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          uploadType: type,
+          sectionId: selectedSection,
+          lectureId: selectedLecture,
+          authToken: authToken ? "Present" : "Missing"
+        });
+
         await uploadFile(file, type, {
           title: file.name.replace(/\.[^/.]+$/, ""),
           description: `Uploaded ${type.slice(0, -1)} file`,
           sectionId: selectedSection,
           lectureId: selectedLecture,
-        }, authToken || undefined);
+        }, authToken);
         
         toast.success("File uploaded successfully!");
       } catch (error) {
         console.error("Failed to upload file:", error);
-        toast.error("Failed to upload file");
+        
+        // Provide more specific error messages
+        if (error instanceof Error) {
+          if (error.message.includes("Service not initialized")) {
+            toast.error("Upload service is not ready. Please refresh the page and try again.");
+          } else if (error.message.includes("Authentication")) {
+            toast.error("Authentication failed. Please log in again.");
+          } else if (error.message.includes("network")) {
+            toast.error("Network error. Please check your connection and try again.");
+          } else {
+            toast.error(`Upload failed: ${error.message}`);
+          }
+        } else {
+          toast.error("Upload failed. Please try again.");
+        }
       }
     },
-    [selectedSection, selectedLecture, uploadFile, getToken, selectedLectureContent, deleteContentFromLecture]
+    [selectedSection, selectedLecture, uploadFile, getToken, selectedLectureContent, deleteContentFromLecture, isServiceInitialized]
   );
 
   const handleCreateTextContent = useCallback(async () => {
@@ -227,7 +266,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       // Delete existing content first
       try {
         const authToken = await getToken({ template: "expiration" });
-        await deleteContentFromLecture(selectedLecture, "text", existingTextContent[0].id, authToken || undefined);
+        if (!authToken) {
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        await deleteContentFromLecture(selectedLecture, "text", existingTextContent[0].id, authToken);
       } catch (error) {
         console.error("Failed to delete existing content:", error);
         toast.error("Failed to replace existing content");
@@ -276,7 +319,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       // Delete existing content first
       try {
         const authToken = await getToken({ template: "expiration" });
-        await deleteContentFromLecture(selectedLecture, "assignments", existingAssignment[0].id, authToken || undefined);
+        if (!authToken) {
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        await deleteContentFromLecture(selectedLecture, "assignments", existingAssignment[0].id, authToken);
       } catch (error) {
         console.error("Failed to delete existing content:", error);
         toast.error("Failed to replace existing content");
@@ -345,7 +392,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       // Delete existing content first
       try {
         const authToken = await getToken({ template: "expiration" });
-        await deleteContentFromLecture(selectedLecture, "resources", existingResource[0].id, authToken || undefined);
+        if (!authToken) {
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        await deleteContentFromLecture(selectedLecture, "resources", existingResource[0].id, authToken);
       } catch (error) {
         console.error("Failed to delete existing content:", error);
         toast.error("Failed to replace existing content");
@@ -409,7 +460,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
       
       try {
         const authToken = await getToken({ template: "expiration" });
-        await deleteContentFromLecture(selectedLecture, type, contentId, authToken || undefined);
+        if (!authToken) {
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        await deleteContentFromLecture(selectedLecture, type, contentId, authToken);
         toast.success("Content deleted successfully");
         setShowDeleteConfirm(null);
       } catch (error) {
@@ -455,6 +510,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
     const files = e.dataTransfer.files;
     if (files.length && (!selectedSection || !selectedLecture)) {
       toast.error("Please select a section and lecture first");
+      return;
+    }
+
+    if (files.length && !isServiceInitialized) {
+      toast.error("Service is not ready. Please wait a moment and try again.");
       return;
     }
 
@@ -549,14 +609,30 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
   ];
 
   // Filter tabs to show only the specific content type chosen for the lecture
+  const getTabIdForLectureType = (lectureType: string): string => {
+    const typeMapping: Record<string, string> = {
+      'VIDEO': 'video',
+      'TEXT': 'text',
+      'AUDIO': 'audio',
+      'QUIZ': 'quiz',
+      'ASSIGNMENT': 'assignment',
+      'DOCUMENT': 'document',
+      'IMAGE': 'image',
+      'ARCHIVE': 'archive',
+      'RESOURCE': 'resource',
+    };
+    return typeMapping[lectureType] || 'video';
+  };
+
   const availableTabs = selectedLectureObj 
-    ? tabs.filter(tab => tab.id === selectedLectureObj.type)
+    ? tabs.filter(tab => tab.id === getTabIdForLectureType(selectedLectureObj.type))
     : tabs;
 
   // Set active tab to the lecture type if available
   useEffect(() => {
     if (selectedLectureObj && selectedLectureObj.type) {
-      setActiveTab(selectedLectureObj.type);
+      const tabId = getTabIdForLectureType(selectedLectureObj.type);
+      setActiveTab(tabId);
     }
   }, [selectedLectureObj]);
 
@@ -603,11 +679,11 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
             dragStates[type]
               ? "border-blue-500 bg-blue-50"
-              : selectedSection && selectedLecture
+              : selectedSection && selectedLecture && isServiceInitialized
               ? "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
               : "border-gray-200 bg-gray-50"
           } ${
-            !selectedSection || !selectedLecture || isUploading
+            !selectedSection || !selectedLecture || isUploading || !isServiceInitialized
               ? "cursor-not-allowed"
               : "cursor-pointer"
           }`}
@@ -615,7 +691,7 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           onDragLeave={(e) => handleDragLeave(e, type)}
           onDrop={(e) => handleDrop(e, type)}
           onClick={() => {
-            if (selectedSection && selectedLecture && !isUploading) {
+            if (selectedSection && selectedLecture && !isUploading && isServiceInitialized) {
               const input = document.createElement("input");
               input.type = "file";
               input.accept = acceptedFormats.join(",");
@@ -659,9 +735,18 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
               <span>Formats: {acceptedFormats.join(", ").replace(/\./g, "").toUpperCase()}</span>
             </div>
             {selectedSection && selectedLecture && !isUploading && (
-              <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                disabled={!isServiceInitialized}
+              >
                 {hasExistingContent ? "Replace File" : "Browse Files"}
               </button>
+            )}
+            {!isServiceInitialized && (
+              <div className="mt-6 flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm">Service initializing...</span>
+              </div>
             )}
             {isUploading && (
               <div className="mt-6 flex items-center gap-2 text-blue-600">
@@ -831,9 +916,24 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
             Create and upload content for each lecture
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <HelpCircle className="h-5 w-5 text-gray-400" />
-          <span className="text-sm text-gray-500">Need help?</span>
+        <div className="flex items-center gap-4">
+          {/* Service Status Indicator */}
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+            isServiceInitialized 
+              ? "bg-green-100 text-green-700" 
+              : "bg-amber-100 text-amber-700"
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              isServiceInitialized ? "bg-green-500" : "bg-amber-500"
+            }`} />
+            <span>
+              {isServiceInitialized ? "Service Ready" : "Initializing..."}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-500">Need help?</span>
+          </div>
         </div>
       </div>
 
@@ -843,6 +943,24 @@ export function ContentUpload({ data, updateData }: ContentUploadProps) {
           <Layers className="h-5 w-5 text-blue-500" />
           Select Target Lecture
         </h3>
+        
+        {/* Service Status Warning */}
+        {!isServiceInitialized && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-800">
+                  Service Initializing
+                </h4>
+                <p className="text-amber-700 text-sm mt-1">
+                  The upload service is still initializing. You can select lectures and prepare content, but uploads will be available once the service is ready.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

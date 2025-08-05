@@ -24,7 +24,7 @@ import {
   Move,
   Loader2,
 } from "lucide-react";
-import { CourseData, Lecture, Section, LESSON_TYPES } from "../../types";
+import { CourseData, CourseLecture, CourseSection, LECTURE_TYPES } from "../../types";
 import { useCourseCreationStore } from "../../../../stores/courseCreation.store";
 import { useNotifications } from "../../hooks/useNotifications";
 import {
@@ -99,10 +99,10 @@ const lectureTypeConfig = {
 };
 
 export function CourseStructure({ data, updateData }: CourseStructureProps) {
-  const [sections, setSections] = useState<Section[]>(
+  const [sections, setSections] = useState<CourseSection[]>(
     data.sections?.length > 0
       ? data.sections
-      : [{ id: "section-1", title: "Introduction", lectures: [] }]
+      : [{ id: "section-1", title: "Introduction", lectures: [], duration: 0, isLocked: false, order: 0, createdAt: new Date(), updatedAt: new Date() }]
   );
 
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -115,9 +115,9 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
     sectionId: string;
     lectureId: string;
   } | null>(null);
-  const [newLecture, setNewLecture] = useState<Partial<Lecture>>({
+  const [newLecture, setNewLecture] = useState<Partial<CourseLecture>>({
     title: "",
-    type: LESSON_TYPES[0],
+    type: LECTURE_TYPES[0],
     duration: 0,
     description: "",
   });
@@ -134,7 +134,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
   // Update parent data whenever sections change
   const updateSections = useCallback(
-    (newSections: Section[]) => {
+    (newSections: CourseSection[]) => {
       setSections(newSections);
       updateData({ sections: newSections });
     },
@@ -142,11 +142,16 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
   );
 
   const handleAddSection = useCallback(() => {
-    const newSection: Section = {
+    const newSection: CourseSection = {
       id: `section-${Date.now()}`,
       title: `Section ${sections.length + 1}`,
       lectures: [],
-    };
+      duration: 0,
+      isLocked: false,
+      order: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      };
     const updatedSections = [...sections, newSection];
     updateSections(updatedSections);
     setOpenSections([...openSections, newSection.id]);
@@ -201,7 +206,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
       setIsProcessing(true);
 
-      const duplicatedSection: Section = {
+      const duplicatedSection: CourseSection = {
         id: `section-${Date.now()}`,
         title: `${sectionToDuplicate.title} (Copy)`,
         lectures: sectionToDuplicate.lectures.map((lecture) => ({
@@ -210,6 +215,11 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
             .toString(36)
             .substr(2, 9)}`,
         })),
+        duration: 0,
+        isLocked: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const updatedSections = [...sections, duplicatedSection];
@@ -228,13 +238,18 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
         return;
       }
 
-      const newLectureObj: Lecture = {
+      const newLectureObj: CourseLecture = {
         id: `lecture-${Date.now()}`,
         title: newLecture.title.trim(),
-        type: newLecture.type || LESSON_TYPES[0],
+        type: newLecture.type || LECTURE_TYPES[0],
         duration: newLecture.duration || 0,
         description: newLecture.description?.trim(),
         status: "draft",
+        isCompleted: false,
+        isLocked: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const updatedSections = sections.map((section) => {
@@ -250,7 +265,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
       updateSections(updatedSections);
       setNewLecture({
         title: "",
-        type: LESSON_TYPES[0],
+        type: LECTURE_TYPES[0],
         duration: 0,
         description: "",
       });
@@ -261,7 +276,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
   );
 
   const handleUpdateLecture = useCallback(
-    (sectionId: string, lectureId: string, lectureData: Partial<Lecture>) => {
+    (sectionId: string, lectureId: string, lectureData: Partial<CourseLecture>) => {
       if (
         !lectureData.title ||
         typeof lectureData.title !== "string" ||
@@ -293,7 +308,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
       setShowEditLectureModal(null);
       setNewLecture({
         title: "",
-        type: LESSON_TYPES[0],
+        type: LECTURE_TYPES[0],
         duration: 0,
         description: "",
       });
@@ -331,7 +346,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
       if (!lectureToDuplicate) return;
 
-      const duplicatedLecture: Lecture = {
+      const duplicatedLecture: CourseLecture = {
         ...lectureToDuplicate,
         id: `lecture-${Date.now()}`,
         title: `${lectureToDuplicate.title} (Copy)`,
@@ -377,20 +392,23 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
   const getTotalLectures = useCallback(() => {
     return sections.reduce(
-      (total: number, section: Section) => total + section.lectures.length,
+      (total: number, section: CourseSection) => total + section.lectures.length,
       0
     );
   }, [sections]);
 
   const getLectureTypeInfo = useCallback((type: string) => {
-    return (
-      lectureTypeConfig[type as keyof typeof lectureTypeConfig] ||
-      lectureTypeConfig.video
-    );
+    // Cast type to proper key type and validate it exists in config
+    const typeKey = type.toLowerCase() as keyof typeof lectureTypeConfig;
+    if (Object.keys(lectureTypeConfig).includes(type.toLowerCase())) {
+      return lectureTypeConfig[typeKey];
+    }
+    console.warn(`Invalid lecture type: ${type}, defaulting to video`);
+    return lectureTypeConfig.video;
   }, []);
 
   const openEditLectureModal = useCallback(
-    (lecture: Lecture, sectionId: string) => {
+    (lecture: CourseLecture, sectionId: string) => {
       setNewLecture({
         title: lecture.title,
         type: lecture.type,
@@ -503,8 +521,8 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
     const totalLectures = getTotalLectures();
     const totalDuration = getTotalDuration();
     const lectureTypes = sections.reduce(
-      (acc: Record<string, number>, section: Section) => {
-        section.lectures.forEach((lecture: Lecture) => {
+        (acc: Record<string, number>, section: CourseSection) => {
+        section.lectures.forEach((lecture: CourseLecture) => {
           acc[lecture.type] = (acc[lecture.type] || 0) + 1;
         });
         return acc;
@@ -678,7 +696,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                 {section.lectures.length > 0 && (
                   <div className="text-sm text-gray-500 bg-blue-100 px-3 py-1 rounded-full">
                     {section.lectures.reduce(
-                      (total: number, lecture: Lecture) =>
+                      (total: number, lecture: CourseLecture) =>
                         total + (lecture.duration || 0),
                       0
                     )}
@@ -870,7 +888,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
               setShowAddLectureModal(null);
               setNewLecture({
                 title: "",
-                type: LESSON_TYPES[0],
+                type: LECTURE_TYPES[0],
                 duration: 0,
                 description: "",
               });
@@ -906,8 +924,9 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   Lecture Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {LESSON_TYPES.map((type) => {
+                    {LECTURE_TYPES.map((type) => {
                     const typeInfo = getLectureTypeInfo(type);
+                    console.log("typeInfo", typeInfo);
                     const TypeIcon = typeInfo.icon;
                     return (
                       <button
@@ -983,7 +1002,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   setShowAddLectureModal(null);
                   setNewLecture({
                     title: "",
-                    type: LESSON_TYPES[0],
+                    type: LECTURE_TYPES[0],
                     duration: 0,
                     description: "",
                   });
@@ -1018,7 +1037,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
               setShowEditLectureModal(null);
               setNewLecture({
                 title: "",
-                type: LESSON_TYPES[0],
+                type: LECTURE_TYPES[0],
                 duration: 0,
                 description: "",
               });
@@ -1059,8 +1078,9 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   Lecture Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {LESSON_TYPES.map((type) => {
+                  {LECTURE_TYPES.map((type) => {
                     const typeInfo = getLectureTypeInfo(type);
+              
                     const TypeIcon = typeInfo.icon;
                     return (
                       <button
@@ -1136,7 +1156,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                   setShowEditLectureModal(null);
                   setNewLecture({
                     title: "",
-                    type: LESSON_TYPES[0],
+                    type: LECTURE_TYPES[0],
                     duration: 0,
                     description: "",
                   });

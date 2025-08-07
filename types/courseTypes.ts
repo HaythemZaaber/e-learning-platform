@@ -527,14 +527,14 @@ export interface Course {
   // Basic Information
   id: string;
   title: string;
-  subtitle?: string;
+ 
   description: string;
   shortDescription?: string;
 
   // Enhanced media
-  image: StaticImageData | string;
+  
   thumbnail?: string;
-  previewVideo?: string;
+
   trailer?: string;
   galleryImages?: string[];
 
@@ -550,16 +550,14 @@ export interface Course {
 
   // Enhanced pricing
   price: number;
-  discountPrice?: number;
   originalPrice?: number;
+  
   currency: string;
   discountPercent?: number;
   discountValidUntil?: Date;
 
   // Course metrics
-  rating: number;
   ratingCount: number;
-  totalStudents: number;
   totalDuration: string;
   totalLectures: number;
   totalSections: number;
@@ -574,13 +572,13 @@ export interface Course {
   version?: string;
   lastMajorUpdate?: Date;
 
-  // Badge & features
+  // Badge and marketing properties
   badge?: string;
   badgeColor?: CourseBadgeColor;
-  featured: boolean;
-  bestseller?: boolean;
-  trending?: boolean;
-  isFeatured?: boolean;
+ 
+  isBestseller?: boolean;
+  isTrending?: boolean;
+  isFeatured?: boolean; 
 
   // Instructor
   instructor: CourseInstructor;
@@ -607,16 +605,13 @@ export interface Course {
   hasMobileAccess: boolean;
 
   // Enhanced features
-  hasAITutor?: boolean;
-  aiPersonality?: string;
-  hasAIQuizzes?: boolean;
-  hasInteractiveElements?: boolean;
+  
   hasLiveSessions?: boolean;
-  hasProjectWork?: boolean;
+
   hasDiscussions?: boolean;
   hasAssignments?: boolean;
   downloadableResources?: boolean | number;
-  offlineAccess?: boolean;
+
   mobileOptimized?: boolean;
 
   // Scheduling & availability
@@ -649,10 +644,7 @@ export interface Course {
   publishedAt?: Date;
   archivedAt?: Date;
 
-  // SEO & marketing
-  slug: string;
-  metaTitle?: string;
-  metaDescription?: string;
+  
 
   // Analytics
   views?: number;
@@ -668,10 +660,7 @@ export interface Course {
   assignmentCount?: number;
 
   // User-specific fields
-  isBookmarked?: boolean;
-  isEnrolled?: boolean;
-  userProgress?: number;
-  userLastAccessed?: Date;
+
 
   // Content organization
   organizedContent?: {
@@ -684,32 +673,7 @@ export interface Course {
     };
   };
 
-  // Statistics
-  statistics?: {
-    enrollments: {
-      total: number;
-      active: number;
-      completed: number;
-      dropped: number;
-    };
-    engagement: {
-      averageTimeSpent: number;
-      discussionParticipation: number;
-      assignmentSubmissions: number;
-      quizAttempts: number;
-    };
-    performance: {
-      averageGrade: number;
-      passRate: number;
-      retakeRate: number;
-    };
-    content: {
-      totalLessons: number;
-      totalQuizzes: number;
-      totalAssignments: number;
-      totalResources: number;
-    };
-  };
+
 }
 
 // ============================================================================
@@ -1075,12 +1039,17 @@ export interface UploadedFilesState {
 // ENHANCED FILTER TYPES
 // ============================================================================
 
+
+export interface priceRange {
+  min: number;
+  max: number;
+}
 export interface CourseFilters {
-  search?: string;
+  search?: string;  
   categories?: string[];
   subcategories?: string[];
   levels?: CourseLevel[];
-  priceRange?: [number, number];
+  priceRange?: { min: number; max: number };
   durations?: string[];
   ratings?: number[];
   instructors?: string[];

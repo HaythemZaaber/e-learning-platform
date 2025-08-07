@@ -1,8 +1,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Users, Star, Award } from "lucide-react";
-import { coursesData } from "@/data/coursesData";
-import { Course } from "@/types/courseTypes";
+import { useCoursesStore } from "@/stores/courses.store";
 
 // Define banner animation variants
 const bannerVariants = {
@@ -17,28 +16,39 @@ const bannerVariants = {
 };
 
 const CoursesBanner = () => {
-  // Calculate course statistics
+  const { courses, featuredCourses, isLoading } = useCoursesStore();
+
+  // Calculate course statistics from real data
   const courseStats = useMemo(() => {
-    const totalStudents = coursesData.reduce(
-      (sum: number, course: Course) => sum + (course.totalStudents || 0),
+    if (isLoading || courses.length === 0) {
+      return {
+        totalCourses: 0,
+        totalStudents: 0,
+        avgRating: "0.0",
+        featuredCount: 0,
+      };
+    }
+
+    const totalStudents = courses.reduce(
+      (sum: number, course: any) => sum + (course.currentEnrollments || 0),
       0
     );
     const avgRating =
-      coursesData.reduce(
-        (sum: number, course: Course) => sum + (course.rating || 0),
+      courses.reduce(
+        (sum: number, course: any) => sum + (course.avgRating || 0),
         0
-      ) / coursesData.length;
-    const featuredCount = coursesData.filter(
-      (course: Course) => course.featured
+      ) / courses.length;
+    const featuredCount = courses.filter(
+      (course: any) => course.isFeatured
     ).length;
 
     return {
-      totalCourses: coursesData.length,
+      totalCourses: courses.length,
       totalStudents,
       avgRating: avgRating.toFixed(1),
       featuredCount,
     };
-  }, []);
+  }, [courses, isLoading]);
 
   return (
     <div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, Grid3X3, List, MoreHorizontal, Eye, Edit, BarChart3, Copy, Share2, Trash2, Settings, DollarSign, Users, Star, Clock, BookOpen, Award, AlertCircle, CheckCircle, XCircle, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Search, Filter, Grid3X3, List, MoreHorizontal, Eye, Edit, BarChart3, Copy, Share2, Trash2, Settings, DollarSign, Users, Star, Clock, BookOpen, Award, AlertCircle, CheckCircle, XCircle, Calendar, TrendingUp, TrendingDown, Play, FileText, Languages, Target, Globe, UserCheck, Hourglass, MapPin, Zap, AlertTriangle, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { toast } from "sonner";
 import courseThumbnail from "@/public/images/courses/courseThumbnail.jpg";
+import { CourseShareModal } from "../sharing/CourseShareModal";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -66,6 +67,8 @@ export const InstructorCourseList = ({
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">(variant);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ courseId: string; courseTitle: string } | null>(null);
+  const [shareModal, setShareModal] = useState<{ courseId: string; courseTitle: string } | null>(null);
 
   const {
     courses,
@@ -87,8 +90,11 @@ export const InstructorCourseList = ({
       filtered = filtered.filter(
         (course: Course) =>
           course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.category.toLowerCase().includes(searchTerm.toLowerCase())
+          course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          course.shortDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          course.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          course.subcategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          course.language?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -101,20 +107,23 @@ export const InstructorCourseList = ({
     switch (sortBy) {
       case "recent":
         filtered = [...filtered].sort(
-          (a: Course, b: Course) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          (a: Course, b: Course) => new Date(b.publishedAt || b.updatedAt || 0).getTime() - new Date(a.publishedAt || a.updatedAt || 0).getTime()
         );
         break;
       case "title":
         filtered = [...filtered].sort((a: Course, b: Course) => a.title.localeCompare(b.title));
         break;
       case "students":
-        filtered = [...filtered].sort((a: Course, b: Course) => (b.totalStudents || 0) - (a.totalStudents || 0));
+        filtered = [...filtered].sort((a: Course, b: Course) => (b.currentEnrollments || 0) - (a.currentEnrollments || 0));
         break;
       case "rating":
-        filtered = [...filtered].sort((a: Course, b: Course) => b.rating - a.rating);
+        filtered = [...filtered].sort((a: Course, b: Course) => (b.avgRating || 0) - (a.avgRating || 0));
         break;
-      case "revenue":
-        filtered = [...filtered].sort((a: Course, b: Course) => (b.revenue || 0) - (a.revenue || 0));
+      case "views":
+        filtered = [...filtered].sort((a: Course, b: Course) => (b.views || 0) - (a.views || 0));
+        break;
+      case "completion":
+        filtered = [...filtered].sort((a: Course, b: Course) => (b.completionRate || 0) - (a.completionRate || 0));
         break;
     }
 
@@ -182,33 +191,243 @@ export const InstructorCourseList = ({
     );
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number, currency = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
     }).format(amount);
+  };
+
+  const renderPricing = (course: Course) => {
+    const hasDiscount = course.originalPrice && course.originalPrice > course.price;
+    const discountPercent = course.discountPercent || (hasDiscount ? Math.round(((course.price - course.originalPrice!) / course.price) * 100) : 0);
+    const isDiscountValid = !course.discountValidUntil || new Date(course.discountValidUntil) > new Date();
+    const isFree = course.price === 0;
+
+    if (isFree) {
+      return (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold text-green-600">FREE</div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+              <CheckCircle className="h-3 w-3" />
+              <span>No cost</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (hasDiscount && isDiscountValid) {
+      return (
+        <div className="flex flex-col gap-2">
+          {/* Main Price Display */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-baseline gap-2">
+              <div className="text-lg font-bold text-gray-900">
+                {formatCurrency(course.originalPrice!, course.currency)}
+              </div>
+              
+              <div className="text-sm text-gray-500 line-through font-medium">
+                {formatCurrency(course.price, course.currency)}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="destructive" 
+                className="text-xs px-3 py-1 font-bold bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg animate-pulse"
+              >
+                -{discountPercent}% OFF
+              </Badge>
+             
+            </div>
+          </div>
+          
+          {/* Additional Price Info */}
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full">
+              <Clock className="h-3 w-3" />
+              <span className="font-medium">Save {formatCurrency(course.price - course.originalPrice!, course.currency)}</span>
+            </div>
+            {course.discountValidUntil && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-full">
+                <AlertTriangle className="h-3 w-3" />
+                <span className="font-medium">Expires {new Date(course.discountValidUntil).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-lg font-bold text-gray-900">
+          {formatCurrency(course.price, course.currency)}
+        </div>
+        <Badge variant="outline" className="text-xs px-2 py-1 border-gray-200 text-gray-600 bg-gray-50">
+          <DollarSign className="h-3 w-3 mr-1" />
+          Paid
+        </Badge>
+      </div>
+    );
+  };
+
+  const renderPricingList = (course: Course) => {
+    const hasDiscount = course.originalPrice && course.originalPrice < course.price;
+    const discountPercent = course.discountPercent || (hasDiscount ? Math.round(((course.price - course.originalPrice!) / course.price) * 100) : 0);
+    const isDiscountValid = !course.discountValidUntil || new Date(course.discountValidUntil) > new Date();
+    const isFree = course.price === 0;
+
+    if (isFree) {
+      return (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-bold text-green-600">FREE</div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+              <CheckCircle className="h-3 w-3" />
+              <span>No cost</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (hasDiscount && isDiscountValid) {
+      return (
+        <div className="flex flex-col gap-2">
+          {/* Main Price Display */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-baseline gap-2">
+              <div className="text-xl font-bold text-gray-900">
+                {formatCurrency(course.originalPrice!, course.currency)}
+              </div>
+              
+              <div className="text-sm text-gray-500 line-through font-medium">
+                {formatCurrency(course.price, course.currency)}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="destructive" 
+                className="text-xs px-3 py-1 font-bold bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg animate-pulse"
+              >
+                -{discountPercent}% OFF
+              </Badge>
+             
+            </div>
+          </div>
+          
+          {/* Additional Price Info */}
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full">
+              <Clock className="h-3 w-3" />
+              <span className="font-medium">Save {formatCurrency(course.price - course.originalPrice!, course.currency)}</span>
+            </div>
+            {course.discountValidUntil && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-full">
+                <AlertTriangle className="h-3 w-3" />
+                <span className="font-medium">Expires {new Date(course.discountValidUntil).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-xl font-bold text-gray-900">
+          {formatCurrency(course.price, course.currency)}
+        </div>
+        <Badge variant="outline" className="text-xs px-2 py-1 border-gray-200 text-gray-600 bg-gray-50">
+          <DollarSign className="h-3 w-3 mr-1" />
+          Paid
+        </Badge>
+      </div>
+    );
+  };
+
+  const formatDuration = (hours: number, minutes: number) => {
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+    return `${minutes}m`;
+  };
+
+  const getDifficultyColor = (difficulty: string | number) => {
+    const difficultyStr = typeof difficulty === 'number' ? 
+      (difficulty <= 1.5 ? 'beginner' : 
+       difficulty <= 2.5 ? 'intermediate' : 
+       difficulty <= 3.5 ? 'advanced' : 'expert') : 
+      difficulty?.toLowerCase();
+    
+    switch (difficultyStr) {
+      case 'beginner':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'intermediate':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'advanced':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'expert':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getIntensityColor = (intensity: string) => {
+    switch (intensity?.toLowerCase()) {
+      case 'low':
+        return 'text-green-500';
+      case 'medium':
+        return 'text-yellow-500';
+      case 'high':
+        return 'text-red-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const isEnrollmentOpen = (course: Course) => {
+    const now = new Date();
+    const startDate = course.enrollmentStartDate ? new Date(course.enrollmentStartDate) : null;
+    const endDate = course.enrollmentEndDate ? new Date(course.enrollmentEndDate) : null;
+    
+    if (!startDate && !endDate) return true;
+    if (startDate && now < startDate) return false;
+    if (endDate && now > endDate) return false;
+    return true;
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    
+    try {
+      await handleCourseAction("delete", deleteConfirm.courseId);
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+    }
   };
 
   const CourseCard = ({ course }: { course: Course }) => {
     const [isHovered, setIsHovered] = useState(false);
+    
+    const totalDuration = formatDuration(course.estimatedHours || 0, course.estimatedMinutes || 0);
+    const enrollmentOpen = isEnrollmentOpen(course);
+    const enrollmentPercentage = course.maxStudents ? ((course.currentEnrollments || 0) / course.maxStudents) * 100 : 0;
     
     const handleAction = async (action: string, e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       
       if (action === "delete") {
-        if (window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
-          try {
-            await handleCourseAction(action, course.id);
-            toast.success("Course deleted successfully");
-          } catch (error) {
-            toast.error("Failed to delete course");
-          }
-        }
+        setDeleteConfirm({ courseId: course.id, courseTitle: course.title });
       } else if (action === "edit") {
-        // Show loading state
         toast.loading("Loading course for editing...");
-        // Redirect to course creation page with course ID for editing
         window.location.href = `/instructor/dashboard/courses/course-creation?courseId=${course.id}`;
       } else {
         await handleCourseAction(action, course.id);
@@ -228,14 +447,14 @@ export const InstructorCourseList = ({
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-                     <Card 
-             className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md h-[650px] flex flex-col bg-white rounded-xl group cursor-pointer relative pt-0"
-             onClick={handleCardClick}
-           >
-                         {/* Course Image */}
-             <div className="relative h-64 w-full overflow-hidden flex-shrink-0">
+          <Card 
+            className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md h-[700px] flex flex-col bg-white rounded-xl group cursor-pointer relative pt-0"
+            onClick={handleCardClick}
+          >
+            {/* Course Image */}
+            <div className="relative h-64 w-full overflow-hidden flex-shrink-0">
               <Image
-                src={course.image || course.thumbnail || courseThumbnail}
+                src={course.thumbnail || courseThumbnail}
                 alt={course.title}
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -245,13 +464,28 @@ export const InstructorCourseList = ({
               {/* Status and Featured Badges */}
               <div className="absolute top-3 left-3 flex flex-col gap-2">
                 {getStatusBadge(course.status)}
-                {course.featured && (
-                  <Badge className="bg-yellow-500/90 text-white text-xs border-0">
-                    <Award className="h-3 w-3 mr-1" />
-                    Featured
+                {course.difficulty && (
+                  <Badge className={`${getDifficultyColor(course.difficulty)} border text-xs`}>
+                    <Target className="h-3 w-3 mr-1" />
+                    {typeof course.difficulty === 'number' ? 
+                      (course.difficulty <= 1.5 ? 'Beginner' : 
+                       course.difficulty <= 2.5 ? 'Intermediate' : 
+                       course.difficulty <= 3.5 ? 'Advanced' : 'Expert') : 
+                      course.difficulty}
                   </Badge>
                 )}
               </div>
+
+              {/* Enhanced Discount Badge
+              // {course.originalPrice && course.originalPrice > course.price && 
+              //  (!course.discountValidUntil || new Date(course.discountValidUntil) > new Date()) && (
+              //   <div className="absolute top-3 right-40">
+              //     <Badge className="bg-red-500 text-white border-0 text-xs font-bold">
+              //       <TrendingDown className="h-3 w-3 mr-1" />
+              //       {course.discountPercent || Math.round(((course.price - course.originalPrice!) / course.price) * 100)}% OFF
+              //     </Badge>
+              //   </div>
+              // )} */}
 
               {/* Play overlay */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -260,19 +494,37 @@ export const InstructorCourseList = ({
                 </div>
               </div>
 
-              {/* Level and Duration badges */}
-              <div className="absolute bottom-3 left-3 right-3 flex justify-between">
-                <Badge className="bg-black/70 backdrop-blur-sm text-white border-0 text-xs">
-                  {course.level}
-                </Badge>
+              {/* Bottom badges */}
+              <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                <div className="flex flex-col gap-1">
+                  <Badge className="bg-black/70 backdrop-blur-sm text-white border-0 text-xs w-fit">
+                    {course.level || 'All Levels'}
+                  </Badge>
+                  {course.language && (
+                    <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs w-fit">
+                      <Languages className="h-3 w-3 mr-1" />
+                      {course.language}
+                    </Badge>
+                  )}
+                </div>
                 <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs">
                   <Clock className="h-3 w-3 mr-1" />
-                  {course.totalDuration}
+                  {totalDuration}
                 </Badge>
               </div>
+
+              {/* Intensity indicator */}
+              {course.intensityLevel && (
+                <div className="absolute top-3 right-16">
+                  <Badge className="bg-white/90 backdrop-blur-sm border-0 text-xs text-black">
+                    <Zap className={`h-3 w-3 mr-1 ${getIntensityColor(course.intensityLevel)}`} />
+                    {course.intensityLevel}
+                  </Badge>
+                </div>
+              )}
             </div>
 
-            {/* Action Menu - Moved outside image container */}
+            {/* Action Menu */}
             <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -286,42 +538,45 @@ export const InstructorCourseList = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={(e) => handleAction("edit", e)}>
+                  <DropdownMenuItem onClick={(e) => handleAction("edit", e)} className="focus:bg-blue-100">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Course
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => handleAction("preview", e)}>
+                  <DropdownMenuItem onClick={(e) => handleAction("preview", e)} className="focus:bg-blue-100">
                     <Eye className="h-4 w-4 mr-2" />
                     Preview
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => handleAction("analytics", e)}>
+                  <DropdownMenuItem onClick={(e) => handleAction("analytics", e)} className="focus:bg-blue-100">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Analytics
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {course.status === "DRAFT" ? (
-                    <DropdownMenuItem onClick={(e) => handleAction("publish", e)}>
+                    <DropdownMenuItem onClick={(e) => handleAction("publish", e)} className="focus:bg-blue-500">
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Publish
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem onClick={(e) => handleAction("unpublish", e)}>
+                    <DropdownMenuItem onClick={(e) => handleAction("unpublish", e)} className="focus:bg-blue-100">
                       <XCircle className="h-4 w-4 mr-2" />
                       Unpublish
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={(e) => handleAction("duplicate", e)}>
+                  <DropdownMenuItem onClick={(e) => handleAction("duplicate", e)} className="focus:bg-blue-100">
                     <Copy className="h-4 w-4 mr-2" />
                     Duplicate
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => handleAction("share", e)}>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    setShareModal({ courseId: course.id, courseTitle: course.title });
+                  }} className="focus:bg-blue-100">
                     <Share2 className="h-4 w-4 mr-2" />
                     Share
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={(e) => handleAction("delete", e)}
-                    className="text-red-600 focus:text-red-600"
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
@@ -330,76 +585,135 @@ export const InstructorCourseList = ({
               </DropdownMenu>
             </div>
 
-                         {/* Course Content */}
-             <CardContent className="px-5 flex-grow  flex flex-col py-0">
+            {/* Course Content */}
+            <CardContent className="px-5 flex-grow flex flex-col">
               <div className="flex justify-between items-start mb-3">
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0 text-xs">
-                  {course.category}
-                </Badge>
+                <div className="flex flex-col gap-1">
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0 text-xs w-fit">
+                    {course.category}
+                  </Badge>
+                  {course.subcategory && (
+                    <Badge variant="outline" className="text-xs border-gray-200 w-fit">
+                      {course.subcategory}
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
-                  <span className="text-sm font-semibold">{course.rating}</span>
-                  <span className="text-xs text-gray-500 ml-1">({course.ratingCount})</span>
+                  <span className="text-sm font-semibold">{course.avgRating?.toFixed(1) || 'N/A'}</span>
+                  <span className="text-xs text-gray-500 ml-1">({course.totalRatings || 0})</span>
+                  
                 </div>
+               
               </div>
 
-                             <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors">
-                 {course.title}
-               </h3>
+              <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors">
+                {course.title}
+              </h3>
 
-               <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                 {course.description}
-               </p>
+              <p className="text-gray-600 text-sm line-clamp-3 mb-3">
+                { course.description || course.shortDescription }
+              </p>
 
-                             {/* Enhanced Stats */}
-               <div className="grid grid-cols-2 gap-3">
+              {/* Enhanced Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="flex items-center text-xs text-gray-600">
                   <Users className="h-4 w-4 mr-2 text-green-500" />
                   <div>
-                    <div className="font-medium">{course.totalStudents?.toLocaleString() || 0}</div>
-                    <div className="text-gray-500">Students</div>
+                    <div className="font-medium">{course.currentEnrollments?.toLocaleString() || 0}</div>
+                    <div className="text-gray-500">Enrolled</div>
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-gray-600">
-                  <DollarSign className="h-4 w-4 mr-2 text-green-500" />
+                  <Eye className="h-4 w-4 mr-2 text-blue-500" />
                   <div>
-                    <div className="font-medium">{formatCurrency(course.revenue || 0)}</div>
-                    <div className="text-gray-500">Revenue</div>
+                    <div className="font-medium">{course.views?.toLocaleString() || 0}</div>
+                    <div className="text-gray-500">Views</div>
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-gray-600">
-                  <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+                  <BookOpen className="h-4 w-4 mr-2 text-purple-500" />
                   <div>
-                    <div className="font-medium">{course.totalLectures}</div>
+                    <div className="font-medium">{course.totalLectures || 0}</div>
                     <div className="text-gray-500">Lectures</div>
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-gray-600">
-                  <BarChart3 className="h-4 w-4 mr-2 text-purple-500" />
+                  <FileText className="h-4 w-4 mr-2 text-orange-500" />
                   <div>
-                    <div className="font-medium">{course.rating}</div>
-                    <div className="text-gray-500">Rating</div>
+                    <div className="font-medium">{course.totalSections || 0}</div>
+                    <div className="text-gray-500">Sections</div>
                   </div>
                 </div>
               </div>
+
+              {/* Completion Rate */}
+              {course.completionRate !== undefined && (
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-600">Completion Rate</span>
+                    <span className="text-xs font-medium">{course.completionRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${course.completionRate}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Enrollment Status */}
+              {course.maxStudents && (
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-600">Enrollment</span>
+                    <span className="text-xs font-medium">
+                      {course.currentEnrollments || 0}/{course.maxStudents}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        enrollmentPercentage > 80 ? 'bg-red-500' : enrollmentPercentage > 60 ? 'bg-yellow-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(enrollmentPercentage, 100)}%` }}
+                    ></div>
+                  </div>
+                  {!enrollmentOpen && (
+                    <div className="flex items-center mt-1">
+                      <AlertCircle className="h-3 w-3 text-orange-500 mr-1" />
+                      <span className="text-xs text-orange-600">Enrollment Closed</span>
+                    </div>
+                  )}
+                  {course.waitlistEnabled && enrollmentPercentage >= 100 && (
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-3 w-3 text-blue-500 mr-1" />
+                      <span className="text-xs text-blue-600">Waitlist Available</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Course Dates */}
+              {(course.courseStartDate || course.courseEndDate) && (
+                <div className="text-xs text-gray-600 mb-2">
+                  <div className="flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    <span>
+                      {course.courseStartDate && new Date(course.courseStartDate).toLocaleDateString()}
+                      {course.courseStartDate && course.courseEndDate && ' - '}
+                      {course.courseEndDate && new Date(course.courseEndDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </CardContent>
 
             {/* Course Footer */}
-            <CardFooter className="p-5 pt-0 pb-2 border-t border-gray-100 flex justify-between items-center">
+            <CardFooter className="p-5 pt-0 border-t border-gray-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-gray-900">
-                  {course.price === 0 ? "Free" : formatCurrency(course.price)}
-                </span>
-                {course.originalPrice && course.originalPrice > course.price && (
-                  <>
-                    <span className="text-sm text-gray-500 line-through">
-                      {formatCurrency(course.originalPrice)}
-                    </span>
-                    <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                      -{Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}%
-                    </Badge>
-                  </>
-                )}
+                {renderPricing(course)}
               </div>
 
               <div className="flex gap-2">
@@ -434,7 +748,7 @@ export const InstructorCourseList = ({
       );
     }
 
-    // List view
+    // List view - Enhanced with new data
     return (
       <motion.div
         layout
@@ -447,9 +761,9 @@ export const InstructorCourseList = ({
         >
           <div className="flex flex-col md:flex-row">
             {/* Image Section */}
-            <div className="relative md:w-80 md:h-48 aspect-video md:aspect-auto flex-shrink-0 overflow-hidden">
+            <div className="relative md:w-80 md:h-56 aspect-video md:aspect-auto flex-shrink-0 overflow-hidden">
               <Image
-                src={course.image || course.thumbnail || "/api/placeholder/400/225"}
+                src={course.thumbnail || courseThumbnail}
                 alt={course.title}
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -459,13 +773,44 @@ export const InstructorCourseList = ({
               {/* Badges */}
               <div className="absolute top-3 left-3 flex flex-col gap-2">
                 {getStatusBadge(course.status)}
-                {course.featured && (
-                  <Badge className="bg-yellow-500/90 text-white text-xs w-fit border-0">
-                    <Award className="h-3 w-3 mr-1" />
-                    Featured
+                {course.difficulty && (
+                  <Badge className={`${getDifficultyColor(course.difficulty)} border text-xs w-fit`}>
+                    <Target className="h-3 w-3 mr-1" />
+                    {typeof course.difficulty === 'number' ? 
+                      (course.difficulty <= 1.5 ? 'Beginner' : 
+                       course.difficulty <= 2.5 ? 'Intermediate' : 
+                       course.difficulty <= 3.5 ? 'Advanced' : 'Expert') : 
+                      course.difficulty}
                   </Badge>
                 )}
               </div>
+
+              {/* Enhanced Discount Badge */}
+              {course.originalPrice && course.originalPrice < course.price && 
+               (!course.discountValidUntil || new Date(course.discountValidUntil) > new Date()) && (
+                <div className="absolute top-4 right-4">
+                  <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-2 rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="text-xs font-bold">SAVE</div>
+                      <div className="text-lg font-bold">
+                        {course.discountPercent || Math.round(((course.price - course.originalPrice!) / course.price) * 100)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Free Course Badge */}
+              {course.price === 0 && (
+                <div className="absolute top-4 right-4">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="text-xs font-bold">FREE</div>
+                      <div className="text-sm font-semibold">COURSE</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Menu */}
               <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
@@ -509,6 +854,13 @@ export const InstructorCourseList = ({
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      setShareModal({ courseId: course.id, courseTitle: course.title });
+                    }}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={(e) => handleAction("delete", e)}
@@ -521,10 +873,22 @@ export const InstructorCourseList = ({
                 </DropdownMenu>
               </div>
 
-              {/* Level badge */}
-              <div className="absolute bottom-3 left-3">
-                <Badge className="bg-black/70 backdrop-blur-sm text-white border-0 text-xs">
-                  {course.level}
+              {/* Bottom badges */}
+              <div className="absolute bottom-3 left-3 right-3 flex justify-between">
+                <div className="flex gap-2">
+                  <Badge className="bg-black/70 backdrop-blur-sm text-white border-0 text-xs">
+                    {course.level || 'All Levels'}
+                  </Badge>
+                  {course.language && (
+                    <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs">
+                      <Languages className="h-3 w-3 mr-1" />
+                      {course.language}
+                    </Badge>
+                  )}
+                </div>
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {totalDuration}
                 </Badge>
               </div>
             </div>
@@ -534,19 +898,28 @@ export const InstructorCourseList = ({
               <div className="flex-grow">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0 text-xs">
-                      {course.category}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {course.totalDuration}
-                    </Badge>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0 text-xs">
+                        {course.category}
+                      </Badge>
+                      {course.subcategory && (
+                        <Badge variant="outline" className="text-xs border-gray-200">
+                          {course.subcategory}
+                        </Badge>
+                      )}
+                      {course.intensityLevel && (
+                        <Badge className="bg-white border text-xs">
+                          <Zap className={`h-3 w-3 mr-1 ${getIntensityColor(course.intensityLevel)}`} />
+                          {course.intensityLevel}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
-                    <span className="text-sm font-semibold">{course.rating}</span>
-                    <span className="text-xs text-gray-500 ml-1">({course.ratingCount})</span>
+                    <span className="text-sm font-semibold">{course.avgRating?.toFixed(1) || 'N/A'}</span>
+                    <span className="text-xs text-gray-500 ml-1">({course.totalRatings || 0})</span>
                   </div>
                 </div>
 
@@ -556,57 +929,167 @@ export const InstructorCourseList = ({
                 </h3>
 
                 <p className="text-gray-600 mb-4 line-clamp-2">
-                  {course.description}
+                  {course.shortDescription || course.description}
                 </p>
 
                 {/* Enhanced Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="h-4 w-4 mr-2 text-green-500" />
                     <div>
-                      <div className="font-medium">{course.totalStudents?.toLocaleString() || 0}</div>
-                      <div className="text-xs text-gray-500">Students</div>
+                      <div className="font-medium">{course.currentEnrollments?.toLocaleString() || 0}</div>
+                      <div className="text-xs text-gray-500">Enrolled</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4 mr-2 text-green-500" />
+                    <Eye className="h-4 w-4 mr-2 text-blue-500" />
                     <div>
-                      <div className="font-medium">{formatCurrency(course.revenue || 0)}</div>
-                      <div className="text-xs text-gray-500">Revenue</div>
+                      <div className="font-medium">{course.views?.toLocaleString() || 0}</div>
+                      <div className="text-xs text-gray-500">Views</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+                    <BookOpen className="h-4 w-4 mr-2 text-purple-500" />
                     <div>
-                      <div className="font-medium">{course.totalLectures}</div>
+                      <div className="font-medium">{course.totalLectures || 0}</div>
                       <div className="text-xs text-gray-500">Lectures</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <BarChart3 className="h-4 w-4 mr-2 text-purple-500" />
+                    <FileText className="h-4 w-4 mr-2 text-orange-500" />
                     <div>
-                      <div className="font-medium">{course.rating}</div>
-                      <div className="text-xs text-gray-500">Rating</div>
+                      <div className="font-medium">{course.totalSections || 0}</div>
+                      <div className="text-xs text-gray-500">Sections</div>
                     </div>
                   </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <BarChart3 className="h-4 w-4 mr-2 text-indigo-500" />
+                    <div>
+                      <div className="font-medium">{course.completionRate?.toFixed(1) || 'N/A'}%</div>
+                      <div className="text-xs text-gray-500">Completion</div>
+                    </div>
+                  </div>
+                  {course.maxStudents && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <UserCheck className="h-4 w-4 mr-2 text-cyan-500" />
+                      <div>
+                        <div className="font-medium">{course.maxStudents}</div>
+                        <div className="text-xs text-gray-500">Max Students</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Progress Bars */}
+                <div className="space-y-3 mb-4">
+                  {/* Completion Rate */}
+                  {course.completionRate !== undefined && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-gray-600">Completion Rate</span>
+                        <span className="text-xs font-medium">{course.completionRate.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${course.completionRate}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enrollment Status */}
+                  {course.maxStudents && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-gray-600">Enrollment</span>
+                        <span className="text-xs font-medium">
+                          {course.currentEnrollments || 0}/{course.maxStudents}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            enrollmentPercentage > 80 ? 'bg-red-500' : enrollmentPercentage > 60 ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${Math.min(enrollmentPercentage, 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        {!enrollmentOpen && (
+                          <div className="flex items-center">
+                            <AlertCircle className="h-3 w-3 text-orange-500 mr-1" />
+                            <span className="text-xs text-orange-600">Enrollment Closed</span>
+                          </div>
+                        )}
+                        {course.waitlistEnabled && enrollmentPercentage >= 100 && (
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 text-blue-500 mr-1" />
+                            <span className="text-xs text-blue-600">Waitlist Available</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Course Dates */}
+                {(course.courseStartDate || course.courseEndDate || course.enrollmentStartDate || course.enrollmentEndDate) && (
+                  <div className="text-xs text-gray-600 mb-4 space-y-1">
+                    {(course.courseStartDate || course.courseEndDate) && (
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-2" />
+                        <span className="font-medium mr-1">Course:</span>
+                        <span>
+                          {course.courseStartDate && new Date(course.courseStartDate).toLocaleDateString()}
+                          {course.courseStartDate && course.courseEndDate && ' - '}
+                          {course.courseEndDate && new Date(course.courseEndDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {(course.enrollmentStartDate || course.enrollmentEndDate) && (
+                      <div className="flex items-center">
+                        <UserCheck className="h-3 w-3 mr-2" />
+                        <span className="font-medium mr-1">Enrollment:</span>
+                        <span>
+                          {course.enrollmentStartDate && new Date(course.enrollmentStartDate).toLocaleDateString()}
+                          {course.enrollmentStartDate && course.enrollmentEndDate && ' - '}
+                          {course.enrollmentEndDate && new Date(course.enrollmentEndDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Learning Outcomes Preview */}
+                {course.whatYoullLearn && course.whatYoullLearn.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">What you'll learn:</h4>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {course.whatYoullLearn.slice(0, 3).map((outcome: string, index: number) => (
+                        <li key={index} className="flex items-start">
+                          <CheckCircle className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-1">{outcome}</span>
+                        </li>
+                      ))}
+                      {course.whatYoullLearn.length > 3 && (
+                        <li className="text-blue-600 font-medium">
+                          +{course.whatYoullLearn.length - 3} more outcomes
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-gray-900">
-                    {course.price === 0 ? "Free" : formatCurrency(course.price)}
-                  </span>
-                  {course.originalPrice && course.originalPrice > course.price && (
-                    <>
-                      <span className="text-sm text-gray-500 line-through">
-                        {formatCurrency(course.originalPrice)}
-                      </span>
-                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                        -{Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}%
-                      </Badge>
-                    </>
+                <div className="flex items-center gap-3">
+                  {renderPricingList(course)}
+                  {course.publishedAt && (
+                    <div className="text-xs text-gray-500">
+                      Published {new Date(course.publishedAt).toLocaleDateString()}
+                    </div>
                   )}
                 </div>
 
@@ -712,7 +1195,7 @@ export const InstructorCourseList = ({
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search courses by title, description, or category..."
+                  placeholder="Search courses by title, description, category, or language..."
                   className="pl-9 bg-gray-50 border-gray-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -774,7 +1257,8 @@ export const InstructorCourseList = ({
                   <SelectItem value="title">Title A-Z</SelectItem>
                   <SelectItem value="students">Most Students</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="revenue">Highest Revenue</SelectItem>
+                  <SelectItem value="views">Most Views</SelectItem>
+                  <SelectItem value="completion">Best Completion</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -892,11 +1376,11 @@ export const InstructorCourseList = ({
         </div>
       )}
 
-      {/* Course Statistics Summary */}
+      {/* Enhanced Course Statistics Summary */}
       {courses.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Overview</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {courses.length}
@@ -911,18 +1395,89 @@ export const InstructorCourseList = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {courses.reduce((acc: number, course: Course) => acc + (course.totalStudents || 0), 0).toLocaleString()}
+                {courses.reduce((acc: number, course: Course) => acc + (course.currentEnrollments || 0), 0).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Total Students</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(courses.reduce((acc: number, course: Course) => acc + (course.revenue || 0), 0))}
+              <div className="text-2xl font-bold text-orange-600">
+                {courses.reduce((acc: number, course: Course) => acc + (course.views || 0), 0).toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">Total Revenue</div>
+              <div className="text-sm text-gray-600">Total Views</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {courses.length > 0 ? (courses.reduce((acc: number, course: Course) => acc + (course.avgRating || 0), 0) / courses.length).toFixed(1) : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600">Avg Rating</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600">
+                {courses.length > 0 ? (courses.reduce((acc: number, course: Course) => acc + (course.completionRate || 0), 0) / courses.length).toFixed(1) : 'N/A'}%
+              </div>
+              <div className="text-sm text-gray-600">Avg Completion</div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Course
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete <strong>"{deleteConfirm.courseTitle}"</strong>? 
+              This action cannot be undone and will permanently remove the course and all its content.
+            </p>
+            
+            <div className="flex items-center gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleteLoading}
+                className="px-4 py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
+              >
+                {deleteLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete Course
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareModal && (
+        <CourseShareModal
+          isOpen={!!shareModal}
+          onClose={() => setShareModal(null)}
+          courseId={shareModal.courseId}
+          courseTitle={shareModal.courseTitle}
+        />
       )}
     </div>
   );

@@ -70,11 +70,11 @@ export function CourseList({
   const {
     filters,
     categories,
-    filteredCourses,
-    updateFilter,
-    resetFilters,
-    isLoaded,
-  } = useCoursesFilter(coursesData);
+    allCourses: filteredCourses,
+    handleFilterChange: updateFilter,
+    clearAllFilters: resetFilters,
+    isLoading: isLoaded,
+  } = useCoursesFilter();
 
   // Quick search functionality
   const searchFilteredCourses = useMemo(() => {
@@ -171,9 +171,6 @@ export function CourseList({
                 onToggleSave={toggleSavedCourse}
                 className={`${viewMode === "list" ? "w-full" : "h-full"} `}
                 viewMode={viewMode}
-                userRole="instructor"
-                isInstructorDashboard={true}
-                isOwnCourse={true}
               />
             </motion.div>
           ))}

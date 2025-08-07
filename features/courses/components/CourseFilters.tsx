@@ -22,9 +22,9 @@ interface CourseFiltersProps {
   sortBy: string;
   onSortChange: (sort: string) => void;
   onResetFilters: () => void;
-  priceRange: [number, number];
+  priceRange: { min: number; max: number };
   maxPrice: number;
-  onPriceRangeChange: (range: [number, number]) => void;
+  onPriceRangeChange: (range: { min: number; max: number }) => void;
   selectedLevels: CourseLevel[];
   onLevelsChange: (levels: CourseLevel[]) => void;
   selectedRatings: number[];
@@ -131,8 +131,8 @@ const CourseFilters = ({
       <DualRangeSlider
         min={0}
         max={maxPrice}
-        value={priceRange}
-        onChange={onPriceRangeChange}
+        value={[priceRange.min, priceRange.max]}
+        onChange={(range) => onPriceRangeChange({ min: range[0], max: range[1] })}
         formatValue={formatPrice}
         step={5}
       />
@@ -227,7 +227,7 @@ const CourseFilters = ({
       <div className="flex justify-end">
         <button
           onClick={onResetFilters}
-          className="text-sm text-gray-600  bg-gray-100 px-4 py-2 rounded-md border border-gray-200 hover:bg-primary hover:text-white cursor-pointer"
+          className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-md border border-gray-200 hover:bg-primary hover:text-white cursor-pointer"
         >
           Reset all filters
         </button>

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import CourseFilters from "./CourseFilters";
-import { CourseLevel } from "../types/courseTypes";
+import { CourseLevel, priceRange } from "@/types/courseTypes";
 
 interface CourseCategory {
   id: string;
@@ -34,7 +34,7 @@ interface CourseSearchAndFiltersProps {
     levels?: CourseLevel[];
     search?: string;
     sortBy?: string;
-    priceRange?: [number, number];
+    priceRange?: priceRange;
     ratings?: number[];
     durations?: string[];
   };
@@ -71,8 +71,11 @@ const CourseSearchAndFilters: React.FC<CourseSearchAndFiltersProps> = ({
         return typeof value === "string" && value.trim().length > 0;
       case "priceRange":
         return (
-          Array.isArray(value) &&
-          (Number(value[0]) > 0 || Number(value[1]) < 200)
+          value &&
+          typeof value === 'object' &&
+          'min' in value &&
+          'max' in value &&
+          (Number(value.min) > 0 || Number(value.max) < 200)
         );
       case "sortBy":
         return value !== "newest";
@@ -109,7 +112,7 @@ const CourseSearchAndFilters: React.FC<CourseSearchAndFiltersProps> = ({
         onFilterChange({ showFeatured: false });
         break;
       case "price":
-        onFilterChange({ priceRange: [0, 200] });
+        onFilterChange({ priceRange: { min: 0, max: 200 } });
         break;
     }
   };
@@ -255,12 +258,12 @@ const CourseSearchAndFilters: React.FC<CourseSearchAndFiltersProps> = ({
             </Badge>
           ))}
           {filters.priceRange &&
-            (filters.priceRange[0] > 0 || filters.priceRange[1] < 200) && (
+            (filters.priceRange.min > 0 || filters.priceRange.max < 200) && (
               <Badge
                 variant="outline"
                 className="rounded-full flex items-center gap-1 px-3 py-1"
               >
-                ${filters.priceRange[0]} - ${filters.priceRange[1]}
+                ${filters.priceRange.min} - ${filters.priceRange.max}
                 <button
                   onClick={() => handleRemoveFilter("price", null)}
                   className="ml-1 hover:text-red-500 transition-colors"
@@ -273,7 +276,7 @@ const CourseSearchAndFilters: React.FC<CourseSearchAndFiltersProps> = ({
             variant="ghost"
             size="sm"
             onClick={onResetFilters}
-            className="text-xs text-gray-500  h-6 px-2 rounded-full"
+            className="text-xs text-gray-500 h-6 px-2 rounded-full"
           >
             Clear all
           </Button>
@@ -306,7 +309,7 @@ const CourseSearchAndFilters: React.FC<CourseSearchAndFiltersProps> = ({
                 onFilterChange({ sortBy: sortBy as any })
               }
               onResetFilters={onResetFilters}
-              priceRange={filters.priceRange || [0, 200]}
+              priceRange={filters.priceRange || { min: 0, max: 200 }}
               maxPrice={200}
               onPriceRangeChange={(range) =>
                 onFilterChange({ priceRange: range })

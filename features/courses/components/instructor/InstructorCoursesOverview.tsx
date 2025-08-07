@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CourseList } from "../../shared/CourseList";
+
 import Link from "next/link";
 
 interface InstructorCourseGridProps {

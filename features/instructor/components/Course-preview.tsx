@@ -87,7 +87,7 @@ export function CoursePreview({ course }: CoursePreviewProps) {
     description:
       "Learn to build modern web applications from scratch using the latest technologies including React, Node.js, and MongoDB. This comprehensive course covers everything from basic HTML/CSS to advanced full-stack development.",
     category: "programming",
-    level: "beginner",
+    level: "BEGINNER",
     language: "english",
     price: 99.99,
     thumbnail: "/placeholder.svg?height=400&width=600",

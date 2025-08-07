@@ -5,6 +5,7 @@ import {
   PUBLISH_COURSE,
   DELETE_COURSE_DRAFT,
   UPDATE_COURSE,
+  UNPUBLISH_COURSE,
 } from "./graphql/mutations";
 import { GET_COURSE_DRAFT } from "./graphql/queries";
 import { CourseData, CourseLevel, ContentType } from "../types";
@@ -157,7 +158,8 @@ export class CourseCreationService {
           success: true,
           course: updatedCourse,
           message: result.data.updateCourse.message,
-         
+          errors: result.data.updateCourse.errors || [],
+          
         };
       } else {
        
@@ -166,7 +168,7 @@ export class CourseCreationService {
         return {
           success: false,
           message,
-         
+          errors: result.data?.updateCourse?.errors || [],
         };
       }
 
@@ -208,6 +210,7 @@ export class CourseCreationService {
 
       // Step 3: Create the course with content information
       console.log("Sending to GraphQL mutation:", { input: transformedData });
+      console.log("Enrollment type being sent to GraphQL:", (transformedData.settings as any)?.enrollmentType);
       const result = await this.client.mutate({
         mutation: CREATE_COURSE,
         variables: { input: transformedData },
@@ -420,6 +423,40 @@ export class CourseCreationService {
       }
     } catch (error) {
       console.error("Failed to publish course:", error);
+      throw error;
+    }
+  }
+
+  async unpublishCourse(courseId: string) {
+    try {
+      const result = await this.client.mutate({
+        mutation: UNPUBLISH_COURSE,
+        variables: { courseId },
+      });
+
+      if (result.data?.unpublishCourse?.success) {
+        return {
+          success: true,
+          course: result.data.unpublishCourse.course,
+          message: result.data.unpublishCourse.message,
+          errors: result.data.unpublishCourse.errors || [],
+          warnings: result.data.unpublishCourse.warnings || [],
+        };
+      } else {
+        const errors = result.data?.unpublishCourse?.errors || [];
+        const warnings = result.data?.unpublishCourse?.warnings || [];
+        
+
+        return {
+          success: false,
+          message:
+            result.data?.unpublishCourse?.message || "Failed to unpublish course",
+          errors,
+          warnings,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to unpublish course:", error);
       throw error;
     }
   }
@@ -676,6 +713,9 @@ export class CourseCreationService {
 
   private transformCourseDataForSubmission(courseData: CourseData) {
     console.log("courseDataFor Submission", courseData);
+    const enrollmentType = courseData.settings?.enrollmentType?.toUpperCase() || "FREE";
+    console.log("Enrollment type from courseData:", courseData.settings?.enrollmentType);
+    console.log("Enrollment type after transformation:", enrollmentType);
     
     // Handle price based on enrollment type
     let price = courseData.price || 0;
@@ -722,10 +762,14 @@ export class CourseCreationService {
           settings: lecture.settings || undefined,
         })),
       })),
-      settings: courseData.settings || {},
+      settings: {
+        ...courseData.settings,
+        enrollmentType: enrollmentType,
+      },
       additionalContent: courseData.additionalContent || [],
     };
     
+    console.log("Enrollment type in transformed data:", (transformedData.settings as any)?.enrollmentType);
     console.log("Transformed data thumbnail:", transformedData.thumbnail);
     console.log("Transformed data trailer:", transformedData.trailer);
     console.log("Full transformed data:", transformedData);

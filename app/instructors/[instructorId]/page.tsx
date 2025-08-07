@@ -648,7 +648,12 @@ export default async function InstructorPage({ params }: InstructorPageProps) {
                           key={course.id}
                           className="border-0 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-shadow"
                         >
-                          <CourseCard course={course} />
+                          <CourseCard 
+                            course={course}
+                            isSaved={false}
+                            onToggleSave={() => {}}
+                            viewMode="grid"
+                          />
                         </Card>
                       ))}
                     </div>

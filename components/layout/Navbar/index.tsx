@@ -384,7 +384,7 @@ const Navbar = ({
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
-                          <span className="relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground cursor-pointer">
+                          <span className="relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground cursor-pointer ">
                             {item.icon && <item.icon className="h-4 w-4" />}
                             {item.label}
                           </span>
@@ -402,7 +402,7 @@ const Navbar = ({
                       <Button
                         variant={isActive ? "default" : "ghost"}
                         className={cn(
-                          "flex items-center gap-2 text-sm font-medium hover:scale-105 transition-all duration-300",
+                          "flex items-center gap-2 text-sm font-medium hover:scale-105 transition-all duration-300 hover:text-white",
                           isActive && "bg-primary/10 text-primary"
                         )}
                       >

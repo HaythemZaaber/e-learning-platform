@@ -79,6 +79,7 @@ interface CourseCreationState {
   addGlobalError: (error: string) => void;
   removeGlobalError: (error: string) => void;
   addGlobalWarning: (warning: string) => void;
+  removeGlobalWarning: (warning: string) => void;
   clearGlobalMessages: () => void;
 
   // Enhanced upload actions with better error handling
@@ -92,6 +93,7 @@ interface CourseCreationState {
   deleteContentFromLecture: (lectureId: string, type: string, contentId: string, authToken?: string) => Promise<{ success: boolean }>;
   getContentForLecture: (lectureId: string) => any;
   getLectureContentCounts: (lectureId: string) => Record<string, number>;
+  setContentByLecture: (contentByLecture: ContentByLecture) => void;
   
   // Enhanced file upload with cleanup
   uploadFile: (file: File, type: string, metadata: {
@@ -171,6 +173,7 @@ interface CourseCreationState {
   submitCourse: (authToken?: string) => Promise<void>;
   updateCourse: (courseId: string, authToken?: string) => Promise<void>;
   publishCourse: () => Promise<void>;
+  unpublishCourse: () => Promise<void>;
   deleteDraft: () => Promise<void>;
 
   // Utility actions
@@ -293,6 +296,11 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
   addGlobalWarning: (warning) => {
     set((state) => ({
       globalWarnings: [...state.globalWarnings.filter((w) => w !== warning), warning],
+    }));
+  },
+  removeGlobalWarning: (warning) => {
+    set((state) => ({
+      globalWarnings: state.globalWarnings.filter((w) => w !== warning),
     }));
   },
   clearGlobalMessages: () => set({ globalErrors: [], globalWarnings: [] }),
@@ -513,6 +521,8 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       quizzes: content.quizzes.length,
     };
   },
+
+  setContentByLecture: (contentByLecture) => set({ contentByLecture }),
 
   // Enhanced file upload method with better progress tracking
   uploadFile: async (file, type, metadata, authToken?: string) => {
@@ -1115,11 +1125,14 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
 
       const result = await service.updateCourse(courseId, courseWithContent);
 
-     
-        set({
-          draftId: null,
-          hasUnsavedChanges: false,
-          lastSaved: new Date(),
+      
+
+     if(result.success){
+
+       set({
+         draftId: null,
+         hasUnsavedChanges: false,
+         lastSaved: new Date(),
           courseData: {
             ...courseData,
             id: courseId,
@@ -1128,6 +1141,12 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
         });
         get().clearGlobalMessages();
         get().addGlobalWarning("Course updated successfully!");
+      }else{
+        result.errors?.forEach((error: string) => get().addGlobalError(error));
+        // Handle warnings if they exist in the result
+       
+        throw new Error(result.message || "Failed to update course");
+      }
      
     } catch (error) {
       console.error("Failed to update course:", error);
@@ -1176,6 +1195,51 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
     } catch (error) {
       console.error("Failed to publish course:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to publish course";
+      get().addGlobalError(errorMessage);
+      throw error;
+    } finally {
+      setSubmitting(false);
+    }
+  },
+
+  unpublishCourse: async () => {
+    const { courseData, setSubmitting, service } = get();
+
+    if (!service) {
+      get().addGlobalError("Service not initialized. Please try again.");
+      return;
+    }
+
+    if (!courseData.id) {
+      get().addGlobalError("Course ID is required to unpublish");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const result = await service.unpublishCourse(courseData.id);
+
+      if (result.success) {
+        get().addGlobalWarning("Course unpublished successfully! Students can no longer enroll.");
+        set((state) => ({
+          courseData: {
+            ...state.courseData,
+            status: "DRAFT",
+            publishedAt: undefined,
+          },
+        }));
+      } else {
+        result.errors?.forEach((error: string) => get().addGlobalError(error));
+        // Handle warnings if they exist in the result
+        if (result.warnings && Array.isArray(result.warnings)) {
+          result.warnings.forEach((warning: string) => get().addGlobalWarning(warning));
+        }
+        throw new Error(result.message || "Failed to unpublish course");
+      }
+    } catch (error) {
+      console.error("Failed to unpublish course:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to unpublish course";
       get().addGlobalError(errorMessage);
       throw error;
     } finally {

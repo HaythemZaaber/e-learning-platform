@@ -270,8 +270,8 @@ export class AIAssistantService {
         score: 65,
         competitiveness: 'Moderate competition in this category',
         targetAudience: [`${courseData.level} learners`, 'Career changers', 'Skill upgraders'],
-        pricingRecommendation: courseData.level === 'beginner' ? 49 : 
-                             courseData.level === 'intermediate' ? 79 : 129,
+              pricingRecommendation: courseData.level === 'BEGINNER' ? 49 :
+      courseData.level === 'INTERMEDIATE' ? 79 : 129,
       },
       seo: {
         score: 60,

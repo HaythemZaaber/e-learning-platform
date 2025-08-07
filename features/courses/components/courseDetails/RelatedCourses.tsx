@@ -5,12 +5,14 @@ import { CourseCard } from "@/features/courses/shared/CourseCard";
 import { StaticImageData } from "next/image";
 import placeholderImage from "@/public/images/courses/course.jpg";
 import { coursesData } from "@/data/coursesData";
+type UserRole = "student" | "instructor" | "parent" | "admin";
 
 interface RelatedCoursesProps {
   instructorName: string;
+  userRole: string;
 }
 
-export function RelatedCourses({ instructorName }: RelatedCoursesProps) {
+export function RelatedCourses({ instructorName, userRole }: RelatedCoursesProps) {
   const [savedCourses, setSavedCourses] = React.useState<Set<string>>(
     new Set()
   );

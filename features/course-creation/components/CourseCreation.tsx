@@ -26,6 +26,7 @@ Shield,
 PlayCircle,
 Edit,
 Plus,
+XCircle,
 } from "lucide-react";
 import { CoursePreview } from "./CoursePreview";
 import { CourseInformation } from "./steps/CourseInformation";
@@ -122,8 +123,11 @@ loadDraft,
 submitCourse,
 updateCourse,
 publishCourse,
+unpublishCourse,
 addGlobalError,
 removeGlobalError,
+addGlobalWarning,
+removeGlobalWarning,
 clearGlobalMessages,
 clearStepValidationWarnings,
 validateStepsForCompletion,
@@ -178,8 +182,10 @@ globalWarnings.forEach((warning: string) => {
   toast.success(warning, {
     duration: 5000,
   });
+  // Clear the warning after displaying it to prevent duplicates
+  removeGlobalWarning(warning);
 });
-}, [globalWarnings]);
+}, [globalWarnings, removeGlobalWarning]);
 
 const handleManualSave = useCallback(async () => {
 try {
@@ -265,13 +271,26 @@ setShowPublishModal(true);
 const confirmPublishCourse = useCallback(async () => {
 try {
   await publishCourse();
-  toast.success("Course published successfully!");
   setShowPublishModal(false);
 } catch (error) {
   toast.error("Failed to publish course");
   console.error("Course publishing failed:", error);
 }
 }, [publishCourse]);
+
+const handleUnpublishCourse = useCallback(async () => {
+if (!courseData.id) {
+  toast.error("Please create the course first before unpublishing");
+  return;
+}
+
+try {
+  await unpublishCourse();
+} catch (error) {
+  toast.error("Failed to unpublish course");
+  console.error("Course unpublishing failed:", error);
+}
+}, [unpublishCourse, courseData.id]);
 
 const toggleNavigationMode = useCallback(() => {
 const newMode = navigationMode === 'strict' ? 'flexible' : 'strict';
@@ -498,9 +517,28 @@ return (
           )}
 
           {courseData.status === "PUBLISHED" && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-300 rounded-lg text-green-700">
-              <CheckCircle className="h-4 w-4" />
-              Published
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-300 rounded-lg text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                Published
+              </div>
+              <button
+                onClick={handleUnpublishCourse}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Unpublishing...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    Unpublish
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
@@ -712,7 +750,12 @@ return (
                 {canCreateCourse ? (
                   <span className="text-green-600 font-medium flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
-                    {courseData.id ? 'Ready to Update' : 'Ready to Create'}
+                    {courseData.status === "PUBLISHED" 
+                      ? 'Course Published' 
+                      : courseData.id 
+                        ? 'Ready to Update' 
+                        : 'Ready to Create'
+                    }
                   </span>
                 ) : (
                   `Step ${currentStep + 1} of ${steps.length}`
@@ -726,16 +769,24 @@ return (
             <button
               onClick={canCreateCourse ? handleSubmitCourse : handleNext}
               disabled={
-                !canCreateCourse && navigationMode === 'strict' && 
-                (currentStep === steps.length - 1 || currentValidation.errors.length > 0)
+                courseData.status === "PUBLISHED" ||
+                (!canCreateCourse && navigationMode === 'strict' && 
+                (currentStep === steps.length - 1 || currentValidation.errors.length > 0))
               }
               className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                canCreateCourse
+                canCreateCourse && courseData.status !== "PUBLISHED"
                   ? "bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl"
+                  : courseData.status === "PUBLISHED"
+                  ? "bg-green-100 text-green-700 cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
             >
-              {canCreateCourse ? (
+              {courseData.status === "PUBLISHED" ? (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Course Published
+                </>
+              ) : canCreateCourse ? (
                 <>
                   <Check className="h-4 w-4" />
                   {courseData.id ? 'Update Course' : 'Create Course'}
@@ -885,18 +936,46 @@ return (
                 Published: {new Date(courseData.publishedAt).toLocaleDateString()}
               </p>
             )}
+            {courseData.status === "PUBLISHED" && (
+              <button
+                onClick={handleUnpublishCourse}
+                disabled={isSubmitting}
+                className="w-full mt-3 flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-300 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Unpublishing...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    Unpublish Course
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
 
         {/* Completion Status */}
         {canCreateCourse && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+          <div className={`rounded-xl border p-6 ${
+            courseData.status === "PUBLISHED" 
+              ? "bg-green-50 border-green-200" 
+              : "bg-green-50 border-green-200"
+          }`}>
             <div className="flex items-center gap-3 mb-3">
               <CheckCircle className="h-6 w-6 text-green-600" />
-              <h3 className="font-semibold text-green-800">Course Ready!</h3>
+              <h3 className="font-semibold text-green-800">
+                {courseData.status === "PUBLISHED" ? "Course Published!" : "Course Ready!"}
+              </h3>
             </div>
             <p className="text-green-700 text-sm">
-              All required fields are complete. You can now create and publish your course.
+              {courseData.status === "PUBLISHED" 
+                ? "Your course is live and students can enroll. You can continue editing and updates will be reflected immediately."
+                : "All required fields are complete. You can now create and publish your course."
+              }
             </p>
           </div>
         )}
@@ -984,6 +1063,26 @@ return (
               >
                 <Globe className="h-4 w-4" />
                 Publish Course
+              </button>
+            )}
+
+            {courseData.status === "PUBLISHED" && (
+              <button
+                onClick={handleUnpublishCourse}
+                disabled={isSubmitting}
+                className="w-full flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Unpublishing...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    Unpublish Course
+                  </>
+                )}
               </button>
             )}
           </div>

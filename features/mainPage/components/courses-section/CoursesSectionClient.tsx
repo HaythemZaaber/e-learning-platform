@@ -13,6 +13,7 @@ import {
   Grid3X3,
   List,
   Navigation,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { CourseCard } from "../../../courses/shared/CourseCard";
@@ -129,6 +130,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   const [savedCourses, setSavedCourses] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showFeatured, setShowFeatured] = useState(initialShowFeatured);
+  const [showTrending, setShowTrending] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(
     initialSelectedCategory
   );
@@ -136,42 +138,13 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     useState<CategoryLayoutType>("tabs");
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(true);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef(0);
 
   React.useEffect(() => {
     setIsLoaded(true);
   }, []);
-
-  // Scroll functionality for horizontal tabs
-  const checkScrollButtons = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } =
-        scrollContainerRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  useEffect(() => {
-    if (categoryLayout === "tabs") {
-      checkScrollButtons();
-      window.addEventListener("resize", checkScrollButtons);
-      return () => window.removeEventListener("resize", checkScrollButtons);
-    }
-  }, [categoryLayout, categories]);
-
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 200;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
-    }
-  };
 
   const toggleSavedCourse = (id: string) => {
     setSavedCourses((prev) =>
@@ -182,12 +155,29 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   };
 
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
+    // If clicking the same category, toggle to "All" to show all courses
+    if (selectedCategory === category) {
+      setSelectedCategory("All");
+    } else {
+      setSelectedCategory(category);
+    }
     setIsDropdownOpen(false);
+    // Keep the filters state and scroll position intact
   };
 
   const handleFeaturedToggle = () => {
     setShowFeatured(!showFeatured);
+    if (showTrending) setShowTrending(false);
+  };
+
+  const handleTrendingToggle = () => {
+    setShowTrending(!showTrending);
+    if (showFeatured) setShowFeatured(false);
+  };
+
+  const handleShowAllCourses = () => {
+    setShowFeatured(false);
+    setShowTrending(false);
   };
 
   // Add color property to categories for grid layout
@@ -198,6 +188,8 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     ] as keyof typeof colorClasses,
   }));
 
+
+
   const selectedCategoryObj = categoriesWithColors.find(
     (cat) => cat.name === selectedCategory
   );
@@ -206,12 +198,37 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     : categoriesWithColors.slice(0, 6);
 
   // Filter courses based on current state
-  const filteredCourses =
-    showFeatured && selectedCategory === "All"
-      ? courses.filter((course) => course.featured)
-      : selectedCategory === "All"
-      ? courses
-      : courses.filter((course) => course.category === selectedCategory);
+  const filteredCourses = (() => {
+    let filtered = courses;
+    
+    // First filter by category
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter((course) => {
+        // Normalize and compare categories (case-insensitive, trim whitespace)
+        const courseCategory = course.category?.toLowerCase().trim();
+        const selectedCategoryLower = selectedCategory?.toLowerCase().trim();
+        
+        // Handle different category formats
+        const normalizedCourseCategory = courseCategory?.replace(/-/g, ' ').replace(/\s+/g, ' ');
+        const normalizedSelectedCategory = selectedCategoryLower?.replace(/-/g, ' ').replace(/\s+/g, ' ');
+        
+        const matches = normalizedCourseCategory === normalizedSelectedCategory;
+        
+
+        
+        return matches;
+      });
+    }
+    
+    // Then apply featured/trending filters
+    if (showFeatured) {
+      filtered = filtered.filter((course) => course.isFeatured);
+    } else if (showTrending) {
+      filtered = filtered.filter((course) => course.isTrending);
+    }
+    
+    return filtered;
+  })();
 
   // Layout Selector Component
   const LayoutSelector = () => (
@@ -247,33 +264,80 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         const { scrollLeft, scrollWidth, clientWidth } =
           scrollContainerRef.current;
         setScrollPosition(scrollLeft);
-        setMaxScroll(scrollWidth - clientWidth);
+        setMaxScroll(Math.max(0, scrollWidth - clientWidth));
       }
     };
 
     const scroll = (direction: "left" | "right") => {
       if (scrollContainerRef.current) {
-        const scrollAmount = 200; // Adjust this value to control scroll distance
+        const scrollAmount = 200;
+        const currentScroll = scrollContainerRef.current.scrollLeft;
         const newScrollPosition =
           direction === "left"
-            ? Math.max(0, scrollPosition - scrollAmount)
-            : Math.min(maxScroll, scrollPosition + scrollAmount);
+            ? Math.max(0, currentScroll - scrollAmount)
+            : Math.min(maxScroll, currentScroll + scrollAmount);
 
         scrollContainerRef.current.scrollTo({
           left: newScrollPosition,
           behavior: "smooth",
         });
+        
+        // Update the stored position immediately
+        scrollPositionRef.current = newScrollPosition;
       }
     };
 
+    // Store scroll position when scrolling
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        const currentScrollLeft = scrollContainerRef.current.scrollLeft;
+        scrollPositionRef.current = currentScrollLeft;
+        // Use requestAnimationFrame to avoid frequent state updates
+        requestAnimationFrame(() => {
+          setScrollPosition(currentScrollLeft);
+          checkScrollButtons();
+        });
+      }
+    };
+
+    // Restore scroll position when tabs layout is selected or component mounts
+    useEffect(() => {
+      if (scrollContainerRef.current && categoryLayout === "tabs") {
+        // Restore scroll position without triggering scroll events
+        const container = scrollContainerRef.current;
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = scrollPositionRef.current;
+        
+        // Re-enable smooth scrolling after position is set
+        setTimeout(() => {
+          if (container) {
+            container.style.scrollBehavior = 'smooth';
+          }
+        }, 50);
+        
+        checkScrollButtons();
+      }
+    }, [categoryLayout]);
+
     useEffect(() => {
       checkScrollButtons();
-      window.addEventListener("resize", checkScrollButtons);
-      return () => window.removeEventListener("resize", checkScrollButtons);
+      const handleResize = () => {
+        checkScrollButtons();
+        // Maintain scroll position on resize without smooth scrolling
+        if (scrollContainerRef.current) {
+          const container = scrollContainerRef.current;
+          const currentBehavior = container.style.scrollBehavior;
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft = scrollPositionRef.current;
+          container.style.scrollBehavior = currentBehavior;
+        }
+      };
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     const showLeftArrow = scrollPosition > 0;
-    const showRightArrow = scrollPosition < maxScroll;
+    const showRightArrow = scrollPosition < maxScroll - 1; // Small buffer for precision
 
     return (
       <div className="relative">
@@ -302,7 +366,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         {/* Scrollable Container */}
         <div
           ref={scrollContainerRef}
-          onScroll={checkScrollButtons}
+          onScroll={handleScroll}
           className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 px-1"
           style={{
             scrollbarWidth: "none",
@@ -315,24 +379,28 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               key={cat.id}
               onClick={() => handleCategoryChange(cat.name)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap min-w-fit",
+                "flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap min-w-fit flex-shrink-0 relative",
                 selectedCategory === cat.name
                   ? "bg-accent text-white shadow-lg"
                   : "bg-white/70 hover:bg-white text-gray-700 hover:shadow-md border border-gray-100"
               )}
+              title={selectedCategory === cat.name ? `Click to show all courses` : `Filter by ${cat.name}`}
             >
               {cat.icon}
               <span className="font-medium">{cat.name}</span>
+              {selectedCategory === cat.name && (
+                <span className="ml-1 text-xs opacity-75">✕</span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Gradient Overlays */}
         {showLeftArrow && (
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none z-5" />
         )}
         {showRightArrow && (
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-5" />
         )}
 
         <style jsx>{`
@@ -371,12 +439,16 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                 key={category.id}
                 onClick={() => handleCategoryChange(category.name)}
                 className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-150"
+                title={selectedCategory === category.name ? `Click to show all courses` : `Filter by ${category.name}`}
               >
                 <div className="flex items-center gap-2 flex-1">
                   {category.icon}
                   <div>
-                    <div className="font-medium text-gray-800">
+                    <div className="font-medium text-gray-800 flex items-center gap-2">
                       {category.name}
+                      {selectedCategory === category.name && (
+                        <span className="text-xs text-gray-500">✕</span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500">
                       {category.description}
@@ -420,6 +492,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               ? `${colors.active} text-white shadow-lg transform -translate-y-1`
               : `${colors.bg} ${colors.border} hover:shadow-md hover:-translate-y-0.5`
           )}
+          title={isSelected ? `Click to show all courses` : `Filter by ${category.name}`}
         >
           <div className="flex items-center gap-3 mb-2">
             <div
@@ -432,14 +505,19 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                 {category.icon}
               </div>
             </div>
-            <h5
-              className={cn(
-                "font-semibold",
-                isSelected ? "text-white" : colors.text
+            <div className="flex items-center gap-2">
+              <h5
+                className={cn(
+                  "font-semibold",
+                  isSelected ? "text-white" : colors.text
+                )}
+              >
+                {category.name}
+              </h5>
+              {isSelected && (
+                <span className="text-xs opacity-75">✕</span>
               )}
-            >
-              {category.name}
-            </h5>
+            </div>
           </div>
           <p
             className={cn(
@@ -497,41 +575,69 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         <LayoutSelector />
 
         {/* Category Layouts */}
-        <div className="flex flex-col   gap-2">
+        <div className="flex flex-col gap-4">
           <div className="w-full">
             {categoryLayout === "tabs" && <TabsLayout />}
             {categoryLayout === "dropdown" && <DropdownLayout />}
             {categoryLayout === "grid" && <GridLayout />}
           </div>
 
-          {/* Featured Toggle */}
-          {selectedCategory === "All" && (
-            <div className="flex items-center justify-end">
-              <Button
-                variant="outline"
-                size="sm"
+          {/* Filter Buttons - Always visible and persistent */}
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
+                (!showFeatured && !showTrending) ? "bg-gray-100 text-gray-600" : "bg-white hover:bg-gray-50"
+              )}
+              onClick={handleShowAllCourses}
+            >
+              Show All Courses
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
+                showFeatured ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-white hover:bg-gray-50"
+              )}
+              onClick={handleFeaturedToggle}
+            >
+              <Star
                 className={cn(
-                  "text-sm border border-gray-200 whitespace-nowrap",
-                  showFeatured ? "bg-accent/10 text-accent" : "bg-white"
+                  "h-4 w-4 mr-1",
+                  showFeatured ? "fill-yellow-500 text-yellow-500" : "text-gray-500"
                 )}
-                onClick={handleFeaturedToggle}
-              >
-                <Star
-                  className={cn(
-                    "h-4 w-4 mr-1",
-                    showFeatured ? "fill-accent" : ""
-                  )}
-                />
-                {showFeatured ? "Featured Courses" : "All Courses"}
-              </Button>
-            </div>
-          )}
+              />
+              Featured
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
+                showTrending ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-white hover:bg-gray-50"
+              )}
+              onClick={handleTrendingToggle}
+            >
+              <TrendingUp
+                className={cn(
+                  "h-4 w-4 mr-1",
+                  showTrending ? "fill-orange-500 text-orange-500" : "text-gray-500"
+                )}
+              />
+              Trending
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Courses Display */}
       <CourseContainer
-        key={selectedCategory + (showFeatured ? "-featured" : "")}
+        key={selectedCategory + (showFeatured ? "-featured" : "") + (showTrending ? "-trending" : "")}
         isLoaded={isLoaded}
       >
         {filteredCourses.map((course) => (
@@ -541,7 +647,6 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               isSaved={savedCourses.includes(course.id)}
               onToggleSave={toggleSavedCourse}
               viewMode="grid"
-              userRole="student"
             />
           </CourseCardWrapper>
         ))}
@@ -554,7 +659,10 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
             No courses found
           </h3>
           <p className="text-gray-500 mt-2">
-            Try selecting a different category
+            {showFeatured || showTrending 
+              ? `Try removing the ${showFeatured ? 'Featured' : 'Trending'} filter or selecting a different category`
+              : "Try selecting a different category"
+            }
           </p>
         </EmptyStateWrapper>
       )}

@@ -1,22 +1,40 @@
 import React from "react";
 import { CoursesSectionProps } from "../../types/coursesTypes";
-import { coursesData, categories } from "../../../../data/coursesData";
 import SectionHead from "@/components/shared/SectionHead";
 import { CoursesSectionClient } from "./CoursesSectionClient";
+import { useCourses } from "@/features/courses/hooks/useCourses";
+import { CourseCategory } from "@/types/courseTypes";
+import { BookOpen } from "lucide-react";
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
-  showFeatured: initialShowFeatured = true,
+  showFeatured: initialShowFeatured = false,
   selectedCategory: initialSelectedCategory = "All",
 }) => {
-  // Filter courses on the server side
-  //   const filteredCourses =
-  //     initialShowFeatured && initialSelectedCategory === "All"
-  //       ? coursesData.filter((course) => course.featured)
-  //       : initialSelectedCategory === "All"
-  //       ? coursesData
-  //       : coursesData.filter(
-  //           (course) => course.category === initialSelectedCategory
-  //         );
+  // Fetch courses data using the hook
+  const {
+    courses,
+    featuredCourses,
+    trendingCourses,
+    categories,
+    isLoading,
+    error,
+  } = useCourses({
+    featured: true,
+    trending: true,
+    limit: 6,
+  });
+
+  // Transform categories to match CourseCategory interface
+  const transformedCategories: CourseCategory[] = React.useMemo(() => {
+    return categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.id,
+      icon: <BookOpen className="h-4 w-4" />,
+      description: `${category.count} courses available`,
+      courseCount: category.count,
+    }));
+  }, [categories]);
 
   return (
     <section className="py-10 bg-gradient-to-b from-white to-primary/5">
@@ -29,9 +47,8 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         />
 
         <CoursesSectionClient
-          categories={categories}
-          //   courses={filteredCourses}
-          courses={coursesData}
+          categories={transformedCategories}
+          courses={courses}
           initialShowFeatured={initialShowFeatured}
           initialSelectedCategory={initialSelectedCategory}
         />

@@ -16,15 +16,6 @@ export default function MainPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { userRole, userFullName } = useAuthSelectors();
 
-  // Optional: Show different content based on auth state
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div>
       {/* Pass auth data to components if needed */}
@@ -34,7 +25,10 @@ export default function MainPage() {
         // userName={userFullName}
       />
       <CounterSection />
-      <CoursesSection />
+      <CoursesSection 
+        showFeatured={false}
+        selectedCategory="All"
+      />
       <TeachersSection />
       <WhyChooseUs />
       {/* <TestimonialsSection /> */}

@@ -3,8 +3,9 @@
 import { useQuery, useMutation, useApolloClient } from "@apollo/client";
 import { useAuth } from "@clerk/nextjs";
 import { GET_INSTRUCTOR_COURSES, GET_COURSE_BY_ID } from "../services/graphql/courseQueries";
-import { UPDATE_COURSE, DELETE_COURSE, PUBLISH_COURSE, UNPUBLISH_COURSE } from "../services/graphql/courseMutations";
+import { UPDATE_COURSE, DELETE_COURSE, PUBLISH_COURSE, UNPUBLISH_COURSE, DUPLICATE_COURSE } from "../services/graphql/courseMutations";
 import { toast } from "sonner";
+
 
 
 export const useInstructorCourses = () => {
@@ -23,13 +24,18 @@ export const useInstructorCourses = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  console.log("coursesData", coursesData);
+
 
   // Mutation for updating course
   const [updateCourse, { loading: updateLoading }] = useMutation(UPDATE_COURSE, {
     onCompleted: (data) => {
-      toast.success("Course updated successfully!");
-      refetchCourses();
+
+      if (data.updateCourse.success) {
+        toast.success("Course updated successfully!");
+        refetchCourses();
+      } else {
+        toast.error(data.updateCourse.errors);
+      }
     },
     onError: (error) => {
       toast.error(`Failed to update course: ${error.message}`);
@@ -50,8 +56,13 @@ export const useInstructorCourses = () => {
   // Mutation for publishing course
   const [publishCourse, { loading: publishLoading }] = useMutation(PUBLISH_COURSE, {
     onCompleted: (data) => {
-      toast.success("Course published successfully!");
-      refetchCourses();
+     
+      if (data.publishCourse.success) {
+        toast.success("Course published successfully!");
+        refetchCourses();
+      } else {
+        toast.error(data.publishCourse.errors);
+      }
     },
     onError: (error) => {
       toast.error(`Failed to publish course: ${error.message}`);
@@ -61,11 +72,30 @@ export const useInstructorCourses = () => {
   // Mutation for unpublishing course
   const [unpublishCourse, { loading: unpublishLoading }] = useMutation(UNPUBLISH_COURSE, {
     onCompleted: (data) => {
-      toast.success("Course unpublished successfully!");
-      refetchCourses();
+      console.log("unpublishCourse", data);
+      if (data.unpublishCourse.success) {
+          toast.success("Course unpublished successfully!");
+        refetchCourses();
+      } else {
+        toast.error(data.unpublishCourse.errors);
+      }
     },
     onError: (error) => {
       toast.error(`Failed to unpublish course: ${error.message}`);
+    },
+  });
+
+  // Mutation for duplicating course
+
+  const [duplicateCourse, { loading: duplicateLoading }] = useMutation(DUPLICATE_COURSE, {
+    onCompleted: (data) => {
+      
+      if (data.duplicateCourse.success) {
+        toast.success("Course duplicated successfully!");
+        refetchCourses();
+      } else {
+        toast.error(data.duplicateCourse.errors);
+      }
     },
   });
 
@@ -94,27 +124,19 @@ export const useInstructorCourses = () => {
         break;
       
       case "delete":
-        if (confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
-          await deleteCourse({ variables: { id: courseId } });
-        }
+        await deleteCourse({ variables: { courseId: courseId } });
         break;
       
       case "publish":
-        await publishCourse({ variables: { id: courseId } });
+        await publishCourse({ variables: { courseId: courseId } });
         break;
       
       case "unpublish":
-        await unpublishCourse({ variables: { id: courseId } });
+        await unpublishCourse({ variables: { courseId: courseId } });
         break;
       
       case "duplicate":
-        // Get course data and navigate to creation page with duplicate flag
-        const courseData = await getCourseById(courseId);
-        if (courseData) {
-          // Store course data in localStorage for duplication
-          localStorage.setItem("courseToDuplicate", JSON.stringify(courseData));
-          window.location.href = `/instructor/dashboard/courses/course-creation?duplicate=true`;
-        }
+        await duplicateCourse({ variables: { courseId: courseId } });
         break;
       
       case "analytics":
@@ -152,5 +174,6 @@ export const useInstructorCourses = () => {
     deleteLoading,
     publishLoading,
     unpublishLoading,
+    duplicateLoading,
   };
 }; 

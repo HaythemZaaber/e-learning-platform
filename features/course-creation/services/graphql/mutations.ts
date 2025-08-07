@@ -93,6 +93,22 @@ export const PUBLISH_COURSE = gql`
   }
 `;
 
+export const UNPUBLISH_COURSE = gql`
+  mutation UnpublishCourse($courseId: String!) {
+    unpublishCourse(courseId: $courseId) {
+      success
+      message
+      course {
+        id
+        title
+        description
+        status
+      }
+      errors
+    }
+  }
+`;
+
 export const DELETE_COURSE = gql`
   mutation DeleteCourse($courseId: String!) {
     deleteCourse(courseId: $courseId) {
@@ -295,12 +311,15 @@ export const DELETE_LESSON = gql`
 `;
 
 export const DUPLICATE_COURSE = gql`
-  mutation DuplicateCourse($courseId: String!, $newTitle: String) {
-    duplicateCourse(courseId: $courseId, newTitle: $newTitle) {
+  mutation DuplicateCourse($id: String!) {
+    duplicateCourse(courseId: $id) {
       success
       message
-      course
-      completionPercentage
+      course {
+        id
+        title
+      }
+      errors
     }
   }
 `;

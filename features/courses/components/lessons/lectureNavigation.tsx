@@ -2,26 +2,12 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Play, CheckCircle, Lock } from "lucide-react";
-
-interface Lecture {
-  id: string;
-  title: string;
-  duration: string;
-  isCompleted: boolean;
-  isLocked: boolean;
-  videoUrl?: string;
-}
-
-interface Section {
-  id: string;
-  title: string;
-  lectures: Lecture[];
-}
+import { CourseSection, CourseLecture } from "@/types/courseTypes";
 
 interface LectureNavigationProps {
-  sections: Section[];
+  sections: CourseSection[];
   currentLectureId: string;
-  onLectureSelect: (lecture: Lecture) => void;
+  onLectureSelect: (lecture: CourseLecture) => void;
 }
 
 export function LectureNavigation({
@@ -30,7 +16,7 @@ export function LectureNavigation({
   onLectureSelect,
 }: LectureNavigationProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["section-1"])
+    new Set(sections.length > 0 ? [sections[0].id] : [])
   );
 
   const toggleSection = (sectionId: string) => {
@@ -41,6 +27,15 @@ export function LectureNavigation({
       newExpanded.add(sectionId);
     }
     setExpandedSections(newExpanded);
+  };
+
+  const formatDuration = (duration: number) => {
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
   };
 
   return (
@@ -103,9 +98,15 @@ export function LectureNavigation({
                         {lecture.title}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {lecture.duration}
+                        {formatDuration(lecture.duration)}
                       </div>
                     </div>
+
+                    {lecture.isPreview && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        Preview
+                      </span>
+                    )}
 
                     {currentLectureId === lecture.id && (
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>

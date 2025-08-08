@@ -1,10 +1,15 @@
-export function CourseRequirements() {
-  const requirements = [
-    "Become an advanced, confident, and modern Python programmer",
-    "Be able to use Python for data science and machine learning",
-    "Learn to use Python professionally",
-    "Master Python features by building 100 projects",
-  ];
+import { Course } from "@/types/courseTypes";
+
+interface CourseRequirementsProps {
+  course: Course;
+}
+
+export function CourseRequirements({ course }: CourseRequirementsProps) {
+  const requirements = course.requirements || [];
+
+  if (requirements.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mt-8">

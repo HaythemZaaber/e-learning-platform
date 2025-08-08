@@ -51,6 +51,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           courses={courses}
           initialShowFeatured={initialShowFeatured}
           initialSelectedCategory={initialSelectedCategory}
+          isLoading={isLoading}
         />
       </div>
     </section>

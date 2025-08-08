@@ -114,7 +114,7 @@ export const useCourses = (options: UseCoursesOptions = {}) => {
           course.instructor?.firstName,
           course.instructor?.lastName,
           ...(course.tags || []),
-          ...(course.whatYoullLearn || []),
+          ...(course.whatYouLearn || []),
           ...(course.requirements || []),
         ].filter(Boolean);
 

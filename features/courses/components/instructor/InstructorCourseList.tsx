@@ -1062,19 +1062,19 @@ export const InstructorCourseList = ({
                 )}
 
                 {/* Learning Outcomes Preview */}
-                {course.whatYoullLearn && course.whatYoullLearn.length > 0 && (
+                {course.whatYouLearn && course.whatYouLearn.length > 0 && (
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-2">What you'll learn:</h4>
                     <ul className="text-xs text-gray-600 space-y-1">
-                      {course.whatYoullLearn.slice(0, 3).map((outcome: string, index: number) => (
+                      {course.whatYouLearn.slice(0, 3).map((outcome: string, index: number) => (
                         <li key={index} className="flex items-start">
                           <CheckCircle className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                           <span className="line-clamp-1">{outcome}</span>
                         </li>
                       ))}
-                      {course.whatYoullLearn.length > 3 && (
+                      {course.whatYouLearn.length > 3 && (
                         <li className="text-blue-600 font-medium">
-                          +{course.whatYoullLearn.length - 3} more outcomes
+                          +{course.whatYouLearn.length - 3} more outcomes
                         </li>
                       )}
                     </ul>

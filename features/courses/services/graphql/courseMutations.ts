@@ -17,7 +17,7 @@ export const UPDATE_COURSE = gql`
       objectives
       prerequisites
       requirements
-      whatYoullLearn
+      whatYouLearn
       targetAudience
       language
       hasSubtitles
@@ -73,8 +73,6 @@ export const UPDATE_COURSE = gql`
           audioDescription
         }
       }
-      createdAt
-      updatedAt
       publishedAt
     }
   }
@@ -171,7 +169,6 @@ export const ENROLL_COURSE = gql`
         status
         enrolledAt
         progress
-        lastAccessedAt
       }
       errors
     }
@@ -204,17 +201,16 @@ export const RATE_COURSE = gql`
     rateCourse(courseId: $courseId, rating: $rating, comment: $comment) {
       success
       message
-      review {
-        id
-        rating
-        comment
-        createdAt
-        user {
+              review {
           id
-          name
-          avatar
+          rating
+          comment
+          user {
+            id
+            name
+            avatar
+          }
         }
-      }
       errors
     }
   }
@@ -225,12 +221,11 @@ export const UPDATE_COURSE_REVIEW = gql`
     updateCourseReview(reviewId: $reviewId, rating: $rating, comment: $comment) {
       success
       message
-      review {
-        id
-        rating
-        comment
-        updatedAt
-      }
+              review {
+          id
+          rating
+          comment
+        }
       errors
     }
   }
@@ -265,6 +260,273 @@ export const TRACK_COURSE_INTERACTION = gql`
     trackCourseInteraction(courseId: $courseId, interactionType: $interactionType, metadata: $metadata) {
       success
       message
+      errors
+    }
+  }
+`;
+
+// ============================================================================
+// COURSE PREVIEW AND LECTURE MUTATIONS
+// ============================================================================
+
+export const TRACK_LECTURE_VIEW = gql`
+  mutation TrackLectureView($lectureId: String!, $courseId: String!) {
+    trackLectureView(lectureId: $lectureId, courseId: $courseId) {
+      success
+      message
+      errors
+    }
+  }
+`;
+
+export const MARK_LECTURE_COMPLETE = gql`
+  mutation MarkLectureComplete($lectureId: String!, $courseId: String!, $progress: Float!) {
+    markLectureComplete(lectureId: $lectureId, courseId: $courseId, progress: $progress) {
+      success
+      message
+      progress {
+        completedLectures
+        totalLectures
+        completionPercentage
+        lastWatchedLecture
+        timeSpent
+        streakDays
+      }
+      errors
+    }
+  }
+`;
+
+export const UPDATE_LECTURE_PROGRESS = gql`
+  mutation UpdateLectureProgress($lectureId: String!, $courseId: String!, $progress: Float!, $timeSpent: Float!) {
+    updateLectureProgress(lectureId: $lectureId, courseId: $courseId, progress: $progress, timeSpent: $timeSpent) {
+      success
+      message
+      progress {
+        completedLectures
+        totalLectures
+        completionPercentage
+        lastWatchedLecture
+        timeSpent
+        streakDays
+      }
+      errors
+    }
+  }
+`;
+
+export const TRACK_LECTURE_INTERACTION = gql`
+  mutation TrackLectureInteraction($lectureId: String!, $courseId: String!, $interactionType: String!, $metadata: JSON) {
+    trackLectureInteraction(lectureId: $lectureId, courseId: $courseId, interactionType: $interactionType, metadata: $metadata) {
+      success
+      message
+      errors
+    }
+  }
+`;
+
+export const SUBMIT_LECTURE_QUIZ = gql`
+  mutation SubmitLectureQuiz($lectureId: String!, $courseId: String!, $answers: [QuizAnswerInput!]!) {
+    submitLectureQuiz(lectureId: $lectureId, courseId: $courseId, answers: $answers) {
+      success
+      message
+      score
+      totalQuestions
+      correctAnswers
+      feedback
+      errors
+    }
+  }
+`;
+
+export const DOWNLOAD_LECTURE_RESOURCE = gql`
+  mutation DownloadLectureResource($resourceId: String!, $lectureId: String!) {
+    downloadLectureResource(resourceId: $resourceId, lectureId: $lectureId) {
+      success
+      message
+      downloadUrl
+      expiresAt
+      errors
+    }
+  }
+`;
+
+export const TOGGLE_LECTURE_BOOKMARK = gql`
+  mutation ToggleLectureBookmark($lectureId: String!, $courseId: String!) {
+    toggleLectureBookmark(lectureId: $lectureId, courseId: $courseId) {
+      success
+      message
+      isBookmarked
+      errors
+    }
+  }
+`;
+
+export const ADD_LECTURE_NOTE = gql`
+  mutation AddLectureNote($lectureId: String!, $courseId: String!, $content: String!, $timestamp: Float) {
+    addLectureNote(lectureId: $lectureId, courseId: $courseId, content: $content, timestamp: $timestamp) {
+      success
+      message
+              note {
+          id
+          content
+          timestamp
+        }
+      errors
+    }
+  }
+`;
+
+export const UPDATE_LECTURE_NOTE = gql`
+  mutation UpdateLectureNote($noteId: String!, $content: String!) {
+    updateLectureNote(noteId: $noteId, content: $content) {
+      success
+      message
+              note {
+          id
+          content
+          timestamp
+        }
+      errors
+    }
+  }
+`;
+
+export const DELETE_LECTURE_NOTE = gql`
+  mutation DeleteLectureNote($noteId: String!) {
+    deleteLectureNote(noteId: $noteId) {
+      success
+      message
+      errors
+    }
+  }
+`;
+
+export const RATE_LECTURE = gql`
+  mutation RateLecture($lectureId: String!, $courseId: String!, $rating: Int!, $feedback: String) {
+    rateLecture(lectureId: $lectureId, courseId: $courseId, rating: $rating, feedback: $feedback) {
+      success
+      message
+              rating {
+          id
+          rating
+          feedback
+        }
+      errors
+    }
+  }
+`;
+
+export const REPORT_LECTURE_ISSUE = gql`
+  mutation ReportLectureIssue($lectureId: String!, $courseId: String!, $issueType: String!, $description: String!) {
+    reportLectureIssue(lectureId: $lectureId, courseId: $courseId, issueType: $issueType, description: $description) {
+      success
+      message
+              report {
+          id
+          issueType
+          description
+          status
+        }
+      errors
+    }
+  }
+`;
+
+export const REQUEST_LECTURE_ACCESS = gql`
+  mutation RequestLectureAccess($lectureId: String!, $courseId: String!, $reason: String) {
+    requestLectureAccess(lectureId: $lectureId, courseId: $courseId, reason: $reason) {
+      success
+      message
+              request {
+          id
+          status
+          reason
+        }
+      errors
+    }
+  }
+`;
+
+export const SHARE_LECTURE = gql`
+  mutation ShareLecture($lectureId: String!, $courseId: String!, $platform: String!, $message: String) {
+    shareLecture(lectureId: $lectureId, courseId: $courseId, platform: $platform, message: $message) {
+      success
+      message
+      shareUrl
+      errors
+    }
+  }
+`;
+
+export const GET_LECTURE_TRANSCRIPT = gql`
+  mutation GetLectureTranscript($lectureId: String!, $courseId: String!) {
+    getLectureTranscript(lectureId: $lectureId, courseId: $courseId) {
+      success
+      message
+              transcript {
+          id
+          content
+          language
+          timestamps
+          accuracy
+        }
+      errors
+    }
+  }
+`;
+
+export const GENERATE_LECTURE_SUMMARY = gql`
+  mutation GenerateLectureSummary($lectureId: String!, $courseId: String!) {
+    generateLectureSummary(lectureId: $lectureId, courseId: $courseId) {
+      success
+      message
+              summary {
+          id
+          content
+          keyPoints
+          difficulty
+          estimatedReadingTime
+        }
+      errors
+    }
+  }
+`;
+
+export const CREATE_LECTURE_DISCUSSION = gql`
+  mutation CreateLectureDiscussion($lectureId: String!, $courseId: String!, $title: String!, $content: String!) {
+    createLectureDiscussion(lectureId: $lectureId, courseId: $courseId, title: $title, content: $content) {
+      success
+      message
+              discussion {
+          id
+          title
+          content
+          author {
+            id
+            username
+            profileImage
+          }
+        }
+      errors
+    }
+  }
+`;
+
+export const REPLY_TO_LECTURE_DISCUSSION = gql`
+  mutation ReplyToLectureDiscussion($discussionId: String!, $content: String!) {
+    replyToLectureDiscussion(discussionId: $discussionId, content: $content) {
+      success
+      message
+              reply {
+          id
+          content
+          author {
+            id
+            username
+            profileImage
+          }
+        }
       errors
     }
   }

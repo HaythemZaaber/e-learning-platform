@@ -715,6 +715,10 @@ export const useCourseCreationStore = create<CourseCreationState>()((set, get) =
       validation.warnings.push("Add learning objectives to clarify what students will achieve");
     }
 
+    if (!courseData.whatYouLearn?.some(item => item.trim())) {
+      validation.warnings.push("Add 'What You Will Learn' topics to help students understand the course value");
+    }
+
     return validation;
   },
 

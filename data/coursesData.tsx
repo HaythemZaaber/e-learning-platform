@@ -118,7 +118,7 @@ export const coursesData: Course[] = [
       "Learn front-end and back-end web development by building 20+ real projects",
 
     // Media
-    image: programming,
+ 
     previewVideo:
       "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
 
@@ -282,7 +282,7 @@ export const coursesData: Course[] = [
       "Eagerness to learn and build projects",
       "Basic computer skills (file management, web browsing)",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Build responsive websites using HTML5, CSS3, and JavaScript",
       "Master React.js for building modern user interfaces",
       "Create RESTful APIs with Node.js and Express",
@@ -461,7 +461,7 @@ export const coursesData: Course[] = [
       "Interest in data analysis and machine learning",
       "Computer with Python installed",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master Python libraries: NumPy, Pandas, Matplotlib, Seaborn",
       "Perform data analysis and visualization",
       "Build machine learning models with Scikit-Learn",
@@ -594,7 +594,7 @@ export const coursesData: Course[] = [
       "Figma (free version)",
       "Passion for design",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master UI/UX design principles",
       "Create wireframes and prototypes",
       "Conduct user research",
@@ -719,7 +719,7 @@ export const coursesData: Course[] = [
       "Internet connection",
       "Interest in digital marketing",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master SEO and content marketing",
       "Create effective social media strategies",
       "Run successful email campaigns",
@@ -842,7 +842,7 @@ export const coursesData: Course[] = [
       "Dedication to learning complex concepts",
       "Scientific calculator",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master calculus concepts and applications",
       "Understand linear algebra and matrices",
       "Solve differential equations",
@@ -967,7 +967,7 @@ export const coursesData: Course[] = [
       "Adobe Lightroom (free trial available)",
       "Passion for photography",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master camera settings and controls",
       "Understand composition techniques",
       "Learn lighting and exposure",
@@ -1092,7 +1092,7 @@ export const coursesData: Course[] = [
       "Computer with internet connection",
       "Interest in data analysis",
     ],
-    whatYoullLearn: [
+    whatYouLearn: [
       "Master data analysis techniques",
       "Create business intelligence reports",
       "Use Tableau and Power BI",

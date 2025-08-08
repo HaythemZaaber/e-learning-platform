@@ -61,8 +61,6 @@ export const GET_COURSE = gql`
       }
       settings
       status
-      createdAt
-      updatedAt
       publishedAt
     }
   }
@@ -79,8 +77,6 @@ export const GET_MY_COURSES = gql`
       level
       price
       currency
-      createdAt
-      updatedAt
       publishedAt
       _count {
         enrollments
@@ -147,7 +143,6 @@ export const GET_COURSE_ANALYTICS = gql`
             firstName
             lastName
           }
-          createdAt
         }
       }
     }

@@ -527,6 +527,8 @@ export interface Course {
   // Basic Information
   id: string;
   title: string;
+  slug?: string;
+  subtitle?: string;
  
   description: string;
   shortDescription?: string;
@@ -578,7 +580,10 @@ export interface Course {
  
   isBestseller?: boolean;
   isTrending?: boolean;
-  isFeatured?: boolean; 
+  isFeatured?: boolean;
+  featured?: boolean;
+  bestseller?: boolean;
+  trending?: boolean; 
 
   // Instructor
   instructor: CourseInstructor;
@@ -592,7 +597,7 @@ export interface Course {
 
   // Requirements & learning outcomes
   requirements: string[];
-  whatYoullLearn: string[];
+  whatYouLearn: string[];
   objectives?: string[];
   prerequisites?: string[];
 
@@ -683,6 +688,7 @@ export interface Course {
 export interface CourseData {
   id?: string;
   title: string;
+  slug?: string;
   description: string;
   shortDescription?: string;
   category: string;

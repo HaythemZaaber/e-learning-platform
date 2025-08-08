@@ -175,7 +175,15 @@ export function CoursePreview({ data }: CoursePreviewProps) {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  {data.objectives?.map((objective: string, index: number) => (
+                  {data.whatYouLearn?.map((topic: string, index: number) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 leading-relaxed">
+                        {topic}
+                      </span>
+                    </li>
+                  ))}
+                  {(!data.whatYouLearn || data.whatYouLearn.length === 0) && data.objectives?.map((objective: string, index: number) => (
                     <li key={index} className="flex items-start gap-3">
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <span className="text-gray-700 leading-relaxed">

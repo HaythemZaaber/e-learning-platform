@@ -10,8 +10,6 @@ export const UPDATE_USER_ROLE = gql`
       lastName
       profileImage
       role
-      createdAt
-      updatedAt
     }
   }
 `;

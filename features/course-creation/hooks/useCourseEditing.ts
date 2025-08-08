@@ -265,7 +265,7 @@ export const useCourseEditing = () => {
       objectives: course.objectives || [],
       prerequisites: course.prerequisites || [],
       requirements: course.requirements || [],
-      whatYoullLearn: course.whatYoullLearn || [],
+      whatYouLearn: course.whatYouLearn || [],
       targetAudience: course.targetAudience || [],
       language: course.language || "English",
       hasSubtitles: course.hasSubtitles || false,

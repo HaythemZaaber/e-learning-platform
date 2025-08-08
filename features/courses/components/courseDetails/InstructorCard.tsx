@@ -1,11 +1,8 @@
 import Image from "next/image"
 import { Star } from "lucide-react"
-import { Instructor } from "@/data/instructorsData"
+import { CourseInstructor } from "@/types/courseTypes"
 
-
-
-
-export function InstructorCard({ instructor }: { instructor: Instructor }) {
+export function InstructorCard({ instructor }: { instructor: CourseInstructor }) {
   return (
     <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-xl font-bold mb-4">Instructor</h2>
@@ -13,8 +10,8 @@ export function InstructorCard({ instructor }: { instructor: Instructor }) {
       <div className="flex items-start gap-4">
         <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
           <Image
-            src={instructor.avatar || "/placeholder.svg?height=80&width=80"}
-            alt={instructor.name}
+            src={instructor.profileImage || "/placeholder.svg?height=80&width=80"}
+            alt={`${instructor.firstName} ${instructor.lastName}`}
             width={80}
             height={80}
             className="object-cover"
@@ -22,29 +19,53 @@ export function InstructorCard({ instructor }: { instructor: Instructor }) {
         </div>
 
         <div>
-          <h3 className="text-lg font-medium text-blue-600">{instructor.name}</h3>
+          <h3 className="text-lg font-medium text-blue-600">
+            {instructor.firstName} {instructor.lastName}
+          </h3>
+
+          {instructor.title && (
+            <p className="text-sm text-gray-600 mt-1">{instructor.title}</p>
+          )}
 
           <div className="flex items-center gap-1 mt-1">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-4 h-4 ${i < Math.floor(instructor.rating) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"}`}
+                  className={`w-4 h-4 ${i < Math.floor(instructor.averageRating || 0) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"}`}
                 />
               ))}
             </div>
-            <span className="text-sm">{instructor.rating} Instructor Rating</span>
+            <span className="text-sm">{instructor.averageRating || 0} Instructor Rating</span>
           </div>
 
           <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-            <span>{instructor.reviewsCount} Reviews</span>
-            <span>{instructor.studentsCount} Students</span>
-            <span>{instructor.coursesCount} Courses</span>
+            <span>{instructor.totalStudentsTaught || 0} Students</span>
+            <span>{instructor.totalCourses || 0} Courses</span>
+            <span>{instructor.experience || 0} years experience</span>
           </div>
 
-          <p className="mt-3 text-gray-700">
-            Fred Geer is a brilliant educator, whose life work is to empower students and help them achieve their goals.
-          </p>
+          {instructor.instructorBio && (
+            <p className="mt-3 text-gray-700">
+              {instructor.instructorBio}
+            </p>
+          )}
+
+          {instructor.expertise && instructor.expertise.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm font-medium text-gray-700 mb-1">Expertise:</p>
+              <div className="flex flex-wrap gap-1">
+                {instructor.expertise.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 mt-3">
             <button className="p-1 border rounded-full">

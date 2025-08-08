@@ -370,7 +370,7 @@ const getStudentActions = (isEnrolled: boolean) => {
         icon: Eye, 
         label: "Preview", 
         action: "preview",
-        className: "border-blue-200 text-blue-700 hover:bg-blue-50"
+        className: "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-700"
       },
     };
   }
@@ -443,7 +443,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const GridView = () => (
     <Card
       className={cn(
-        "overflow-hidden pt-0 hover:shadow-2xl transition-all duration-500 min-h-[850px] border-0 shadow-lg h-full flex flex-col bg-white rounded-2xl group transform hover:-translate-y-2 cursor-pointer",
+        "overflow-hidden pt-0 hover:shadow-2xl transition-all duration-500 min-h-[800px] border-0 shadow-lg h-full flex flex-col bg-white rounded-2xl group transform hover:-translate-y-2 cursor-pointer",
         className
       )}
       onClick={handleViewDetails}
@@ -558,7 +558,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             
             <Badge className="bg-black/70 backdrop-blur-md text-white border-0 text-xs flex items-center gap-1 shadow-lg">
               <Clock className="h-3 w-3" />
-              {course.estimatedMinutes} min
+              <span className="text-xs font-semibold">{course.estimatedHours ? course.estimatedHours + "h" : ""} {course.estimatedMinutes ? course.estimatedMinutes + "min" : ""}</span>
             </Badge>
           </div>
         </div>
@@ -602,9 +602,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
 
       {/* Enhanced Content Section */}
-      <CardContent className="px-6 flex-grow flex flex-col">
+      <CardContent className="px-5 flex-grow flex flex-col">
         {/* Header with enhanced badges */}
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start mb-2">
           <Badge
             variant="secondary"
             className="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border-blue-200 text-xs font-semibold shadow-sm"
@@ -619,13 +619,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
 
         {/* Enhanced title with premium styling */}
-        <h3 className="font-bold text-lg line-clamp-2 mb-3 text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
+        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
           {course.title}
         </h3>
 
         {/* Enhanced description */}
-        <p className="text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed flex-grow">
-          {course.description}
+        <p className="text-gray-600 text-sm  mb-2 leading-relaxed flex-grow">
+          {course.description.slice(0, 140)}...
         </p>
 
         {/* Enhanced progress section for enrolled students */}
@@ -652,22 +652,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         )}
 
         {/* Learning outcomes preview for non-enrolled students */}
-        {!isEnrolled && course.whatYoullLearn && course.whatYoullLearn.length > 0 && (
+        {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
           <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
             <div className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-green-600" />
-              What you'll master
+              What you'll learn
             </div>
             <div className="space-y-1">
-              {course.whatYoullLearn.slice(0, 2).map((item, index) => (
+              {course.whatYouLearn.slice(0, 2).map((item, index) => (
                 <div key={index} className="flex items-start gap-2 text-sm text-green-700">
                   <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
                   <span className="line-clamp-1">{item}</span>
                 </div>
               ))}
-              {course.whatYoullLearn.length > 2 && (
+              {course.whatYouLearn.length > 2 && (
                 <div className="text-sm text-green-600 font-semibold">
-                  +{course.whatYoullLearn.length - 2} more skills to unlock
+                  +{course.whatYouLearn.length - 2} more skills to unlock
                 </div>
               )}
             </div>
@@ -675,7 +675,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         )}
 
         {/* Enhanced stats with premium styling */}
-        <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-4">
+        <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-2">
           <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1.5 rounded-lg">
             <BookOpen className="h-4 w-4 text-blue-500" />
             <span className="font-medium">{course.totalSections} sections</span>
@@ -691,12 +691,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           
         
           
-          {course.hasCertificate && (
-            <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1.5 rounded-lg">
-              <GraduationCap className="h-4 w-4 text-amber-500" />
-              <span className="font-medium">Certificate</span>
-            </div>
-          )}
+        
           
         
           
@@ -740,7 +735,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </CardContent>
 
       {/* Enhanced Footer */}
-      <CardFooter className="p-6 pt-0 border-t border-gray-100">
+      <CardFooter className="p-5 pt-0 pb-2 border-t border-gray-100">
         <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           {/* Enhanced Price Section */}
           <div className="flex-1">
@@ -1005,23 +1000,23 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           )}
 
           {/* Learning outcomes preview for non-enrolled */}
-          {!isEnrolled && course.whatYoullLearn && course.whatYoullLearn.length > 0 && (
+          {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
             <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
               <div className="text-base font-semibold text-green-800 mb-3 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-green-600" />
                 What you'll master in this course
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                {course.whatYoullLearn.slice(0, 6).map((item, index) => (
+                {course.whatYouLearn.slice(0, 6).map((item, index) => (
                   <div key={index} className="flex items-start gap-2 text-sm text-green-700">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">{item}</span>
                   </div>
                 ))}
               </div>
-              {course.whatYoullLearn.length > 6 && (
+              {course.whatYouLearn.length > 6 && (
                 <div className="mt-3 text-sm text-green-600 font-semibold">
-                  +{course.whatYoullLearn.length - 6} more skills to unlock
+                  +{course.whatYouLearn.length - 6} more skills to unlock
                 </div>
               )}
             </div>

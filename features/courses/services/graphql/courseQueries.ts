@@ -623,7 +623,461 @@ export const GET_COURSES_BY_INSTRUCTOR = gql`
   }
 `;
 
-// Course Sharing Queries
+// Course Sharing Queries (moved to end of file)
+
+export const GET_COURSE_ANALYTICS = gql`
+  query GetCourseAnalytics($courseId: ID!) {
+    courseAnalytics(courseId: $courseId) {
+      totalEnrollments
+      totalRevenue
+      averageRating
+      totalReviews
+      completionRate
+      averageProgress
+      monthlyEnrollments {
+        month
+        count
+      }
+      monthlyRevenue {
+        month
+        amount
+      }
+    }
+  }
+`; 
+
+// ============================================================================
+// COURSE PREVIEW AND LECTURE QUERIES
+// ============================================================================
+
+export const GET_COURSE_PREVIEW = gql`
+  query GetCoursePreview($courseId: String!) {
+    getCoursePreview(courseId: $courseId) {
+      id
+      title
+      description
+      shortDescription
+      thumbnail
+      trailer
+      galleryImages
+      
+      # Categorization
+      category
+      subcategory
+      level
+      status
+      
+      # Pricing
+      price
+      originalPrice
+      currency
+      discountPercent
+      discountValidUntil
+      
+      # Analytics & Performance
+      views
+      uniqueViews
+      completionRate
+      avgRating
+      totalRatings
+      
+      # Content Counts
+      totalSections
+      totalLectures
+      totalQuizzes
+      totalAssignments
+      totalContentItems
+      
+      # Course Settings & Features
+      isFeatured
+      isBestseller
+      isTrending
+      
+      # Instructor
+      instructor {
+        id
+        firstName
+        lastName
+        username
+        email
+        profileImage
+        title
+        bio
+        expertise
+        rating
+        totalStudents
+        totalCourses
+      }
+      instructorId
+      
+      # Content Structure (limited for preview)
+      sections {
+        id
+        title
+        description
+        order
+        lectures {
+          id
+          title
+          description
+          type
+          duration
+          order
+          isPreview
+          isLocked
+          isCompleted
+          videoUrl
+          content
+          settings
+          
+          contentItem {
+            id
+            title
+            type
+            fileUrl
+            fileName
+            fileSize
+            mimeType
+            order
+          }
+        }
+      }
+      
+      # Requirements & Outcomes
+      requirements
+      whatYouLearn
+      objectives
+      prerequisites
+      
+      # Course Details
+      language
+      subtitleLanguages
+      
+      # Advanced Features
+      hasLiveSessions
+      hasRecordings
+      hasDiscussions
+      hasAssignments
+      hasQuizzes
+      downloadableResources
+      offlineAccess
+      mobileOptimized
+      
+      # Scheduling
+      enrollmentStartDate
+      enrollmentEndDate
+      courseStartDate
+      courseEndDate
+      
+      # Capacity
+      maxStudents
+      currentEnrollments
+      waitlistEnabled
+      
+      # Reviews (limited for preview)
+      reviews {
+        id
+        rating
+        comment
+        user {
+          id
+          username
+          profileImage
+        }
+      }
+      
+      # SEO & Marketing
+      seoTitle
+      seoDescription
+      seoTags
+      marketingTags
+      targetAudience
+      
+      # Duration & Difficulty
+      estimatedHours
+      estimatedMinutes
+      difficulty
+      intensityLevel
+      
+      # Certificates & Completion
+      certificate
+      certificateTemplate
+      passingGrade
+      allowRetakes
+      maxAttempts
+      
+      # Course Settings
+      enrollmentType
+      isPublic
+      version
+      lastMajorUpdate
+      
+      # User-specific data (if enrolled)
+      enrollment {
+        id
+        status
+        progress
+        currentLessonId
+      }
+      
+      # Progress tracking
+      progress {
+        completedLectures
+        totalLectures
+        completedSections
+        lastWatchedLecture
+        timeSpent
+        completionPercentage
+        certificateEarned
+        watchTime
+        interactions
+        currentLessonId
+        streakDays
+      }
+    }
+  }
+`;
+
+export const GET_LECTURE_PREVIEW = gql`
+  query GetLecturePreview($courseId: String!, $lectureId: String!) {
+    getLecturePreview(courseId: $courseId, lectureId: $lectureId) {
+      id
+      title
+      description
+      type
+      content
+      videoUrl
+      videoProvider
+      videoDuration
+      duration
+      order
+      isPreview
+      isInteractive
+      isRequired
+      isCompleted
+      isLocked
+      
+      # AI features
+      hasAIQuiz
+      aiSummary
+      transcription
+      autoTranscript
+      
+      # Accessibility
+      captions
+      transcript
+      
+      # Download & offline
+      downloadable
+      offlineContent
+      
+      # Content association
+      contentItem {
+        id
+        title
+        type
+        fileUrl
+        fileName
+        fileSize
+        mimeType
+        contentData
+        version
+        checksum
+        order
+        isPublished
+        isDownloadable
+        requiresAuth
+      }
+      
+      # Settings and metadata
+      settings
+      metadata
+      status
+      sectionId
+      
+      # Resources
+      resources {
+        name
+        url
+        type
+      }
+      
+      # Quiz data (embedded)
+      quiz {
+        id
+        title
+        description
+        instructions
+        timeLimit
+        attempts
+        passingScore
+        showResults
+        randomize
+        isPublished
+        order
+        questions {
+          id
+          question
+          type
+          options
+          correctAnswer
+          explanation
+          points
+          order
+        }
+      }
+      
+
+      
+      # Computed fields
+      completionCount
+      averageTimeSpent
+      
+      # Navigation
+      previousLecture {
+        id
+        title
+        type
+        isLocked
+        isCompleted
+      }
+      
+      nextLecture {
+        id
+        title
+        type
+        isLocked
+        isCompleted
+      }
+      
+      # Section info
+      section {
+        id
+        title
+        description
+        order
+        lectures {
+          id
+          title
+          type
+          duration
+          order
+          isPreview
+          isLocked
+          isCompleted
+        }
+      }
+      
+      # Course info
+      course {
+        id
+        title
+        instructor {
+          id
+          firstName
+          lastName
+          username
+          profileImage
+          title
+        }
+      }
+    }
+  }
+`;
+
+export const GET_COURSE_PROGRESS = gql`
+  query GetCourseProgress($courseId: String!) {
+    getCourseProgress(courseId: $courseId) {
+      completedLectures
+      totalLectures
+      completedSections
+      lastWatchedLecture
+      timeSpent
+      completionPercentage
+      certificateEarned
+      watchTime
+      interactions
+      currentLessonId
+      streakDays
+      difficultyRating
+      aiRecommendations
+    }
+  }
+`;
+
+export const GET_LECTURE_ANALYTICS = gql`
+  query GetLectureAnalytics($lectureId: String!) {
+    getLectureAnalytics(lectureId: $lectureId) {
+      totalViews
+      uniqueViews
+      averageWatchTime
+      completionRate
+      engagementRate
+      dropOffPoints {
+        time
+        percentage
+      }
+      popularSegments {
+        startTime
+        endTime
+        viewCount
+      }
+      userInteractions {
+        type
+        count
+        timestamp
+      }
+    }
+  }
+`;
+
+export const GET_COURSE_NAVIGATION = gql`
+  query GetCourseNavigation($courseId: String!) {
+    getCourseNavigation(courseId: $courseId) {
+      sections {
+        id
+        title
+        description
+        order
+        isLocked
+        isRequired
+        estimatedDuration
+        lectures {
+          id
+          title
+          type
+          duration
+          order
+          isPreview
+          isLocked
+          isCompleted
+          isRequired
+          videoUrl
+          content
+          settings
+        }
+        totalLessons
+        totalDuration
+        completionRate
+      }
+      currentSection
+      currentLecture
+      progress {
+        completedLectures
+        totalLectures
+        completionPercentage
+        lastWatchedLecture
+        timeSpent
+        streakDays
+      }
+    }
+  }
+`;
+
+// ============================================================================
+// COURSE SHARING QUERIES
+// ============================================================================
+
 export const GET_COURSE_SHARE_LINKS = gql`
   query GetCourseShareLinks($courseId: String!) {
     getCourseShareLinks(courseId: $courseId) {
@@ -689,27 +1143,6 @@ export const GENERATE_COURSE_QR_CODE = gql`
         qrCode
       }
       errors
-    }
-  }
-`;
-
-export const GET_COURSE_ANALYTICS = gql`
-  query GetCourseAnalytics($courseId: ID!) {
-    courseAnalytics(courseId: $courseId) {
-      totalEnrollments
-      totalRevenue
-      averageRating
-      totalReviews
-      completionRate
-      averageProgress
-      monthlyEnrollments {
-        month
-        count
-      }
-      monthlyRevenue {
-        month
-        amount
-      }
     }
   }
 `; 

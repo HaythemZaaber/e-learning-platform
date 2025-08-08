@@ -174,6 +174,27 @@ export const ValidationComponent: React.FC<ValidationComponentProps> = ({
       });
     }
 
+    // What You Will Learn validation
+    if (!courseData.whatYouLearn?.some((item: string) => item.trim())) {
+      rules.push({
+        id: 'whatYouLearn-missing',
+        label: 'What You Will Learn Recommended',
+        description: 'Add specific topics students will learn to attract enrollments',
+        type: 'warning',
+        category: 'basic',
+        action: () => onNavigateToStep(0),
+        actionLabel: 'Add Topics',
+      });
+    } else {
+      rules.push({
+        id: 'whatYouLearn-good',
+        label: 'What You Will Learn Added',
+        description: `${courseData.whatYouLearn.filter((item: string) => item.trim()).length} topic(s) defined`,
+        type: 'success',
+        category: 'basic',
+      });
+    }
+
     // Step 1: Course Structure Validation
     const step1 = stepValidations[1] || { isValid: true, errors: [], warnings: [] };
     

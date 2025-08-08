@@ -9,8 +9,9 @@ import { InstructorCard } from "@/features/courses/components/courseDetails/Inst
 import { PriceCard } from "@/features/courses/components/courseDetails/PriceCard";
 import { RelatedCourses } from "@/features/courses/components/courseDetails/RelatedCourses";
 import { ReviewSection } from "@/features/courses/components/courseDetails/ReviewSection";
+import { useCoursePreview } from "@/features/courses/hooks/useCoursePreview";
+import LoadingSpinner from "@/components/ui/loadingSpinner";
 import { useState } from "react";
-import { coursesData } from "@/data/coursesData";
 
 export default function CourseDetailsPage({
   params,
@@ -18,69 +19,85 @@ export default function CourseDetailsPage({
   params: { courseId: string };
 }) {
   const [activeSection, setActiveSection] = useState("overview");
-  // In a real app, you would fetch course data based on courseId
-  const courseData = coursesData.find((course) => course.id === params.courseId);
-  if (!courseData) {
-    return <div>Course not found</div>;
+  
+  const {
+    course: courseData,
+    isLoading,
+    error,
+    isEnrolled,
+    isAuthenticated,
+  } = useCoursePreview({ courseId: params.courseId });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
   }
- 
+
+  if (error || !courseData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Course Not Found
+          </h1>
+          <p className="text-gray-600">
+            The course you're looking for doesn't exist or has been removed.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <CourseHeader course={courseData} />
+      
+      <CourseNavigation 
+        activeSection={activeSection} 
+        onSectionChange={setActiveSection} 
+      />
 
-      <div className="container pt-5 w-[90%] grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <CourseNavigation
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-          />
-
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
             <div id="overview-section">
-              <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
-                  <span>
-                    Become an advanced, confident, and modern Python programmer
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
-                  <span>
-                    Build 100+ projects including a portfolio of Python projects
-                  </span>
-                </li>
-              </ul>
+              <CourseDescription course={courseData} />
             </div>
 
             <div id="content-section">
-              <CourseContent sections={courseData.sections} courseId={params.courseId} />
+              <CourseContent 
+                sections={courseData.sections} 
+                courseId={params.courseId} 
+              />
             </div>
 
             <div id="details-section">
-              <CourseRequirements />
-              <CourseDescription />
+              <CourseRequirements course={courseData} />
             </div>
+
+            <div id="instructor-section">
+              <InstructorCard instructor={courseData.instructor} />
+            </div>
+
+            <div id="review-section">
+              <ReviewSection course={courseData} />
+            </div>
+
+            <RelatedCourses 
+              course={courseData}
+              userRole={isAuthenticated ? "STUDENT" : "VISITOR"}
+            />
           </div>
 
-          <div id="instructor-section">
-            <InstructorCard instructor={courseData.instructor as any} />
+          <div className="hidden lg:block lg:col-span-1">
+            <PriceCard
+              course={courseData}
+              isEnrolled={isEnrolled}
+            />
           </div>
-
-          <div id="review-section">
-            <ReviewSection rating={courseData.rating} />
-          </div>
-
-          <RelatedCourses instructorName={courseData.instructor.name} />
-        </div>
-
-        <div className="hidden lg:block lg:col-span-1">
-          <PriceCard
-            price={courseData.price}
-            discountPrice={courseData.discountPrice || 0}
-          />
         </div>
       </div>
     </div>

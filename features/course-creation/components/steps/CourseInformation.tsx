@@ -266,6 +266,30 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
     [data.prerequisites, updateData]
   );
 
+  const handleWhatYouLearnAdd = useCallback(() => {
+    updateData({
+      whatYouLearn: [...(data.whatYouLearn || []), ""],
+    });
+  }, [data.whatYouLearn, updateData]);
+
+  const handleWhatYouLearnChange = useCallback(
+    (index: number, value: string) => {
+      const newWhatYouLearn = [...(data.whatYouLearn || [])];
+      newWhatYouLearn[index] = value;
+      updateData({ whatYouLearn: newWhatYouLearn });
+    },
+    [data.whatYouLearn, updateData]
+  );
+
+  const handleWhatYouLearnRemove = useCallback(
+    (index: number) => {
+      const newWhatYouLearn = [...(data.whatYouLearn || [])];
+      newWhatYouLearn.splice(index, 1);
+      updateData({ whatYouLearn: newWhatYouLearn });
+    },
+    [data.whatYouLearn, updateData]
+  );
+
   const getFieldError = (fieldName: string) => {
     return validation.errors.find((error: string) => 
       error.toLowerCase().includes(fieldName.toLowerCase())
@@ -684,6 +708,78 @@ export const CourseInformation: React.FC<CourseInformationProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 Add Your First Objective
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* What You Will Learn Section */}
+      <div className="space-y-6">
+        <div className="border-b border-gray-200 pb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                What You Will Learn
+              </h3>
+              <p className="text-sm text-gray-600">
+                What specific skills and knowledge will students gain from this course?
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleWhatYouLearnAdd}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Topic
+            </button>
+          </div>
+        </div>
+
+                 <div className="space-y-3">
+           {(data.whatYouLearn && data.whatYouLearn.length > 0) ? (
+             data.whatYouLearn.map((topic: string, index: number) => (
+              <div key={index} className="flex gap-3 items-start">
+                <div className="flex-shrink-0 w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-medium mt-2">
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(e) =>
+                      handleWhatYouLearnChange(index, e.target.value)
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                    placeholder="e.g., Master the fundamentals of React Hooks"
+                    maxLength={200}
+                  />
+                  <div className="text-right mt-1">
+                    <span className="text-xs text-gray-400">
+                      {topic.length}/200
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleWhatYouLearnRemove(index)}
+                  className="flex-shrink-0 w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors mt-2"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <p className="text-gray-500 mb-4">No topics specified</p>
+              <button
+                type="button"
+                onClick={handleWhatYouLearnAdd}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Your First Topic
               </button>
             </div>
           )}

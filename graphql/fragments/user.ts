@@ -10,7 +10,5 @@ export const USER_FRAGMENT = gql`
     lastName
     profileImage
     role
-    createdAt
-    updatedAt
   }
 `;

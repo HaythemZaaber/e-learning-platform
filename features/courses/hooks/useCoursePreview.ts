@@ -388,9 +388,54 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     }
 
     try {
-      await markLectureComplete({ variables: { lectureId, courseId, progress } });
+      const result = await markLectureComplete({ 
+        variables: { lectureId, courseId, progress },
+        update: (cache, { data }) => {
+          if (data?.markLectureComplete?.success) {
+            // Update the cache immediately to mark lecture as completed
+            try {
+              const courseData = cache.readQuery({
+                query: GET_COURSE_PREVIEW,
+                variables: { courseId },
+              }) as any;
+
+              if (courseData?.getCoursePreview) {
+                const updatedCourse = {
+                  ...courseData.getCoursePreview,
+                  sections: courseData.getCoursePreview.sections.map((section: any) => ({
+                    ...section,
+                    lectures: section.lectures?.map((lecture: any) => 
+                      lecture.id === lectureId 
+                        ? { ...lecture, isCompleted: true }
+                        : lecture
+                    ) || []
+                  }))
+                };
+
+                cache.writeQuery({
+                  query: GET_COURSE_PREVIEW,
+                  variables: { courseId },
+                  data: { getCoursePreview: updatedCourse },
+                });
+              }
+            } catch (e) {
+              console.log("Cache update failed, will refetch instead");
+            }
+          }
+        }
+      });
+      
+      // Also refetch to ensure server state is synchronized
+      if (result.data?.markLectureComplete?.success) {
+        // Small delay before refetch to allow server to process
+        setTimeout(async () => {
+          await refetchProgress();
+          await refetchNavigation();
+        }, 500);
+      }
     } catch (error) {
       console.error("Failed to mark lecture complete:", error);
+      toast.error("Failed to mark lecture as complete");
     }
   };
 
@@ -400,7 +445,12 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     }
 
     try {
-      await updateLectureProgress({ variables: { lectureId, courseId, progress, timeSpent } });
+      const result = await updateLectureProgress({ variables: { lectureId, courseId, progress, timeSpent } });
+      
+      // If progress is high enough, also refetch to ensure completion status is updated
+      if (progress >= 90 && result.data?.updateLectureProgress?.success) {
+        await refetchCourse();
+      }
     } catch (error) {
       console.error("Failed to update progress:", error);
     }

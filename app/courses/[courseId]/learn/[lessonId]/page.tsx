@@ -8,24 +8,17 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  Users,
   MessageCircle,
   CheckCircle,
-  Play,
   Lock,
   ChevronDown,
   ChevronUp,
   Download,
   FileText,
-  Heart,
-  Flag,
   Share2,
   Bookmark,
   BookmarkCheck,
-  StickyNote,
   HelpCircle,
-  Settings,
-  Maximize,
   Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,20 +28,363 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useCoursePreview } from "@/features/courses/hooks/useCoursePreview";
 import { useCoursePreviewStore } from "@/stores/coursePreview.store";
+import { useVideoProgress } from "@/features/courses/hooks/useVideoProgress";
 import { VideoPlayer } from "@/features/courses/components/lessons/videoPlayer";
 import { LectureNavigation } from "@/features/courses/components/lessons/lectureNavigation";
+import { NotesPanel } from "@/features/courses/components/lessons/NotesPanel";
+import { ContentType } from "@/types/courseTypes";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { debounce } from "lodash";
+
+// Content Renderer Component for different content types
+interface ContentRendererProps {
+  contentData: any;
+  lecture: any;
+  onMarkComplete: (lectureId: string, progress: number) => Promise<void>;
+  isCompleted: boolean;
+}
+
+const ContentRenderer = ({ contentData, lecture, onMarkComplete, isCompleted }: ContentRendererProps) => {
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+
+  const handleMarkComplete = async () => {
+    if (isCompleted) {
+      toast.info("Content already marked as completed ✅");
+      return;
+    }
+
+    setIsMarkingComplete(true);
+    try {
+      await onMarkComplete(lecture.id, 100);
+      toast.success("🎉 Content marked as completed!");
+    } catch (error) {
+      toast.error("Failed to mark content as complete");
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!contentData?.url) {
+      toast.error("Download link not available");
+      return;
+    }
+
+    try {
+      // Create a temporary link to download the file
+      const link = document.createElement('a');
+      link.href = contentData.url;
+      link.download = contentData.fileName || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Auto-mark as complete for downloadable content
+      if (!isCompleted) {
+        await handleMarkComplete();
+      }
+
+      toast.success("📥 File downloaded successfully!");
+    } catch (error) {
+      toast.error("Failed to download file");
+    }
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getContentIcon = (type: ContentType) => {
+    switch (type) {
+      case 'DOCUMENT':
+        return <FileText className="w-8 h-8 text-blue-500" />;
+      case 'IMAGE':
+        return <FileText className="w-8 h-8 text-green-500" />;
+      case 'AUDIO':
+        return <FileText className="w-8 h-8 text-purple-500" />;
+      case 'ARCHIVE':
+        return <FileText className="w-8 h-8 text-orange-500" />;
+      case 'TEXT':
+        return <FileText className="w-8 h-8 text-gray-500" />;
+      case 'RESOURCE':
+        return <Download className="w-8 h-8 text-indigo-500" />;
+      default:
+        return <FileText className="w-8 h-8 text-gray-500" />;
+    }
+  };
+
+  const renderContent = () => {
+    if (!contentData) {
+      return (
+        <div className="text-center py-12">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">No Content Available</h2>
+          <p className="text-gray-600">This lecture doesn't have any content yet.</p>
+        </div>
+      );
+    }
+
+    switch (contentData.type) {
+      case 'DOCUMENT':
+      case 'RESOURCE':
+        return (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              {getContentIcon(contentData.type)}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{contentData.title || 'Document'}</h3>
+                {contentData.description && (
+                  <p className="text-gray-600 text-sm">{contentData.description}</p>
+                )}
+                {contentData.fileSize && (
+                  <p className="text-gray-500 text-xs">{formatFileSize(contentData.fileSize)}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              {contentData.isDownloadable && (
+                <Button onClick={handleDownload} className="flex-1">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download {contentData.fileName || 'File'}
+                </Button>
+              )}
+              <Button 
+                onClick={handleMarkComplete}
+                disabled={isMarkingComplete || isCompleted}
+                variant={isCompleted ? "secondary" : "default"}
+                className="flex-1"
+              >
+                {isMarkingComplete ? (
+                  <>Loading...</>
+                ) : isCompleted ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Completed
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'IMAGE':
+        return (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              {getContentIcon(contentData.type)}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{contentData.title || 'Image'}</h3>
+                {contentData.description && (
+                  <p className="text-gray-600 text-sm">{contentData.description}</p>
+                )}
+              </div>
+            </div>
+            
+            {contentData.url && (
+              <div className="mb-4">
+                <img 
+                  src={contentData.url} 
+                  alt={contentData.title || 'Lecture content'} 
+                  className="w-full h-auto rounded-lg border"
+                />
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              {contentData.isDownloadable && (
+                <Button onClick={handleDownload} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Image
+                </Button>
+              )}
+              <Button 
+                onClick={handleMarkComplete}
+                disabled={isMarkingComplete || isCompleted}
+                variant={isCompleted ? "secondary" : "default"}
+                className="flex-1"
+              >
+                {isMarkingComplete ? (
+                  <>Loading...</>
+                ) : isCompleted ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Completed
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'AUDIO':
+        return (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              {getContentIcon(contentData.type)}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{contentData.title || 'Audio'}</h3>
+                {contentData.description && (
+                  <p className="text-gray-600 text-sm">{contentData.description}</p>
+                )}
+              </div>
+            </div>
+            
+            {contentData.url && (
+              <div className="mb-4">
+                <audio controls className="w-full">
+                  <source src={contentData.url} type={contentData.mimeType || 'audio/mpeg'} />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              {contentData.isDownloadable && (
+                <Button onClick={handleDownload} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Audio
+                </Button>
+              )}
+              <Button 
+                onClick={handleMarkComplete}
+                disabled={isMarkingComplete || isCompleted}
+                variant={isCompleted ? "secondary" : "default"}
+                className="flex-1"
+              >
+                {isMarkingComplete ? (
+                  <>Loading...</>
+                ) : isCompleted ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Completed
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'TEXT':
+        return (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              {getContentIcon(contentData.type)}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{contentData.title || 'Text Content'}</h3>
+                {contentData.description && (
+                  <p className="text-gray-600 text-sm">{contentData.description}</p>
+                )}
+              </div>
+            </div>
+            
+            {contentData.url && (
+              <div className="mb-4">
+                <iframe 
+                  src={contentData.url} 
+                  className="w-full h-96 border rounded-lg"
+                  title={contentData.title || 'Text content'}
+                />
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleMarkComplete}
+              disabled={isMarkingComplete || isCompleted}
+              variant={isCompleted ? "secondary" : "default"}
+              className="w-full"
+            >
+              {isMarkingComplete ? (
+                <>Loading...</>
+              ) : isCompleted ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Completed
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Complete
+                </>
+              )}
+            </Button>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              {getContentIcon(contentData.type)}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{contentData.title || 'Content'}</h3>
+                {contentData.description && (
+                  <p className="text-gray-600 text-sm">{contentData.description}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              {contentData.isDownloadable && (
+                <Button onClick={handleDownload} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              )}
+              <Button 
+                onClick={handleMarkComplete}
+                disabled={isMarkingComplete || isCompleted}
+                variant={isCompleted ? "secondary" : "default"}
+                className="flex-1"
+              >
+                {isMarkingComplete ? (
+                  <>Loading...</>
+                ) : isCompleted ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Completed
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="p-0">
+        {renderContent()}
+      </CardContent>
+    </Card>
+  );
+};
 
 // Loading skeleton
 const LessonSkeleton = () => (
@@ -84,22 +420,18 @@ export default function LessonPage({
   // State management
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "notes" | "resources" | "discussion">("overview");
-  const [noteContent, setNoteContent] = useState("");
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
-  const progressUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastProgressRef = useRef<number>(0);
+  const [completionInProgress, setCompletionInProgress] = useState(false);
+  const completionAttemptedRef = useRef<boolean>(false);
 
   const {
     setLecture: setStoreLecture,
-    setVideoProgress,
-    videoProgress,
   } = useCoursePreviewStore();
 
   const {
     course: courseData,
     lecture: currentLecture,
-    progress,
+    progress: courseProgress,
     navigation,
     isLoading,
     error,
@@ -108,82 +440,160 @@ export default function LessonPage({
     handleMarkLectureComplete,
     handleUpdateProgress,
     handleToggleBookmark,
-    handleAddNote,
     handleDownloadResource,
     handleTrackInteraction,
+    refetchProgress,
+    updateZustandStore,
   } = useCoursePreview({ 
     courseId,
     lectureId: lessonId,
-    autoTrackView: true,
-    autoTrackProgress: false // We'll handle this manually with debouncing
+    autoTrackView: false, // Disable auto view tracking to prevent conflicts with milestone tracking
+    autoTrackProgress: false // Manual control
   });
+
+  const handleUpdateProgressRef = useRef(handleUpdateProgress);
+
+  // Update ref when function changes
+  useEffect(() => {
+    handleUpdateProgressRef.current = handleUpdateProgress;
+  }, [handleUpdateProgress]);
+
+  // Create stable wrapper for handleUpdateProgress using ref
+  const progressUpdateCallback = useCallback((progress: number, timeSpent: number) => {
+    return handleUpdateProgressRef.current(lessonId, progress, timeSpent);
+  }, [lessonId]);
+
+  // Use the video progress hook
+  const {
+    progress: videoProgress,
+    currentTime,
+    duration,
+    timeSpent,
+    isCompleted,
+    updateProgress: updateVideoProgress,
+    getInitialTime,
+
+  } = useVideoProgress(courseId, lessonId, progressUpdateCallback, currentLecture?.isCompleted);
+
+  // Track lecture view once when lecture is loaded
+  const hasTrackedView = useRef<boolean>(false);
+  const currentLectureIdRef = useRef<string>('');
+  const trackedMilestones = useRef<Set<number>>(new Set());
+  const handleTrackInteractionRef = useRef(handleTrackInteraction);
+  
+  // Update ref when function changes
+  useEffect(() => {
+    handleTrackInteractionRef.current = handleTrackInteraction;
+  }, [handleTrackInteraction]);
 
   // Update store when lecture changes
   useEffect(() => {
     if (currentLecture) {
-      setStoreLecture(currentLecture);
-    }
-  }, [currentLecture, setStoreLecture]);
-
-  // Create debounced progress update function
-  const debouncedProgressUpdate = useCallback(
-    debounce((lectureId: string, progress: number, timeSpent: number) => {
-      // Only update if progress changed significantly (more than 5%)
-      if (Math.abs(progress - lastProgressRef.current) > 5) {
-        handleUpdateProgress(lectureId, progress, timeSpent);
-        lastProgressRef.current = progress;
+      // Reset tracking if lecture changed
+      if (currentLectureIdRef.current !== currentLecture.id) {
+        hasTrackedView.current = false;
+        currentLectureIdRef.current = currentLecture.id;
+        trackedMilestones.current.clear(); // Reset milestone tracking for new lecture
       }
-    }, 5000), // Update every 5 seconds max
-    [handleUpdateProgress]
-  );
+      
+      setStoreLecture(currentLecture);
+      
+      // Reset completion state for new lecture
+      setCompletionInProgress(false);
+      completionAttemptedRef.current = false;
+      
+      // Track lecture view only once per lecture
+      if (!hasTrackedView.current && isAuthenticated) {
+        handleTrackInteractionRef.current(currentLecture.id, 'lecture_view', {
+          timestamp: Date.now(),
+          lectureTitle: currentLecture.title
+        });
+        hasTrackedView.current = true;
+      }
+      
+      console.log('📚 Lecture loaded:', {
+        id: currentLecture.id,
+        title: currentLecture.title,
+        isCompleted: currentLecture.isCompleted
+      });
+    }
+  }, [currentLecture, setStoreLecture, isAuthenticated]);
 
   // Format duration helper
   const formatDuration = useCallback((duration: number) => {
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = Math.floor(duration % 60);
+    
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
-    return `${minutes}m`;
   }, []);
 
-  // Get video URL from contentItem
-  const getVideoUrl = useCallback(() => {
+  // Format seconds to time
+  const formatTime = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    }
+    return `${secs}s`;
+  }, []);
+
+  // Get content from contentItem
+  const getContentData = useCallback(() => {
     if (!currentLecture) return null;
     
-    // First check if lecture has direct videoUrl
+    // First check if lecture has direct videoUrl (legacy support)
     if (currentLecture.videoUrl) {
-      return currentLecture.videoUrl;
+      return {
+        type: 'VIDEO' as ContentType,
+        url: currentLecture.videoUrl,
+        title: currentLecture.title,
+        description: currentLecture.description
+      };
     }
     
     // Then check contentItem
     if (currentLecture.contentItem) {
       const contentItem = currentLecture.contentItem;
-      if (contentItem.type === 'VIDEO' && contentItem.fileUrl) {
-        return contentItem.fileUrl;
-      }
+      return {
+        type: contentItem.type,
+        url: contentItem.fileUrl,
+        title: contentItem.title,
+        description: contentItem.description,
+        fileName: contentItem.fileName,
+        fileSize: contentItem.fileSize,
+        mimeType: contentItem.mimeType,
+        isDownloadable: contentItem.isDownloadable,
+        contentData: contentItem.contentData
+      };
     }
     
     return null;
   }, [currentLecture]);
 
   // Calculate lecture navigation
-  const allLectures = courseData?.sections?.flatMap(section => section.lectures || []) || [];
-  const currentIndex = allLectures.findIndex(lecture => lecture.id === currentLecture?.id);
+  const allLectures = courseData?.sections?.flatMap((section: any) => section.lectures || []) || [];
+  const currentIndex = allLectures.findIndex((lecture: any) => lecture.id === currentLecture?.id);
   const nextLecture = currentIndex < allLectures.length - 1 ? allLectures[currentIndex + 1] : null;
   const previousLecture = currentIndex > 0 ? allLectures[currentIndex - 1] : null;
 
   const handleNextLecture = useCallback(() => {
     if (nextLecture && !nextLecture.isLocked) {
-      // Mark current as complete if progress > 90%
-      if (videoProgress > 90 && currentLecture) {
-        handleMarkLectureComplete(currentLecture.id, 100);
-      }
       router.push(`/courses/${courseId}/learn/${nextLecture.id}`);
     } else if (!nextLecture) {
-      toast.success("Congratulations! You've completed all lectures in this course.");
+      toast.success("🎉 Congratulations! You've completed all lectures in this course!");
     }
-  }, [nextLecture, videoProgress, currentLecture, handleMarkLectureComplete, courseId, router]);
+  }, [nextLecture, courseId, router]);
 
   const handlePreviousLecture = useCallback(() => {
     if (previousLecture && !previousLecture.isLocked) {
@@ -199,26 +609,115 @@ export default function LessonPage({
     }
   }, [courseId, router]);
 
-  const handleVideoProgress = useCallback((progress: number) => {
-    setVideoProgress(progress);
+  const handleVideoProgress = useCallback((progress: number, currentTimeSeconds: number, durationSeconds: number) => {
+    // Update local progress tracking
+    console.log('🎯 Video progress:', {
+      progress,
+      currentTimeSeconds,
+      durationSeconds
+    });
+    updateVideoProgress(currentTimeSeconds, durationSeconds);
     
-    // Track interaction at key points
-    if (progress === 25 || progress === 50 || progress === 75) {
-      handleTrackInteraction(lessonId, `video_progress_${progress}`, { progress });
+    // Track milestones (including 100% for completion) - prevent duplicates
+    const milestones = [25, 50, 75, 100];
+    const currentMilestone = Math.floor(progress / 25) * 25;
+    if (milestones.includes(currentMilestone) && 
+        Math.abs(progress - currentMilestone) < 1 && 
+        !trackedMilestones.current.has(currentMilestone)) {
+      
+      // Mark this milestone as tracked
+      trackedMilestones.current.add(currentMilestone);
+      
+      handleTrackInteractionRef.current(lessonId, `video_progress_${currentMilestone}`, { 
+        progress: currentMilestone,
+        actualProgress: progress,
+        timeWatched: currentTimeSeconds
+      }, durationSeconds);
+      
+      if (currentMilestone === 25) {
+        toast.success("🎯 25% Complete - Keep going!");
+      } else if (currentMilestone === 50) {
+        toast.success("⭐ Halfway there!");
+      } else if (currentMilestone === 75) {
+        toast.success("🔥 Almost done - 75% complete!");
+      } else if (currentMilestone === 100) {
+        toast.success("🎉 100% Complete - Lecture finished!");
+      }
     }
     
-    // Use debounced update for progress tracking
-    if (currentLecture) {
-      const timeSpent = Math.round((progress / 100) * (currentLecture.duration || 0));
-      debouncedProgressUpdate(currentLecture.id, progress, timeSpent);
+    // Auto-complete at 100% - ONLY for incomplete lectures
+    if (progress === 100 && currentLecture && 
+        !isCompleted && 
+        !currentLecture.isCompleted && 
+        !completionInProgress && 
+        !completionAttemptedRef.current) {
+      
+      console.log('🎯 Auto-completing lecture at 100%:', {
+        lectureId: currentLecture.id,
+        progress: progress.toFixed(1),
+        isCompleted,
+        lectureCompleted: currentLecture.isCompleted,
+        completionInProgress
+      });
+      
+      setCompletionInProgress(true);
+      completionAttemptedRef.current = true;
+      
+      handleMarkLectureComplete(currentLecture.id, 100, timeSpent * 60).then(async () => {
+        toast.success("🎉 Lecture completed! Great job!", {
+          description: "You've mastered this content!",
+          duration: 5000,
+        });
+        
+        // Update completion state without aggressive refetching
+        setCompletionInProgress(false);
+        
+        // Update Zustand store immediately to reflect completion status
+        await updateZustandStore();
+        
+        // Gentle refresh of progress data only (not the entire course)
+        setTimeout(() => {
+          refetchProgress();
+          updateZustandStore(); // Update store again with fresh data
+        }, 1000);
+      }).catch((error) => {
+        console.error('❌ Failed to mark lecture complete:', error);
+        toast.error("Failed to mark lecture as complete");
+        setCompletionInProgress(false);
+        completionAttemptedRef.current = false; // Allow retry on error
+      });
     }
+
+  }, [updateVideoProgress, lessonId, currentLecture, isCompleted, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
+
+  const handleManualComplete = useCallback(async () => {
+    if (!currentLecture || completionInProgress || completionAttemptedRef.current) return;
     
-    // Auto-complete at 90%
-    if (progress >= 90 && currentLecture && !currentLecture.isCompleted) {
-      handleMarkLectureComplete(currentLecture.id, progress);
-      toast.success("🎉 Lecture completed! Great job!");
+    try {
+      setCompletionInProgress(true);
+      completionAttemptedRef.current = true;
+      
+      toast.loading("Marking lecture as complete...", { id: `complete-${currentLecture.id}` });
+      await handleMarkLectureComplete(currentLecture.id, 100, currentLecture.duration);
+      toast.success("🎉 Lecture completed!", { id: `complete-${currentLecture.id}` });
+      
+      // Update completion state without aggressive refetching
+      setCompletionInProgress(false);
+      
+      // Update Zustand store immediately to reflect completion status
+      await updateZustandStore();
+      
+      // Gentle refresh of progress data only
+      setTimeout(() => {
+        refetchProgress();
+        updateZustandStore(); // Update store again with fresh data
+      }, 1000);
+    } catch (error) {
+      toast.error("Failed to mark lecture as complete", { id: `complete-${currentLecture.id}` });
+      setCompletionInProgress(false);
+      completionAttemptedRef.current = false; // Allow retry on error
     }
-  }, [setVideoProgress, handleTrackInteraction, lessonId, currentLecture, debouncedProgressUpdate, handleMarkLectureComplete]);
+  }, [currentLecture, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
 
   const handleBookmark = useCallback(async () => {
     if (!currentLecture) return;
@@ -232,17 +731,12 @@ export default function LessonPage({
     }
   }, [currentLecture, handleToggleBookmark, isBookmarked]);
 
-  const handleSaveNote = useCallback(async () => {
-    if (!currentLecture || !noteContent.trim()) return;
-    
-    try {
-      await handleAddNote(currentLecture.id, noteContent, videoProgress);
-      toast.success("Note saved successfully");
-      setNoteContent("");
-    } catch (error) {
-      toast.error("Failed to save note");
+  const handleJumpToTimestamp = useCallback((timestamp: number) => {
+    // Use the global seek function exposed by VideoPlayer
+    if ((window as any).seekVideoTo) {
+      (window as any).seekVideoTo(timestamp);
     }
-  }, [currentLecture, noteContent, videoProgress, handleAddNote]);
+  }, []);
 
   const handleShareLecture = useCallback(async () => {
     if (!currentLecture) return;
@@ -264,16 +758,6 @@ export default function LessonPage({
       toast.error("Failed to share lecture");
     }
   }, [currentLecture, courseId]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (progressUpdateTimerRef.current) {
-        clearTimeout(progressUpdateTimerRef.current);
-      }
-      debouncedProgressUpdate.cancel();
-    };
-  }, [debouncedProgressUpdate]);
 
   if (isLoading) {
     return <LessonSkeleton />;
@@ -326,8 +810,8 @@ export default function LessonPage({
     );
   }
 
-  const videoUrl = getVideoUrl();
-  const hasVideo = !!videoUrl;
+  const contentData = getContentData();
+  const hasVideo = contentData?.type === 'VIDEO';
   const hasResources = currentLecture.resources && currentLecture.resources.length > 0;
   const hasQuiz = !!currentLecture.quiz;
 
@@ -353,6 +837,14 @@ export default function LessonPage({
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Progress indicator */}
+              {videoProgress > 0 && (
+                <div className="flex items-center gap-2 mr-3">
+                  <Progress value={videoProgress} className="w-20 h-2" />
+                  <span className="text-sm font-medium">{Math.round(videoProgress)}%</span>
+                </div>
+              )}
+              
               <Button
                 variant="ghost"
                 size="icon"
@@ -391,11 +883,11 @@ export default function LessonPage({
             "transition-all duration-300",
             sidebarCollapsed ? "lg:col-span-4" : "lg:col-span-3"
           )}>
-            {/* Video Player or Content Display */}
+            {/* Content Display */}
             {hasVideo ? (
               <Card className="overflow-hidden mb-6">
-                <VideoPlayer
-                  src={videoUrl}
+                                              <VideoPlayer
+                src={contentData?.url || ''}
                   title={currentLecture.title}
                   currentLecture={{
                     id: currentLecture.id,
@@ -404,19 +896,55 @@ export default function LessonPage({
                     hasNotes: true,
                     hasTranscript: !!currentLecture.transcript,
                   }}
+                courseId={courseId}
                   onNext={nextLecture ? handleNextLecture : undefined}
                   onPrevious={previousLecture ? handlePreviousLecture : undefined}
                   onProgress={handleVideoProgress}
+                  onSeek={handleJumpToTimestamp}
+                initialTime={getInitialTime()}
                 />
               </Card>
             ) : (
+              <ContentRenderer 
+                contentData={contentData}
+                lecture={currentLecture}
+                onMarkComplete={(lectureId, progress) => handleMarkLectureComplete(lectureId, progress, currentLecture.duration)}
+                isCompleted={isCompleted}
+              />
+            )}
+
+            {/* Progress Stats Card */}
+            {(videoProgress > 0 || timeSpent > 0) && (
               <Card className="mb-6">
-                <CardContent className="py-12 text-center">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold mb-2">Text Lecture</h2>
-                  <p className="text-gray-600">
-                    This is a text-based lecture. Read the content below.
-                  </p>
+                <CardContent className="py-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {Math.round(videoProgress)}%
+                      </div>
+                      <div className="text-xs text-gray-600">Progress</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {formatTime(timeSpent)}
+                      </div>
+                      <div className="text-xs text-gray-600">Time Watched</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {formatTime(currentTime)}
+                      </div>
+                      <div className="text-xs text-gray-600">Current Position</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {isCompleted ? "✓" : formatTime(Math.max(0, duration - currentTime))}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {isCompleted ? "Completed" : "Remaining"}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -473,33 +1001,13 @@ export default function LessonPage({
 
                     {/* Notes Tab */}
                     <TabsContent value="notes" className="mt-0">
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold mb-2">Take Notes</h3>
-                          <Textarea
-                            placeholder="Write your notes here..."
-                            value={noteContent}
-                            onChange={(e) => setNoteContent(e.target.value)}
-                            className="min-h-[200px]"
-                          />
-                          <Button 
-                            onClick={handleSaveNote}
-                            disabled={!noteContent.trim()}
-                            className="mt-3"
-                          >
-                            <StickyNote className="w-4 h-4 mr-2" />
-                            Save Note
-                          </Button>
-                        </div>
-
-                        {/* Display existing notes */}
-                        <div>
-                          <h4 className="font-medium mb-2">Your Previous Notes</h4>
-                          <p className="text-sm text-gray-600">
-                            No notes yet. Start taking notes to remember key points!
-                          </p>
-                        </div>
-                      </div>
+                      <NotesPanel
+                        lectureId={currentLecture.id}
+                        courseId={courseId}
+                        currentTime={currentTime}
+                        onNoteClick={handleJumpToTimestamp}
+                        className="h-[600px]"
+                      />
                     </TabsContent>
 
                     {/* Resources Tab */}
@@ -508,7 +1016,7 @@ export default function LessonPage({
                         <h3 className="text-lg font-semibold">Downloadable Resources</h3>
                         {hasResources ? (
                           <div className="space-y-2">
-                            {currentLecture.resources?.map((resource, index) => (
+                            {currentLecture.resources?.map((resource: any, index: number) => (
                               <div 
                                 key={index}
                                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
@@ -558,28 +1066,35 @@ export default function LessonPage({
 
             {/* Lecture Actions */}
             <div className="mt-6 space-y-4">
-              {/* Mark as Complete Button */}
-              {!currentLecture.isCompleted && (
-                <div className="text-center">
-                  <Button
-                    onClick={() => {
-                      toast.loading("Marking lecture as complete...", { id: `complete-${currentLecture.id}` });
-                      handleMarkLectureComplete(currentLecture.id, 100).then(() => {
-                        toast.success("🎉 Lecture completed! Great job!", { id: `complete-${currentLecture.id}` });
-                      }).catch(() => {
-                        toast.error("Failed to mark lecture as complete", { id: `complete-${currentLecture.id}` });
-                      });
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Mark as Complete
-                  </Button>
-                </div>
-              )}
+                          {/* Mark as Complete Button */}
+            {!currentLecture.isCompleted && !isCompleted && !completionInProgress && (
+              <div className="text-center">
+                <Button
+                  onClick={handleManualComplete}
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={completionInProgress}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Complete
+                </Button>
+              </div>
+            )}
+            
+            {/* Completion in Progress */}
+            {completionInProgress && (
+              <div className="text-center">
+                <Button
+                  disabled
+                  className="bg-gray-400 cursor-not-allowed"
+                >
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Completing...
+                </Button>
+              </div>
+            )}
               
               {/* Completed Badge */}
-              {currentLecture.isCompleted && (
+              {(currentLecture.isCompleted || isCompleted) && (
                 <div className="text-center">
                   <Badge className="bg-green-100 text-green-800 border-green-300 px-4 py-2">
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -588,30 +1103,30 @@ export default function LessonPage({
                 </div>
               )}
 
-              {/* Navigation Buttons */}
+            {/* Navigation Buttons */}
               <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  onClick={handlePreviousLecture}
-                  disabled={!previousLecture || previousLecture.isLocked}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Previous Lecture
-                </Button>
-                
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">
-                    Lecture {currentIndex + 1} of {allLectures.length}
-                  </p>
-                </div>
-                
-                <Button
-                  onClick={handleNextLecture}
-                  disabled={!nextLecture || nextLecture.isLocked}
-                >
-                  Next Lecture
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+              <Button
+                variant="outline"
+                onClick={handlePreviousLecture}
+                disabled={!previousLecture || previousLecture.isLocked}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Previous Lecture
+              </Button>
+              
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
+                  Lecture {currentIndex + 1} of {allLectures.length}
+                </p>
+              </div>
+              
+              <Button
+                onClick={handleNextLecture}
+                disabled={!nextLecture || nextLecture.isLocked}
+              >
+                Next Lecture
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
               </div>
             </div>
           </div>
@@ -620,57 +1135,59 @@ export default function LessonPage({
           {!sidebarCollapsed && (
             <div className="lg:col-span-1 space-y-4">
               <LectureNavigation
-                sections={navigation?.sections || courseData?.sections || []}
+                sections={courseData?.sections || navigation?.sections || []}
                 currentLectureId={currentLecture.id}
                 onLectureSelect={handleLectureSelect}
-                progress={progress ? {
-                  completedLectures: progress.completedLectures,
-                  totalLectures: progress.totalLectures,
-                  completionPercentage: progress.completionPercentage
+                progress={courseProgress ? {
+                  completedLectures: courseProgress.completedLectures,
+                  totalLectures: courseProgress.totalLectures,
+                  completionPercentage: courseProgress.completionPercentage
                 } : undefined}
               />
               
               {/* Progress Summary Card */}
-              {progress && (
-                <div className="bg-white rounded-lg shadow-sm border p-4">
-                  <h4 className="font-semibold text-sm mb-3">Learning Progress</h4>
-                  <div className="space-y-3">
+              {courseProgress && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Course Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Overall Progress</span>
-                      <span className="font-medium">{Math.round(progress.completionPercentage)}%</span>
+                      <span className="font-medium">{Math.round(courseProgress.completionPercentage)}%</span>
                     </div>
-                    <Progress value={progress.completionPercentage} className="h-2" />
+                    <Progress value={courseProgress.completionPercentage} className="h-2" />
                     
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{progress.completedLectures}</div>
+                        <div className="text-lg font-bold text-blue-600">{courseProgress.completedLectures}</div>
                         <div className="text-xs text-gray-600">Completed</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-gray-900">{progress.totalLectures}</div>
+                        <div className="text-lg font-bold text-gray-900">{courseProgress.totalLectures}</div>
                         <div className="text-xs text-gray-600">Total</div>
                       </div>
                     </div>
                     
-                    {progress.timeSpent > 0 && (
+                    {courseProgress.timeSpent > 0 && (
                       <div className="border-t pt-3">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Time Spent</span>
-                          <span className="font-medium">{formatDuration(progress.timeSpent)}</span>
+                          <span className="text-gray-600">Total Time</span>
+                          <span className="font-medium">{formatDuration(courseProgress.watchTime)}</span>
                         </div>
-                      </div>
-                    )}
+            </div>
+          )}
                     
-                    {progress.certificateEarned && (
+                    {courseProgress.certificateEarned && (
                       <div className="border-t pt-3">
                         <Badge className="w-full justify-center bg-green-500 text-white">
                           <Award className="w-3 h-3 mr-1" />
                           Certificate Earned!
                         </Badge>
-                      </div>
+        </div>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           )}

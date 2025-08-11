@@ -49,8 +49,11 @@ export function PriceCard({
   
   const isInCart = course ? cartItems.has(course.id) : false;
 
-  // Calculate discount
-  const isDiscounted = course?.originalPrice && course?.price && course.originalPrice > course.price;
+  // Check if course is free
+  const isFree = course?.price === 0 || course?.settings?.enrollmentType === "FREE";
+  
+  // Calculate discount (only for paid courses)
+  const isDiscounted = !isFree && course?.originalPrice && course?.price && course.originalPrice > course.price;
   const discountPercentage = isDiscounted && course?.originalPrice && course?.price 
     ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
     : 0;
@@ -147,7 +150,7 @@ export function PriceCard({
   const features = [
     {
       icon: <FaInfinity className="text-blue-500" />,
-      text: "Full lifetime access",
+      text: isFree ? "Free lifetime access" : "Full lifetime access",
       included: course.hasLifetimeAccess !== false,
     },
     {
@@ -218,17 +221,30 @@ export function PriceCard({
       <div className="p-5">
         {/* Price Section */}
         <div className="mb-5">
-          <div className="flex items-end gap-3 mb-2">
-            <span className="text-3xl font-bold text-gray-900">
-              ${course.price?.toFixed(2) || '0.00'}
-            </span>
-            {isDiscounted && course.originalPrice && (
-              <span className="text-lg text-gray-400 line-through">
-                ${course.originalPrice.toFixed(2)}
+          {isFree ? (
+            <div className="text-center">
+              <div className="text-4xl font-bold text-green-600 mb-2">FREE</div>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-green-700 font-medium">No cost to enroll</span>
+              </div>
+              <p className="text-sm text-gray-600">
+                Access all course content at no charge
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-3xl font-bold text-gray-900">
+                ${course.price?.toFixed(2) || '0.00'}
               </span>
-            )}
-          </div>
-          {course.currency && course.currency !== 'USD' && (
+              {isDiscounted && course.originalPrice && (
+                <span className="text-lg text-gray-400 line-through">
+                  ${course.originalPrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+          )}
+          {!isFree && course.currency && course.currency !== 'USD' && (
             <p className="text-sm text-gray-600">
               Currency: {course.currency}
             </p>
@@ -249,6 +265,23 @@ export function PriceCard({
               <Badge className="bg-green-100 text-green-800">
                 <Award className="w-3 h-3 mr-1" />
                 You're enrolled!
+              </Badge>
+            </div>
+          </div>
+        ) : isFree ? (
+          <div className="space-y-3">
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700"
+              size="lg"
+              onClick={handleStartLearning}
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Processing..." : "Enroll for Free"}
+            </Button>
+            <div className="text-center">
+              <Badge className="bg-green-100 text-green-800">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                No payment required
               </Badge>
             </div>
           </div>
@@ -277,7 +310,7 @@ export function PriceCard({
        
 
         {/* Gift Option */}
-        {!isEnrolled && (
+        {!isEnrolled && !isFree && (
           <button className="w-full mt-3 text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1">
             <Gift className="w-4 h-4" />
             Gift this course

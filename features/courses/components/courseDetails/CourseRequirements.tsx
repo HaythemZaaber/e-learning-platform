@@ -51,8 +51,8 @@ export function CourseRequirements({ course }: CourseRequirementsProps) {
               Requirements
             </h3>
             {requirements.length > 0 ? (
-              <ul className="space-y-2">
-                {requirements.map((req, idx) => (
+      <ul className="space-y-2">
+        {requirements.map((req, idx) => (
                   <li key={idx} className="flex items-start gap-3">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-gray-700">{req}</span>
@@ -234,9 +234,9 @@ export function CourseRequirements({ course }: CourseRequirementsProps) {
                   <li key={idx} className="flex items-start gap-3">
                     <span className="text-orange-600 mt-1">•</span>
                     <span className="text-gray-700">{prereq}</span>
-                  </li>
-                ))}
-              </ul>
+          </li>
+        ))}
+      </ul>
             </div>
           </div>
         </>

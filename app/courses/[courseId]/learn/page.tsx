@@ -8,12 +8,10 @@ import {
   Play, 
   CheckCircle, 
   Lock, 
-  Clock, 
   BookOpen,
   Award,
   ArrowLeft,
   Search,
-  Filter,
   TrendingUp,
   Target,
   Calendar,
@@ -70,9 +68,11 @@ export default function CourseLearnPage({
   const [activeTab, setActiveTab] = useState<"content" | "overview" | "resources">("content");
   
   const {
+    currentCourse,
     expandedSections,
     toggleSection,
-    setProgress: setStoreProgress
+    setProgress: setStoreProgress,
+    setCourse
   } = useCoursePreviewStore();
 
   const {
@@ -84,8 +84,14 @@ export default function CourseLearnPage({
     isEnrolled,
     isAuthenticated,
     handleMarkLectureComplete,
-    handleUpdateProgress,
   } = useCoursePreview({ courseId });
+
+  // Update store when course data changes
+  useEffect(() => {
+    if (courseData) {
+      setCourse(courseData);
+    }
+  }, [courseData, setCourse]);
 
   // Update store when progress changes
   useEffect(() => {
@@ -104,12 +110,17 @@ export default function CourseLearnPage({
   }, [navigation, expandedSections.size, toggleSection]);
 
   const formatDuration = useCallback((duration: number) => {
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = Math.floor(duration % 60);
+    
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
-    return `${minutes}m`;
   }, []);
 
   const getLectureIcon = useCallback((lecture: any) => {
@@ -125,12 +136,15 @@ export default function CourseLearnPage({
     return <Play className="w-4 h-4 text-blue-500 flex-shrink-0" />;
   }, []);
 
+  // Use store data if available, otherwise fall back to hook data
+  const courseSections = currentCourse?.sections || courseData?.sections;
+  
   // Filter lectures based on search and status
   const filteredSections = useMemo(() => {
-    if (!courseData?.sections) return [];
+    if (!courseSections) return [];
     
-    return courseData.sections.map(section => {
-      const filteredLectures = section.lectures?.filter(lecture => {
+    return courseSections.map((section: any) => {
+      const filteredLectures = section.lectures?.filter((lecture: any) => {
         const matchesSearch = !searchTerm || 
           lecture.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lecture.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -149,19 +163,19 @@ export default function CourseLearnPage({
         lectures: filteredLectures,
         visible: filteredLectures.length > 0
       };
-    }).filter(section => section.visible);
+    }).filter((section: any) => section.visible);
   }, [courseData?.sections, searchTerm, filterStatus]);
 
   // Calculate stats
   const courseStats = useMemo(() => {
-    if (!progress || !courseData) return null;
+    if (!progress || !courseSections) return null;
     
-    const totalDuration = courseData.sections?.reduce((total, section) => 
-      total + (section.lectures?.reduce((t, l) => t + (l.duration || 0), 0) || 0), 0
+    const totalDuration = courseSections.reduce((total: number, section: any) => 
+      total + (section.lectures?.reduce((t: number, l: any) => t + (l.duration || 0), 0) || 0), 0
     ) || 0;
 
     const nextLecture = navigation?.currentLecture || 
-      courseData.sections?.find(s => s.lectures?.some(l => !l.isCompleted))?.lectures?.find(l => !l.isCompleted);
+      courseSections.find((s: any) => s.lectures?.some((l: any) => !l.isCompleted))?.lectures?.find((l: any) => !l.isCompleted);
 
     return {
       totalDuration,
@@ -174,7 +188,7 @@ export default function CourseLearnPage({
       nextLecture,
       estimatedTimeToComplete: Math.max(0, totalDuration - (progress.timeSpent || 0))
     };
-  }, [progress, courseData, navigation]);
+  }, [progress, courseSections, navigation]);
 
   const handleLectureClick = useCallback((lecture: any, e: React.MouseEvent) => {
     e.preventDefault();
@@ -221,9 +235,9 @@ export default function CourseLearnPage({
     }
     
     // If no next lecture from stats, find first incomplete lecture
-    const firstIncomplete = courseData?.sections?.find(section => 
-      section.lectures?.some(lecture => !lecture.isCompleted && !lecture.isLocked)
-    )?.lectures?.find(lecture => !lecture.isCompleted && !lecture.isLocked);
+    const firstIncomplete = courseSections?.find((section: any) => 
+      section.lectures?.some((lecture: any) => !lecture.isCompleted && !lecture.isLocked)
+    )?.lectures?.find((lecture: any) => !lecture.isCompleted && !lecture.isLocked);
     
     if (firstIncomplete && firstIncomplete.id) {
       router.push(`/courses/${courseId}/learn/${firstIncomplete.id}`);
@@ -241,7 +255,7 @@ export default function CourseLearnPage({
     
     // If still no lecture found, show a message
     toast.info("No available lectures to continue with");
-  }, [courseStats, courseData, filteredSections, courseId, router]);
+  }, [courseStats, courseSections, filteredSections, courseId, router]);
 
   if (isLoading) {
     return <CourseLearnSkeleton />;
@@ -308,9 +322,9 @@ export default function CourseLearnPage({
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-bold line-clamp-1">{courseData.title}</h1>
+                <h1 className="text-xl font-bold line-clamp-1">{currentCourse?.title || courseData?.title}</h1>
                 <p className="text-sm text-gray-600">
-                  {courseData.instructor?.firstName} {courseData.instructor?.lastName}
+                  {currentCourse?.instructor?.firstName || courseData?.instructor?.firstName} {currentCourse?.instructor?.lastName || courseData?.instructor?.lastName}
                 </p>
               </div>
             </div>
@@ -389,9 +403,9 @@ export default function CourseLearnPage({
 
                 {/* Sections and Lectures */}
                 <div className="space-y-4">
-                  {filteredSections.map((section, sectionIndex) => {
+                  {filteredSections.map((section: any, sectionIndex: number) => {
                     const isExpanded = expandedSections.has(section.id);
-                    const sectionProgress = section.lectures?.filter(l => l.isCompleted).length || 0;
+                    const sectionProgress = section.lectures?.filter((l: any) => l.isCompleted).length || 0;
                     const sectionTotal = section.lectures?.length || 0;
                     const sectionPercentage = sectionTotal > 0 ? (sectionProgress / sectionTotal) * 100 : 0;
                     
@@ -432,7 +446,7 @@ export default function CourseLearnPage({
                               )}
                               <Badge variant={sectionPercentage === 100 ? "default" : "secondary"}>
                                 {sectionTotal} lectures • {formatDuration(
-                                  section.lectures?.reduce((t, l) => t + (l.duration || 0), 0) || 0
+                                  section.lectures?.reduce((t: number, l: any) => t + (l.duration || 0), 0) || 0
                                 )}
                               </Badge>
                             </div>
@@ -442,7 +456,7 @@ export default function CourseLearnPage({
                         {isExpanded && (
                           <CardContent className="pt-0">
                             <div className="divide-y">
-                              {section.lectures?.map((lecture, lectureIndex) => {
+                              {section.lectures?.map((lecture: any, lectureIndex: number) => {
                                 const isAccessible = !lecture.isLocked || isEnrolled;
                                 const isCurrent = navigation?.currentLecture === lecture.id;
                                 
@@ -565,14 +579,14 @@ export default function CourseLearnPage({
                   <CardContent className="space-y-4">
                     <div>
                       <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-gray-600">{courseData.description}</p>
+                      <p className="text-gray-600">{currentCourse?.description || courseData?.description}</p>
                     </div>
                     
-                    {courseData.whatYouLearn && courseData.whatYouLearn.length > 0 && (
+                    {(currentCourse?.whatYouLearn || courseData?.whatYouLearn) && (currentCourse?.whatYouLearn?.length || courseData?.whatYouLearn?.length) > 0 && (
                       <div>
                         <h3 className="font-semibold mb-2">What You'll Learn</h3>
                         <ul className="space-y-1">
-                          {courseData.whatYouLearn.map((item, index) => (
+                          {(currentCourse?.whatYouLearn || courseData?.whatYouLearn)?.map((item: any, index: number) => (
                             <li key={index} className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                               <span className="text-gray-600">{item}</span>
@@ -582,11 +596,11 @@ export default function CourseLearnPage({
                       </div>
                     )}
 
-                    {courseData.requirements && courseData.requirements.length > 0 && (
+                    {(currentCourse?.requirements || courseData?.requirements) && (currentCourse?.requirements?.length || courseData?.requirements?.length) > 0 && (
                       <div>
                         <h3 className="font-semibold mb-2">Requirements</h3>
                         <ul className="space-y-1">
-                          {courseData.requirements.map((item, index) => (
+                          {(currentCourse?.requirements || courseData?.requirements)?.map((item: any, index: number) => (
                             <li key={index} className="flex items-start gap-2">
                               <span className="text-gray-400">•</span>
                               <span className="text-gray-600">{item}</span>
@@ -607,9 +621,9 @@ export default function CourseLearnPage({
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4">
-                      {courseData.downloadableResources !== null && courseData.downloadableResources !== undefined && courseData.downloadableResources !== false && courseData.downloadableResources !== 0 ? (
+                      {(currentCourse?.downloadableResources || courseData?.downloadableResources) !== null && (currentCourse?.downloadableResources || courseData?.downloadableResources) !== undefined && (currentCourse?.downloadableResources || courseData?.downloadableResources) !== false && (currentCourse?.downloadableResources || courseData?.downloadableResources) !== 0 ? (
                         <p className="text-gray-600">
-                          This course includes {courseData.downloadableResources} downloadable resources.
+                          This course includes {currentCourse?.downloadableResources || courseData?.downloadableResources} downloadable resources.
                           Access them within individual lectures.
                         </p>
                       ) : (
@@ -667,12 +681,6 @@ export default function CourseLearnPage({
                         <span className="text-gray-600">Time Spent</span>
                         <span className="font-medium">
                           {formatDuration(courseStats.timeSpent)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Est. Time Left</span>
-                        <span className="font-medium">
-                          {formatDuration(courseStats.estimatedTimeToComplete)}
                         </span>
                       </div>
                       {courseStats.streakDays > 0 && (
@@ -734,9 +742,9 @@ export default function CourseLearnPage({
                     </div>
                     <div>
                       <div className="text-sm font-medium">Completion Rate</div>
-                      <div className="text-xs text-gray-600">
-                        {courseData.completionRate || 0}% avg for all students
-                      </div>
+                                             <div className="text-xs text-gray-600">
+                         {currentCourse?.completionRate || courseData?.completionRate || 0}% avg for all students
+                       </div>
                     </div>
                   </div>
                   

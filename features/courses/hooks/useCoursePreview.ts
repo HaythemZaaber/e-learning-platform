@@ -7,6 +7,7 @@ import {
   GET_LECTURE_PREVIEW,
   GET_COURSE_PROGRESS,
   GET_COURSE_NAVIGATION,
+  GET_LECTURE_NOTES,
 } from "../services/graphql/courseQueries";
 import {
   TRACK_LECTURE_VIEW,
@@ -30,7 +31,7 @@ import {
 } from "../services/graphql/courseMutations";
 import { Course, CourseLecture, CourseProgress } from "@/types/courseTypes";
 import { toast } from "sonner";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 
 interface UseCoursePreviewOptions {
   courseId: string;
@@ -45,7 +46,7 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
   const { user, isAuthenticated } = useAuth();
   const client = useApolloClient();
 
-  // ============================================================================
+  // =========================================================  ===================
   // COURSE PREVIEW QUERY
   // ============================================================================
 
@@ -378,10 +379,118 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
   }, [lectureId, autoTrackView, isAuthenticated, trackLectureView, courseId]);
 
   // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+
+  // Function to update Zustand store with latest course data
+  const updateZustandStore = useCallback(async () => {
+    try {
+      // Import the store here to avoid circular dependencies
+      const { useCoursePreviewStore } = await import('@/stores/coursePreview.store');
+      const { setCourse, setProgress } = useCoursePreviewStore.getState();
+
+      // Get latest data from Apollo cache
+      const courseData = client.readQuery({
+        query: GET_COURSE_PREVIEW,
+        variables: { courseId },
+      }) as any;
+
+      const progressData = client.readQuery({
+        query: GET_COURSE_PROGRESS,
+        variables: { courseId },
+      }) as any;
+
+      const navigationData = client.readQuery({
+        query: GET_COURSE_NAVIGATION,
+        variables: { courseId },
+      }) as any;
+
+      // Update store with latest data
+      if (courseData?.getCoursePreview) {
+        setCourse(courseData.getCoursePreview);
+      }
+
+      if (navigationData?.getCourseNavigation) {
+        setCourse(navigationData.getCourseNavigation);
+      }
+
+      if (progressData?.getCourseProgress) {
+        setProgress(progressData.getCourseProgress);
+      }
+    } catch (error) {
+      console.error("Error updating Zustand store:", error);
+    }
+  }, [client, courseId]);
+
+  // Function to update lecture duration in cache and store
+  const updateLectureDurationInCache = useCallback((lectureId: string, duration: number) => {
+    try {
+      // Update course preview cache
+      const courseData = client.readQuery({
+        query: GET_COURSE_PREVIEW,
+        variables: { courseId },
+      }) as any;
+
+      if (courseData?.getCoursePreview) {
+        const updatedCourse = {
+          ...courseData.getCoursePreview,
+          sections: courseData.getCoursePreview.sections.map((section: any) => ({
+            ...section,
+            lectures: section.lectures?.map((lecture: any) => 
+              lecture.id === lectureId 
+                ? { ...lecture, duration }
+                : lecture
+            ) || []
+          }))
+        };
+
+        client.writeQuery({
+          query: GET_COURSE_PREVIEW,
+          variables: { courseId },
+          data: { getCoursePreview: updatedCourse },
+        });
+      }
+
+      // Update course navigation cache
+      const navigationData = client.readQuery({
+        query: GET_COURSE_NAVIGATION,
+        variables: { courseId },
+      }) as any;
+
+      if (navigationData?.getCourseNavigation) {
+        const updatedNavigation = {
+          ...navigationData.getCourseNavigation,
+          sections: navigationData.getCourseNavigation.sections.map((section: any) => ({
+            ...section,
+            lectures: section.lectures?.map((lecture: any) => 
+              lecture.id === lectureId 
+                ? { ...lecture, duration }
+                : lecture
+            ) || []
+          }))
+        };
+
+        client.writeQuery({
+          query: GET_COURSE_NAVIGATION,
+          variables: { courseId },
+          data: { getCourseNavigation: updatedNavigation },
+        });
+      }
+
+      // Update Zustand store
+      const { useCoursePreviewStore } = require('@/stores/coursePreview.store');
+      const { updateLectureDuration } = useCoursePreviewStore.getState();
+      updateLectureDuration(lectureId, duration);
+    } catch (error) {
+      console.error("Error updating lecture duration in cache:", error);
+    }
+  }, [client, courseId]);
+
+  // ============================================================================
   // ACTIONS
   // ============================================================================
 
-  const handleMarkLectureComplete = async (lectureId: string, progress: number) => {
+  const handleMarkLectureComplete = async (lectureId: string, progress: number, actualDuration?: number) => {
     if (!isAuthenticated) {
       toast.error("Please sign in to track progress");
       return;
@@ -389,8 +498,9 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
 
     try {
       const result = await markLectureComplete({ 
-        variables: { lectureId, courseId, progress },
-        update: (cache, { data }) => {
+        variables: { lectureId, courseId, progress, actualDuration },
+        update: (cache, { data }, { variables }) => {
+          const mutationLectureId = variables?.lectureId;
           if (data?.markLectureComplete?.success) {
             // Update the cache immediately to mark lecture as completed
             try {
@@ -405,7 +515,7 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
                   sections: courseData.getCoursePreview.sections.map((section: any) => ({
                     ...section,
                     lectures: section.lectures?.map((lecture: any) => 
-                      lecture.id === lectureId 
+                      lecture.id === mutationLectureId 
                         ? { ...lecture, isCompleted: true }
                         : lecture
                     ) || []
@@ -417,6 +527,36 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
                   variables: { courseId },
                   data: { getCoursePreview: updatedCourse },
                 });
+
+                // Also update the navigation cache
+                try {
+                  const navigationData = cache.readQuery({
+                    query: GET_COURSE_NAVIGATION,
+                    variables: { courseId },
+                  }) as any;
+
+                  if (navigationData?.getCourseNavigation) {
+                    const updatedNavigation = {
+                      ...navigationData.getCourseNavigation,
+                      sections: navigationData.getCourseNavigation.sections.map((section: any) => ({
+                        ...section,
+                        lectures: section.lectures?.map((lecture: any) => 
+                          lecture.id === mutationLectureId 
+                            ? { ...lecture, isCompleted: true }
+                            : lecture
+                        ) || []
+                      }))
+                    };
+
+                    cache.writeQuery({
+                      query: GET_COURSE_NAVIGATION,
+                      variables: { courseId },
+                      data: { getCourseNavigation: updatedNavigation },
+                    });
+                  }
+                } catch (navError) {
+                  console.log("Navigation cache update failed:", navError);
+                }
               }
             } catch (e) {
               console.log("Cache update failed, will refetch instead");
@@ -425,12 +565,33 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
         }
       });
       
-      // Also refetch to ensure server state is synchronized
+      // Also refetch to ensure server state is synchronized and update Zustand store
       if (result.data?.markLectureComplete?.success) {
+        // Immediately update Zustand store with cache data
+        await updateZustandStore();
+        
+        // Also update the store directly to mark the lecture as completed
+        try {
+          const { useCoursePreviewStore } = await import('@/stores/coursePreview.store');
+          const { updateLectureCompletion } = useCoursePreviewStore.getState();
+          updateLectureCompletion(lectureId, true);
+        } catch (error) {
+          console.error("Error updating lecture completion in store:", error);
+        }
+        
         // Small delay before refetch to allow server to process
         setTimeout(async () => {
-          await refetchProgress();
-          await refetchNavigation();
+          try {
+            await Promise.all([
+              refetchProgress(),
+              refetchNavigation()
+            ]);
+
+            // Update Zustand store again with fresh data from server
+            await updateZustandStore();
+          } catch (error) {
+            console.error("Error refetching data after lecture completion:", error);
+          }
         }, 500);
       }
     } catch (error) {
@@ -439,13 +600,15 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     }
   };
 
-  const handleUpdateProgress = async (lectureId: string, progress: number, timeSpent: number) => {
+  const handleUpdateProgress = async (lectureId: string, progress: number, timeSpent: number, actualDuration?: number) => {
     if (!isAuthenticated) {
       return;
     }
 
     try {
-      const result = await updateLectureProgress({ variables: { lectureId, courseId, progress, timeSpent } });
+      const result = await updateLectureProgress({ 
+        variables: { lectureId, courseId, progress, timeSpent, actualDuration } 
+      });
       
       // If progress is high enough, also refetch to ensure completion status is updated
       if (progress >= 90 && result.data?.updateLectureProgress?.success) {
@@ -456,14 +619,15 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     }
   };
 
-  const handleTrackInteraction = async (lectureId: string, interactionType: string, metadata?: any) => {
+  const handleTrackInteraction = async (lectureId: string, interactionType: string, metadata?: any, actualDuration?: number) => {
     try {
       await trackLectureInteraction({ 
         variables: { 
           lectureId, 
           courseId, 
           interactionType, 
-          metadata: metadata ? JSON.stringify(metadata) : null 
+          metadata: metadata ? JSON.stringify(metadata) : null,
+          actualDuration
         } 
       });
     } catch (error) {
@@ -637,24 +801,28 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
 
   return {
     // Data
-    course,
-    lecture,
-    progress,
-    navigation,
+    course: courseData?.getCoursePreview,
+    lecture: lectureData?.getLecturePreview,
+    progress: progressData?.getCourseProgress,
+    navigation: navigationData?.getCourseNavigation,
     
     // Loading states
     isLoading: courseLoading || lectureLoading || progressLoading || navigationLoading,
-    isCourseLoading: courseLoading,
-    isLectureLoading: lectureLoading,
-    isProgressLoading: progressLoading,
-    isNavigationLoading: navigationLoading,
+    courseLoading,
+    lectureLoading,
+    progressLoading,
+    navigationLoading,
     
     // Error states
-    error: courseError?.message || lectureError?.message || filteredProgressError || filteredNavigationError,
-    courseError: courseError?.message,
-    lectureError: lectureError?.message,
-    progressError: filteredProgressError,
-    navigationError: filteredNavigationError,
+    error: courseError || lectureError || progressError || navigationError,
+    courseError,
+    lectureError,
+    progressError,
+    navigationError,
+    
+    // Enrollment status
+    isEnrolled: progressData?.getCourseProgress !== null,
+    isAuthenticated,
     
     // Refetch functions
     refetchCourse,
@@ -681,8 +849,8 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     handleCreateDiscussion,
     handleReplyToDiscussion,
     
-    // Utility
-    isEnrolled: !!course?.enrollment,
-    isAuthenticated,
+    // Utility functions
+    updateZustandStore,
+    updateLectureDurationInCache,
   };
 };

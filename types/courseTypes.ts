@@ -553,6 +553,7 @@ export interface Course {
   // Enhanced pricing
   price: number;
   originalPrice?: number;
+  enrollmentType?: EnrollmentType;
   
   currency: string;
   discountPercent?: number;
@@ -769,6 +770,7 @@ export interface CourseData {
   updatedAt?: Date;
   publishedAt?: Date;
   archivedAt?: Date;
+  enrollmentType?: EnrollmentType;
   
   // Enhanced metadata
   metadata?: any;

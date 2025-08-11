@@ -38,12 +38,17 @@ export function CourseContent({
   }, [sections]);
 
   const formatDuration = (duration: number) => {
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = Math.floor(duration % 60);
+    
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
-    return `${minutes}m`;
   };
 
   const getLectureIcon = (lecture: any) => {
@@ -78,13 +83,18 @@ export function CourseContent({
     }, 0);
   }, [sections]);
 
-  const formatTotalDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+  const formatTotalDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
     if (hours > 0) {
-      return `${hours}h ${mins}m`;
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
     }
-    return `${mins}m`;
   };
 
   const getSectionProgress = (section: CourseSection) => {

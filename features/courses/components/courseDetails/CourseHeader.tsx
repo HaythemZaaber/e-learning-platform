@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Shield,
   Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { Course } from "@/types/courseTypes";
@@ -30,6 +31,24 @@ export function CourseHeader({ course }: { course: Course | null }) {
   const { wishlistItems, addToWishlist, removeFromWishlist } = useCoursePreviewStore();
   
   const isWishlisted = course ? wishlistItems.has(course.id) : false;
+
+  // Calculate actual total duration from course sections
+  const getActualTotalDuration = () => {
+    if (!course?.sections) return { hours: 0, minutes: 0 };
+    
+    const totalSeconds = course.sections.reduce((total: number, section: any) => {
+      const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
+        lectureTotal + (lecture.duration || 0), 0) || 0;
+      return total + sectionDuration;
+    }, 0);
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    
+    return { hours, minutes };
+  };
+
+  const actualDuration = getActualTotalDuration();
 
   // Loading skeleton
   if (!course) {
@@ -87,9 +106,10 @@ export function CourseHeader({ course }: { course: Course | null }) {
   };
 
   const getBestseller = () => {
+    const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
     return (
       (course.currentEnrollments || 0) > 5000 ||
-      (course.price &&
+      (!isFree && course.price &&
         course.originalPrice &&
         course.originalPrice < course.price * 0.3)
     );
@@ -172,7 +192,13 @@ export function CourseHeader({ course }: { course: Course | null }) {
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                {getBestseller() && (
+                {(course.price === 0 || course.settings?.enrollmentType === "FREE") && (
+                  <Badge className="bg-green-500 text-white border-0 px-3 py-1">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Free Course
+                  </Badge>
+                )}
+                {getBestseller()  && (
                   <Badge className="bg-orange-500 text-white border-0 px-3 py-1">
                     <Award className="w-3 h-3 mr-1" />
                     Bestseller
@@ -190,7 +216,7 @@ export function CourseHeader({ course }: { course: Course | null }) {
                     Trending
                   </Badge>
                 )}
-                {lastUpdated && (
+                {lastUpdated  && (
                   <Badge variant="secondary" className="bg-green-500/20 border-green-400/30 text-green-200">
                     <Calendar className="w-3 h-3 mr-1" />
                     Updated {lastUpdated}
@@ -289,7 +315,7 @@ export function CourseHeader({ course }: { course: Course | null }) {
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   <span>
-                    {course.estimatedHours || 0}h {course.estimatedMinutes || 0}m
+                    {actualDuration.hours > 0 ? `${actualDuration.hours}h ` : ''}{actualDuration.minutes}m
                   </span>
                 </div>
 

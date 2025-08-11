@@ -261,6 +261,7 @@ export class CourseCreationService {
           content: lecture.content || undefined,
           contentItem, // Formatted ContentItemInput for the lecture
           settings: lecture.settings || undefined,
+          isCompleted: lecture.isCompleted || false,
         };
       }) || [],
     }));
@@ -760,6 +761,7 @@ export class CourseCreationService {
           content: lecture.content || undefined,
           contentItem: lecture.contentItem || undefined,
           settings: lecture.settings || undefined,
+          isCompleted: lecture.isCompleted || false,
         })),
       })),
       settings: {

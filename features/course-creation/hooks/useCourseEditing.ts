@@ -296,6 +296,7 @@ export const useCourseEditing = () => {
           resources: lecture.resources || [],
           quiz: lecture.quiz || null,
           order: lectureIndex,
+          isCompleted: lecture.isCompleted || false,
         })) || [],
       })) || [],
       settings: finalSettings,

@@ -279,18 +279,35 @@ export const TRACK_LECTURE_VIEW = gql`
   }
 `;
 
+
+
+export const UPDATE_LECTURE_DURATION = gql`
+  mutation UpdateLectureDuration($lectureId: String!, $duration: Float!) {
+    updateLectureDuration(lectureId: $lectureId, duration: $duration) {
+      success
+      message
+      lecture {
+        id
+        title
+        duration
+        videoDuration
+      }
+      errors
+    }
+  }
+`;
+
 export const MARK_LECTURE_COMPLETE = gql`
-  mutation MarkLectureComplete($lectureId: String!, $courseId: String!, $progress: Float!) {
-    markLectureComplete(lectureId: $lectureId, courseId: $courseId, progress: $progress) {
+  mutation MarkLectureComplete($lectureId: String!, $courseId: String!, $progress: Float!, $actualDuration: Float) {
+    markLectureComplete(lectureId: $lectureId, courseId: $courseId, progress: $progress, actualDuration: $actualDuration) {
       success
       message
       progress {
         completedLectures
         totalLectures
         completionPercentage
-        lastWatchedLecture
         timeSpent
-        streakDays
+        lastWatchedLecture
       }
       errors
     }
@@ -298,17 +315,16 @@ export const MARK_LECTURE_COMPLETE = gql`
 `;
 
 export const UPDATE_LECTURE_PROGRESS = gql`
-  mutation UpdateLectureProgress($lectureId: String!, $courseId: String!, $progress: Float!, $timeSpent: Float!) {
-    updateLectureProgress(lectureId: $lectureId, courseId: $courseId, progress: $progress, timeSpent: $timeSpent) {
+  mutation UpdateLectureProgress($lectureId: String!, $courseId: String!, $progress: Float!, $timeSpent: Float!, $actualDuration: Float) {
+    updateLectureProgress(lectureId: $lectureId, courseId: $courseId, progress: $progress, timeSpent: $timeSpent, actualDuration: $actualDuration) {
       success
       message
       progress {
         completedLectures
         totalLectures
         completionPercentage
-        lastWatchedLecture
         timeSpent
-        streakDays
+        lastWatchedLecture
       }
       errors
     }
@@ -316,8 +332,8 @@ export const UPDATE_LECTURE_PROGRESS = gql`
 `;
 
 export const TRACK_LECTURE_INTERACTION = gql`
-  mutation TrackLectureInteraction($lectureId: String!, $courseId: String!, $interactionType: String!, $metadata: JSON) {
-    trackLectureInteraction(lectureId: $lectureId, courseId: $courseId, interactionType: $interactionType, metadata: $metadata) {
+  mutation TrackLectureInteraction($lectureId: String!, $courseId: String!, $interactionType: String!, $metadata: JSON, $actualDuration: Float) {
+    trackLectureInteraction(lectureId: $lectureId, courseId: $courseId, interactionType: $interactionType, metadata: $metadata, actualDuration: $actualDuration) {
       success
       message
       errors

@@ -31,6 +31,9 @@ interface CoursePreviewState {
   courseError: string | null;
   lectureError: string | null;
   
+  // Store version for forcing re-renders
+  storeVersion: number;
+  
   // Actions
   setCourse: (course: Course | null) => void;
   setLecture: (lecture: CourseLecture | null) => void;
@@ -55,6 +58,9 @@ interface CoursePreviewState {
     lectureError: string | null;
   }>) => void;
   resetStore: () => void;
+  updateLectureCompletion: (lectureId: string, isCompleted: boolean) => void;
+  updateLectureDuration: (lectureId: string, duration: number) => void;
+  incrementStoreVersion: () => void;
 }
 
 const initialState = {
@@ -74,6 +80,7 @@ const initialState = {
   isProcessingEnrollment: false,
   courseError: null,
   lectureError: null,
+  storeVersion: 0,
 };
 
 export const useCoursePreviewStore = create<CoursePreviewState>()(
@@ -82,9 +89,15 @@ export const useCoursePreviewStore = create<CoursePreviewState>()(
       (set, get) => ({
         ...initialState,
         
-        setCourse: (course) => set({ currentCourse: course }),
+        setCourse: (course) => set((state) => ({ 
+          currentCourse: course,
+          storeVersion: state.storeVersion + 1 // Force re-render
+        })),
         setLecture: (lecture) => set({ currentLecture: lecture }),
-        setProgress: (progress) => set({ courseProgress: progress }),
+        setProgress: (progress) => set((state) => ({ 
+          courseProgress: progress,
+          storeVersion: state.storeVersion + 1 // Force re-render
+        })),
         setActiveSection: (section) => set({ activeSection: section }),
         
         toggleSection: (sectionId) => set((state) => {
@@ -130,6 +143,50 @@ export const useCoursePreviewStore = create<CoursePreviewState>()(
         setErrors: (errors) => set(errors),
         
         resetStore: () => set(initialState),
+        
+        updateLectureCompletion: (lectureId: string, isCompleted: boolean) => set((state) => {
+          if (!state.currentCourse) return state;
+          
+          const updatedCourse = {
+            ...state.currentCourse,
+            sections: state.currentCourse.sections.map((section: any) => ({
+              ...section,
+              lectures: section.lectures?.map((lecture: any) => 
+                lecture.id === lectureId 
+                  ? { ...lecture, isCompleted }
+                  : lecture
+              ) || []
+            }))
+          };
+          
+          return { 
+            currentCourse: updatedCourse,
+            storeVersion: state.storeVersion + 1 // Force re-render
+          };
+        }),
+
+        updateLectureDuration: (lectureId: string, duration: number) => set((state) => {
+          if (!state.currentCourse) return state;
+          
+          const updatedCourse = {
+            ...state.currentCourse,
+            sections: state.currentCourse.sections.map((section: any) => ({
+              ...section,
+              lectures: section.lectures?.map((lecture: any) => 
+                lecture.id === lectureId 
+                  ? { ...lecture, duration }
+                  : lecture
+              ) || []
+            }))
+          };
+          
+          return { 
+            currentCourse: updatedCourse,
+            storeVersion: state.storeVersion + 1 // Force re-render
+          };
+        }),
+
+        incrementStoreVersion: () => set((state) => ({ storeVersion: state.storeVersion + 1 })),
       }),
       {
         name: 'course-preview-storage',

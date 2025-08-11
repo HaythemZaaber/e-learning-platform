@@ -193,8 +193,7 @@ export default function CourseDetailsPage({
     course: courseData,
     progress,
     isLoading,
-    isCourseLoading,
-    isProgressLoading,
+    courseLoading,
     error,
     courseError,
     isEnrolled,
@@ -211,9 +210,6 @@ export default function CourseDetailsPage({
   useEffect(() => {
     if (courseData) {
       setCourse(courseData);
-      toast.success("Course loaded successfully", {
-        duration: 2000,
-      });
     }
   }, [courseData, setCourse]);
 
@@ -226,15 +222,15 @@ export default function CourseDetailsPage({
   // Update loading states
   useEffect(() => {
     setLoadingStates({
-      isLoadingCourse: isCourseLoading,
+      isLoadingCourse: courseLoading,
     });
-  }, [isCourseLoading, setLoadingStates]);
+  }, [courseLoading, setLoadingStates]);
 
   // Handle errors
   useEffect(() => {
     if (courseError) {
-      setErrors({ courseError });
-      toast.error(courseError, {
+      setErrors({ courseError: courseError.message });
+      toast.error(courseError.message, {
         duration: 5000,
       });
     }
@@ -271,7 +267,7 @@ export default function CourseDetailsPage({
 
   // Error state
   if (error && !courseData) {
-    return <CourseErrorState error={error} onRetry={handleRetry} />;
+    return <CourseErrorState error={error.message} onRetry={handleRetry} />;
   }
 
   // Not found state
@@ -279,11 +275,29 @@ export default function CourseDetailsPage({
     return <CourseNotFound />;
   }
 
+  // Calculate actual total duration from course sections
+  const getActualTotalDuration = () => {
+    if (!courseData?.sections) return { hours: 0, minutes: 0 };
+    
+    const totalSeconds = courseData.sections.reduce((total: number, section: any) => {
+      const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
+        lectureTotal + (lecture.duration || 0), 0) || 0;
+      return total + sectionDuration;
+    }, 0);
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    
+    return { hours, minutes };
+  };
+
+  const actualDuration = getActualTotalDuration();
+
   // Course details quick stats
   const quickStats = courseData ? [
     {
       icon: <Clock className="h-4 w-4" />,
-      label: `${courseData.estimatedHours || 0}h ${courseData.estimatedMinutes || 0}m`,
+      label: `${actualDuration.hours > 0 ? `${actualDuration.hours}h ` : ''}${actualDuration.minutes}m`,
     },
     {
       icon: <BookOpen className="h-4 w-4" />,

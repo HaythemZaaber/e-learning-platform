@@ -1005,6 +1005,21 @@ export const GET_COURSE_PROGRESS = gql`
   }
 `;
 
+export const GET_LECTURE_NOTES = gql`
+  query GetLectureNotes($lectureId: String!) {
+    getLectureNotes(lectureId: $lectureId) {
+      success
+      message
+      notes {
+        id
+        content
+       
+      }
+      errors
+    }
+  }
+`;
+
 export const GET_LECTURE_ANALYTICS = gql`
   query GetLectureAnalytics($lectureId: String!) {
     getLectureAnalytics(lectureId: $lectureId) {

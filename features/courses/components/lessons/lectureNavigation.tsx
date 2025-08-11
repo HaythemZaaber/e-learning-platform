@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ChevronDown, ChevronUp, Play, CheckCircle, Lock, Clock, Award, Target, ExpandIcon, MinimizeIcon } from "lucide-react";
 import { CourseSection, CourseLecture } from "@/types/courseTypes";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useCoursePreviewStore } from "@/stores/coursePreview.store";
 
 interface LectureNavigationProps {
   sections: CourseSection[];
@@ -25,122 +26,92 @@ export function LectureNavigation({
   onLectureSelect,
   progress,
 }: LectureNavigationProps) {
+  // Use the store for consistent state management
+  const {
+    currentCourse,
+    expandedSections,
+    toggleSection,
+    setActiveSection,
+    storeVersion
+  } = useCoursePreviewStore();
+
+  // Use course data from store if available, otherwise fall back to props
+  const courseSections = currentCourse?.sections || sections;
+  
   // Find the section containing the current lecture and expand it by default
   const currentSectionId = useMemo(() => {
-    if (!sections || sections.length === 0 || !currentLectureId) return null;
+    if (!courseSections || courseSections.length === 0 || !currentLectureId) return null;
     
-    return sections.find(section => 
+    // Debug logging to help identify the issue
+    console.log('🔍 LectureNavigation Debug:', {
+      sectionsCount: courseSections?.length,
+      sections: courseSections?.map(s => ({ id: s.id, title: s.title, lecturesCount: s.lectures?.length })),
+      currentLectureId,
+      currentLectureFound: courseSections?.some(section => 
+        section.lectures?.some(lecture => lecture.id === currentLectureId)
+      ),
+      usingStoreData: !!currentCourse
+    });
+    
+    return courseSections.find(section => 
       section.lectures && section.lectures.length > 0 && 
       section.lectures.some(lecture => lecture.id === currentLectureId)
     )?.id || null;
-  }, [sections, currentLectureId]);
-
-  // Initialize expanded sections with current section or first section
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
-    const initialSections = new Set<string>();
-    
-    // Try to restore from localStorage first
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('lecture-navigation-expanded');
-        if (stored) {
-          const parsed = JSON.parse(stored) as string[];
-          parsed.forEach(id => initialSections.add(id));
-        }
-      } catch (e) {
-        console.log('Failed to restore expanded sections from localStorage');
-      }
-    }
-    
-    // If nothing restored, use default logic
-    if (initialSections.size === 0) {
-      // Always expand the current section if found
-      if (currentSectionId) {
-        initialSections.add(currentSectionId);
-      }
-      // If no current section but we have sections, expand the first one
-      else if (sections && sections.length > 0) {
-        initialSections.add(sections[0].id);
-      }
-    }
-    
-    return initialSections;
-  });
+  }, [courseSections, currentLectureId, currentCourse]);
 
   // Update expanded sections when current lecture changes or sections are loaded
   useEffect(() => {
     if (currentSectionId && !expandedSections.has(currentSectionId)) {
-      setExpandedSections(prev => new Set([...prev, currentSectionId]));
+      toggleSection(currentSectionId);
     }
     // Emergency fallback: if we have a current lecture but no sections are expanded, expand its section
-    else if (currentLectureId && expandedSections.size === 0 && sections.length > 0) {
-      const fallbackSection = sections.find(section => 
+    else if (currentLectureId && expandedSections.size === 0 && courseSections.length > 0) {
+      const fallbackSection = courseSections.find(section => 
         section?.lectures?.some(lecture => lecture?.id === currentLectureId)
       );
       if (fallbackSection) {
-        setExpandedSections(new Set([fallbackSection.id]));
+        toggleSection(fallbackSection.id);
       } else {
         // Last resort: expand first section
-        setExpandedSections(new Set([sections[0].id]));
+        toggleSection(courseSections[0].id);
       }
     }
-  }, [currentSectionId, currentLectureId, expandedSections.size, sections]);
+  }, [currentSectionId, currentLectureId, expandedSections.size, courseSections, toggleSection]);
 
   // Ensure at least one section is expanded when sections load
   useEffect(() => {
-    if (sections && sections.length > 0 && expandedSections.size === 0) {
-      const sectionToExpand = currentSectionId || sections[0].id;
-      setExpandedSections(new Set([sectionToExpand]));
+    if (courseSections && courseSections.length > 0 && expandedSections.size === 0) {
+      const sectionToExpand = currentSectionId || courseSections[0].id;
+      toggleSection(sectionToExpand);
     }
-  }, [sections, currentSectionId, expandedSections.size]);
-
-  // Save expanded sections to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== 'undefined' && expandedSections.size > 0) {
-      try {
-        localStorage.setItem('lecture-navigation-expanded', JSON.stringify(Array.from(expandedSections)));
-      } catch (e) {
-        console.log('Failed to save expanded sections to localStorage');
-      }
-    }
-  }, [expandedSections]);
-
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
-    setExpandedSections(newExpanded);
-    
-    // Persist to localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('lecture-navigation-expanded', JSON.stringify(Array.from(newExpanded)));
-      } catch (e) {
-        console.log('Failed to save expanded sections to localStorage');
-      }
-    }
-  };
+  }, [courseSections, currentSectionId, expandedSections.size, toggleSection]);
 
   const expandAllSections = () => {
-    const allSectionIds = sections.map(section => section.id);
-    const newExpanded = new Set(allSectionIds);
-    setExpandedSections(newExpanded);
+    courseSections.forEach(section => {
+      if (!expandedSections.has(section.id)) {
+        toggleSection(section.id);
+      }
+    });
   };
 
   const collapseAllSections = () => {
-    setExpandedSections(new Set());
+    expandedSections.forEach(sectionId => {
+      toggleSection(sectionId);
+    });
   };
 
   const formatDuration = (duration: number) => {
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = Math.floor(duration % 60);
+    
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
-    return `${minutes}m`;
   };
 
   const getLectureIcon = (lecture: CourseLecture) => {
@@ -157,6 +128,15 @@ export function LectureNavigation({
   };
 
   const getSectionStats = (section: CourseSection) => {
+    // Add debugging for empty sections
+    if (!section.lectures || section.lectures.length === 0) {
+      console.log('⚠️ Empty section detected:', {
+        sectionId: section.id,
+        sectionTitle: section.title,
+        lectures: section.lectures
+      });
+    }
+    
     const total = section.lectures?.length || 0;
     const completed = section.lectures?.filter(l => l.isCompleted).length || 0;
     const duration = section.lectures?.reduce((sum, l) => sum + (l.duration || 0), 0) || 0;
@@ -166,7 +146,7 @@ export function LectureNavigation({
   };
 
   // Loading state
-  if (!sections || sections.length === 0) {
+  if (!courseSections || courseSections.length === 0) {
     console.log('⚠️ No sections available for navigation');
     return (
       <div className="bg-white rounded-lg shadow-sm border">
@@ -184,6 +164,39 @@ export function LectureNavigation({
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check for valid sections with lectures
+  const validSections = courseSections.filter(section => 
+    section && 
+    section.id && 
+    section.title && 
+    section.lectures && 
+    section.lectures.length > 0
+  );
+
+  if (validSections.length === 0) {
+    console.log('⚠️ No valid sections with lectures found:', {
+      totalSections: courseSections.length,
+      sections: courseSections.map(s => ({ id: s.id, title: s.title, lecturesCount: s.lectures?.length })),
+      usingStoreData: !!currentCourse
+    });
+    return (
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold text-lg">Course Content</h3>
+        </div>
+        <div className="p-4">
+          <div className="text-center space-y-3">
+            <p className="text-gray-500">No course content available</p>
+            <p className="text-xs text-gray-400">
+              Sections: {courseSections.length} | Valid: {validSections.length} | 
+              {currentCourse ? ' Using Store Data' : ' Using Props Data'}
+            </p>
           </div>
         </div>
       </div>
@@ -237,7 +250,7 @@ export function LectureNavigation({
       </div>
 
       <div className="max-h-[70vh] overflow-y-auto">
-        {sections.filter(section => section && section.id).map((section, sectionIndex) => {
+        {validSections.map((section, sectionIndex) => {
           const sectionStats = getSectionStats(section);
           const isCurrentSection = section.id === currentSectionId;
           const isExpanded = expandedSections.has(section.id);

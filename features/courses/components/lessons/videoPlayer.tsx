@@ -12,13 +12,13 @@ import {
   SkipForward,
   Settings,
   FileText,
-  Download,
   AlertCircle,
   Loader2,
   Rewind,
   FastForward,
   PictureInPicture,
   Subtitles,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -32,6 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useVideoDuration } from "@/features/courses/hooks/useVideoDuration";
 
 interface VideoPlayerProps {
   src: string;
@@ -44,30 +45,41 @@ interface VideoPlayerProps {
     hasTranscript?: boolean;
     hasSubtitles?: boolean;
   };
+  courseId?: string; // Add courseId for cache updates
   onNext?: () => void;
   onPrevious?: () => void;
-  onProgress?: (progress: number) => void;
-  initialProgress?: number;
+  onProgress?: (progress: number, currentTime: number, duration: number) => void;
+  initialTime?: number; // Start time in seconds
+  onSeek?: (timestamp: number) => void; // Add seek callback
 }
 
 export function VideoPlayer({
   src,
   title,
   currentLecture,
+  courseId,
   onNext,
   onPrevious,
   onProgress,
-  initialProgress = 0,
+  initialTime = 0,
+  onSeek,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressReportTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastReportedProgress = useRef<number>(0);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSetInitialTime = useRef<boolean>(false);
+  const progressSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProgressSyncRef = useRef<number>(0);
+  const durationDetectedRef = useRef<boolean>(false);
+
+  // Video duration detection
+  const { updateLectureDuration } = useVideoDuration();
 
   // Video state
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(initialTime || 0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -85,43 +97,76 @@ export function VideoPlayer({
   const [videoError, setVideoError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Features
-  const [showNotes, setShowNotes] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [markers, setMarkers] = useState<Array<{ time: number; label: string }>>([]);
+  // Progress tracking state
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  // Initialize video with saved progress
-  useEffect(() => {
-    if (videoRef.current && initialProgress > 0 && duration > 0) {
-      const startTime = (initialProgress / 100) * duration;
-      videoRef.current.currentTime = startTime;
+  // Sync progress to backend at intervals
+  const syncProgress = useCallback(() => {
+    if (!onProgress || !duration || duration === 0 || !videoRef.current) return;
+    
+    const current = videoRef.current.currentTime;
+    const progress = (current / duration) * 100;
+    
+    // Only sync if progress changed significantly (at least 1%)
+    if (Math.abs(progress - lastProgressSyncRef.current) >= 1) {
+      onProgress(progress, current, duration);
+      lastProgressSyncRef.current = progress;
+      
+      console.log('📊 Progress synced:', {
+        progress: progress.toFixed(1) + '%',
+        currentTime: current.toFixed(0) + 's',
+        duration: duration.toFixed(0) + 's'
+      });
     }
-  }, [initialProgress, duration]);
+  }, [onProgress, duration]);
 
-  // Report progress periodically (every 10 seconds of actual watch time)
+  // Seek to specific timestamp
+  const seekTo = useCallback((timestamp: number) => {
+    if (videoRef.current && duration > 0) {
+      const clampedTime = Math.max(0, Math.min(timestamp, duration));
+      videoRef.current.currentTime = clampedTime;
+      setCurrentTime(clampedTime);
+      
+      // Notify parent component
+      if (onSeek) {
+        onSeek(clampedTime);
+      }
+      
+      console.log('🎯 Seeking to:', formatTime(clampedTime));
+    }
+  }, [duration, onSeek]);
+
+  // Expose seek function to parent component
   useEffect(() => {
-    if (isPlaying && onProgress) {
-      progressIntervalRef.current = setInterval(() => {
-        const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-        
-        // Only report if progress changed by at least 1%
-        if (Math.abs(progress - lastReportedProgress.current) >= 1) {
-          onProgress(progress);
-          lastReportedProgress.current = progress;
-        }
-      }, 10000); // Every 10 seconds
+    if (onSeek) {
+      // Create a global function that can be called from parent
+      (window as any).seekVideoTo = seekTo;
+    }
+    
+    return () => {
+      delete (window as any).seekVideoTo;
+    };
+  }, [seekTo, onSeek]);
+
+  // Set up progress sync interval - only when playing
+  useEffect(() => {
+    if (isPlaying && hasStarted) {
+      // Sync progress every 10 seconds while playing
+      progressSyncIntervalRef.current = setInterval(syncProgress, 10000);
     } else {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      if (progressSyncIntervalRef.current) {
+        clearInterval(progressSyncIntervalRef.current);
+        progressSyncIntervalRef.current = null;
       }
     }
-
+    
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      if (progressSyncIntervalRef.current) {
+        clearInterval(progressSyncIntervalRef.current);
       }
     };
-  }, [isPlaying, currentTime, duration, onProgress]);
+  }, [isPlaying, hasStarted, syncProgress]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -163,11 +208,42 @@ export function VideoPlayer({
   }, [isPlaying]);
 
   // Video event handlers
-  const handleLoadedMetadata = useCallback(() => {
+  const handleLoadedMetadata = useCallback(async () => {
     if (!videoRef.current) return;
-    setDuration(videoRef.current.duration);
+    
+    const videoDuration = videoRef.current.duration;
+    setDuration(videoDuration);
     setIsLoading(false);
     setVideoError(false);
+    
+    // Detect and update video duration if not already done
+    if (videoDuration > 0 && !durationDetectedRef.current && src && courseId) {
+      durationDetectedRef.current = true;
+      
+      // Try to update the lecture duration with the video element duration
+      try {
+        await updateLectureDuration(currentLecture.id, videoDuration, courseId);
+        console.log('✅ Video duration updated:', {
+          lectureId: currentLecture.id,
+          duration: `${Math.floor(videoDuration / 60)}m ${videoDuration % 60}s`
+        });
+      } catch (updateError) {
+        console.log('ℹ️ Could not update lecture duration:', updateError);
+      }
+    }
+    
+    // Set initial time if provided and not already set
+    if (initialTime > 0 && !hasSetInitialTime.current && videoDuration > 0) {
+      const startTime = Math.min(initialTime, videoDuration - 1);
+      videoRef.current.currentTime = startTime;
+      setCurrentTime(startTime);
+      
+      // Also update progress percentage to match the initial time
+      const initialProgress = (startTime / videoDuration) * 100;
+      setProgressPercentage(initialProgress);
+      
+      hasSetInitialTime.current = true;
+    }
     
     // Restore volume from localStorage
     const savedVolume = localStorage.getItem("videoPlayerVolume");
@@ -184,18 +260,62 @@ export function VideoPlayer({
       videoRef.current.playbackRate = rate;
       setPlaybackRate(rate);
     }
-  }, []);
+  }, [initialTime, src, currentLecture.id, courseId, updateLectureDuration]);
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
-    setCurrentTime(videoRef.current.currentTime);
     
-    // Update buffered amount
+    const current = videoRef.current.currentTime;
+    const total = videoRef.current.duration;
+    
+    // Only update local state, no progress callbacks
+    setCurrentTime(current);
+    
+    // Update progress percentage for UI only
+    if (total > 0) {
+      const progress = (current / total) * 100;
+      setProgressPercentage(progress);
+    }
+    
+    // Update buffered amount for UI
     if (videoRef.current.buffered.length > 0) {
       const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
-      setBuffered((bufferedEnd / videoRef.current.duration) * 100);
+      setBuffered((bufferedEnd / total) * 100);
     }
   }, []);
+
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+    setHasStarted(true);
+  }, []);
+
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
+    // Sync progress when paused
+    syncProgress();
+  }, [syncProgress]);
+
+  const handleEnded = useCallback(() => {
+    setIsPlaying(false);
+    
+    // Report 100% completion
+    if (onProgress) {
+      onProgress(100, duration, duration);
+    }
+    
+    // Auto-play next if available
+    if (onNext) {
+      toast.success("Lecture completed! Moving to next...", {
+        action: {
+          label: "Stay here",
+          onClick: () => {
+            // Cancel navigation
+          },
+        },
+      });
+      setTimeout(onNext, 3000);
+    }
+  }, [duration, onProgress, onNext]);
 
   const handleVideoError = useCallback((e: any) => {
     console.error("Video error:", e);
@@ -203,15 +323,8 @@ export function VideoPlayer({
     setIsLoading(false);
     setIsPlaying(false);
     
-    // Determine error message
     if (!src) {
       setErrorMessage("No video source provided");
-    } else if (e.target?.error?.code === 4) {
-      setErrorMessage("Video format not supported");
-    } else if (e.target?.error?.code === 3) {
-      setErrorMessage("Video decoding failed");
-    } else if (e.target?.error?.code === 2) {
-      setErrorMessage("Network error while loading video");
     } else {
       setErrorMessage("Failed to load video");
     }
@@ -231,25 +344,6 @@ export function VideoPlayer({
     setIsBuffering(false);
     setIsPlaying(true);
   }, []);
-
-  const handlePause = useCallback(() => {
-    setIsPlaying(false);
-  }, []);
-
-  const handleEnded = useCallback(() => {
-    setIsPlaying(false);
-    
-    // Report 100% completion
-    if (onProgress) {
-      onProgress(100);
-    }
-    
-    // Auto-play next if available
-    if (onNext) {
-      toast.success("Lecture completed! Moving to next lecture...");
-      setTimeout(onNext, 2000);
-    }
-  }, [onProgress, onNext]);
 
   // Control functions
   const togglePlay = useCallback(() => {
@@ -271,7 +365,6 @@ export function VideoPlayer({
     const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
     videoRef.current.currentTime = newTime;
     
-    // Show skip indicator
     toast(`${seconds > 0 ? 'Forward' : 'Backward'} ${Math.abs(seconds)} seconds`, {
       duration: 1000,
     });
@@ -283,19 +376,10 @@ export function VideoPlayer({
     const newTime = (value[0] / 100) * duration;
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-  }, [duration, videoError]);
-
-  const adjustVolume = useCallback((delta: number) => {
-    if (!videoRef.current) return;
     
-    const newVolume = Math.max(0, Math.min(1, volume + delta));
-    videoRef.current.volume = newVolume;
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-    
-    // Save to localStorage
-    localStorage.setItem("videoPlayerVolume", newVolume.toString());
-  }, [volume]);
+    // Sync progress immediately after seeking
+    syncProgress();
+  }, [duration, videoError, syncProgress]);
 
   const handleVolumeChange = useCallback((value: number[]) => {
     if (!videoRef.current) return;
@@ -305,7 +389,6 @@ export function VideoPlayer({
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
     
-    // Save to localStorage
     localStorage.setItem("videoPlayerVolume", newVolume.toString());
   }, []);
 
@@ -326,8 +409,6 @@ export function VideoPlayer({
     
     videoRef.current.playbackRate = rate;
     setPlaybackRate(rate);
-    
-    // Save to localStorage
     localStorage.setItem("videoPlayerRate", rate.toString());
     
     toast(`Playback speed: ${rate}x`, { duration: 1000 });
@@ -366,6 +447,18 @@ export function VideoPlayer({
     }
   }, [isPiP]);
 
+  const restartVideo = useCallback(() => {
+    if (!videoRef.current) return;
+    
+    videoRef.current.currentTime = 0;
+    setCurrentTime(0);
+    if (!isPlaying) {
+      videoRef.current.play();
+    }
+    
+    toast("Video restarted", { duration: 1000 });
+  }, [isPlaying]);
+
   const formatTime = useCallback((time: number) => {
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
@@ -381,8 +474,6 @@ export function VideoPlayer({
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!videoRef.current || videoError) return;
-
-      // Don't handle if user is typing
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -394,22 +485,12 @@ export function VideoPlayer({
           togglePlay();
           break;
         case "ArrowLeft":
-        case "KeyJ":
           e.preventDefault();
           skip(-10);
           break;
         case "ArrowRight":
-        case "KeyL":
           e.preventDefault();
           skip(10);
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          adjustVolume(0.1);
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          adjustVolume(-0.1);
           break;
         case "KeyM":
           e.preventDefault();
@@ -419,24 +500,15 @@ export function VideoPlayer({
           e.preventDefault();
           toggleFullscreen();
           break;
-        case "KeyP":
+        case "KeyR":
           e.preventDefault();
-          togglePiP();
+          restartVideo();
           break;
-        case "KeyC":
+        case "Digit0":
+        case "Numpad0":
           e.preventDefault();
-          setShowSubtitles(!showSubtitles);
-          break;
-        case "Comma":
-          if (e.shiftKey) {
-            e.preventDefault();
-            changePlaybackRate(Math.max(0.25, playbackRate - 0.25));
-          }
-          break;
-        case "Period":
-          if (e.shiftKey) {
-            e.preventDefault();
-            changePlaybackRate(Math.min(2, playbackRate + 0.25));
+          if (videoRef.current) {
+            videoRef.current.currentTime = 0;
           }
           break;
       }
@@ -444,21 +516,23 @@ export function VideoPlayer({
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [videoError, showSubtitles, playbackRate, togglePlay, skip, adjustVolume, toggleMute, toggleFullscreen, togglePiP, changePlaybackRate]);
+  }, [videoError, togglePlay, skip, toggleMute, toggleFullscreen, restartVideo]);
 
   // Cleanup
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      // Final progress sync on unmount
+      syncProgress();
+      
+      if (progressSyncIntervalRef.current) {
+        clearInterval(progressSyncIntervalRef.current);
       }
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, []);
+  }, [syncProgress]);
 
-  // Use fallback video URL for testing if no source provided
   const videoSrc = src || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
   return (
@@ -469,28 +543,13 @@ export function VideoPlayer({
           <div>
             <h2 className="text-white font-semibold">{currentLecture.title}</h2>
             <div className="flex items-center gap-3 mt-1">
-              <span className="text-gray-400 text-sm">Duration: {currentLecture.duration}</span>
-              {currentLecture.hasNotes && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNotes(!showNotes)}
-                  className="h-auto p-1 text-gray-400 hover:text-white"
-                >
-                  <FileText className="w-4 h-4 mr-1" />
-                  Notes
-                </Button>
-              )}
-              {currentLecture.hasTranscript && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowTranscript(!showTranscript)}
-                  className="h-auto p-1 text-gray-400 hover:text-white"
-                >
-                  <Subtitles className="w-4 h-4 mr-1" />
-                  Transcript
-                </Button>
+              <span className="text-gray-400 text-sm">
+                Duration: {currentLecture.duration}
+              </span>
+              {progressPercentage > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {Math.round(progressPercentage)}% watched
+                </Badge>
               )}
             </div>
           </div>
@@ -527,16 +586,12 @@ export function VideoPlayer({
         onMouseEnter={() => setShowControls(true)}
       >
         {videoError ? (
-          // Error State
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
             <div className="text-center p-8">
               <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
               <h3 className="text-lg font-medium text-white mb-2">
                 {errorMessage}
               </h3>
-              <p className="text-gray-400 mb-4 max-w-md">
-                Please check your internet connection or try refreshing the page.
-              </p>
               <Button
                 variant="secondary"
                 onClick={() => window.location.reload()}
@@ -556,6 +611,7 @@ export function VideoPlayer({
               onCanPlay={handleCanPlay}
               onWaiting={handleWaiting}
               onPlaying={handlePlaying}
+              onPlay={handlePlay}
               onPause={handlePause}
               onEnded={handleEnded}
               onError={handleVideoError}
@@ -605,23 +661,13 @@ export function VideoPlayer({
                   />
                   
                   <Slider
-                    value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
+                    value={[duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0]}
                     onValueChange={handleSeek}
                     max={100}
                     step={0.1}
                     className="w-full"
                     disabled={videoError}
                   />
-                  
-                  {/* Chapter markers */}
-                  {markers.map((marker, index) => (
-                    <div
-                      key={index}
-                      className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-yellow-500 rounded-full pointer-events-none"
-                      style={{ left: `${(marker.time / duration) * 100}%` }}
-                      title={marker.label}
-                    />
-                  ))}
                 </div>
               </div>
 
@@ -644,6 +690,18 @@ export function VideoPlayer({
                       )}
                     </Button>
 
+                    {/* Restart */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={restartVideo}
+                      className="text-white hover:bg-white/20"
+                      disabled={videoError}
+                      title="Restart (R)"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+
                     {/* Skip backward */}
                     <Button
                       variant="ghost"
@@ -651,6 +709,7 @@ export function VideoPlayer({
                       onClick={() => skip(-10)}
                       className="text-white hover:bg-white/20"
                       disabled={videoError}
+                      title="Back 10s (←)"
                     >
                       <Rewind className="w-5 h-5" />
                     </Button>
@@ -662,6 +721,7 @@ export function VideoPlayer({
                       onClick={() => skip(10)}
                       className="text-white hover:bg-white/20"
                       disabled={videoError}
+                      title="Forward 10s (→)"
                     >
                       <FastForward className="w-5 h-5" />
                     </Button>
@@ -673,6 +733,7 @@ export function VideoPlayer({
                         size="icon"
                         onClick={toggleMute}
                         className="text-white hover:bg-white/20"
+                        title="Mute (M)"
                       >
                         {isMuted || volume === 0 ? (
                           <VolumeX className="w-5 h-5" />
@@ -770,6 +831,7 @@ export function VideoPlayer({
                         "text-white hover:bg-white/20 hidden sm:inline-flex",
                         isPiP && "bg-white/20"
                       )}
+                      title="Picture in Picture (P)"
                     >
                       <PictureInPicture className="w-5 h-5" />
                     </Button>
@@ -780,6 +842,7 @@ export function VideoPlayer({
                       size="icon"
                       onClick={toggleFullscreen}
                       className="text-white hover:bg-white/20"
+                      title="Fullscreen (F)"
                     >
                       {isFullscreen ? (
                         <Minimize className="w-5 h-5" />
@@ -802,48 +865,10 @@ export function VideoPlayer({
           <span>←/→: Skip 10s</span>
           <span>M: Mute</span>
           <span>F: Fullscreen</span>
-          <span>Shift+,/.: Speed</span>
+          <span>R: Restart</span>
+          <span>0: Beginning</span>
         </div>
       </div>
-
-      {/* Notes Panel (optional) */}
-      {showNotes && (
-        <div className="p-4 border-t border-gray-800 bg-gray-900">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium text-white">Lecture Notes</h3>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-          </div>
-          <div className="prose prose-sm prose-invert max-w-none">
-            <p className="text-gray-300">
-              Add your notes here while watching the lecture.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Transcript Panel (optional) */}
-      {showTranscript && (
-        <div className="p-4 border-t border-gray-800 bg-gray-900 max-h-60 overflow-y-auto">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium text-white">Transcript</h3>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex gap-3">
-              <span className="text-blue-400 font-mono">00:00</span>
-              <p className="text-gray-300">
-                Welcome to this lecture. Today we'll be covering...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

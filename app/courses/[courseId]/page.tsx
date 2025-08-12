@@ -206,6 +206,12 @@ export default function CourseDetailsPage({
     autoTrackProgress: true,
   });
 
+  // Determine if course is free
+  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
+  
+  // Determine if user can access content (enrolled OR free course)
+  const canAccessContent = isEnrolled || isFreeCourse;
+
   // Update store when data changes
   useEffect(() => {
     if (courseData) {
@@ -318,7 +324,7 @@ export default function CourseDetailsPage({
       <CourseNavigation 
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
-        courseProgress={progress}
+        courseProgress={canAccessContent ? progress : undefined}
       />
 
       {/* Quick Stats Bar (Mobile) */}
@@ -349,7 +355,9 @@ export default function CourseDetailsPage({
                 sections={courseData?.sections || []} 
                 courseId={courseId}
                 isEnrolled={isEnrolled}
-                progress={progress}
+                isFreeCourse={isFreeCourse}
+                canAccessContent={canAccessContent}
+                progress={canAccessContent ? progress : undefined}
               />
             </section>
 
@@ -389,7 +397,7 @@ export default function CourseDetailsPage({
       </div>
 
       {/* Mobile Price Banner */}
-      {courseData && <MobilePriceBanner course={courseData} isEnrolled={isEnrolled} />}
+      {courseData && <MobilePriceBanner course={courseData} isEnrolled={isEnrolled || false} />}
     </div>
   );
 }

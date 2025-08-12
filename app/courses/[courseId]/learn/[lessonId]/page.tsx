@@ -38,6 +38,21 @@ import { ContentType } from "@/types/courseTypes";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Format duration from seconds to human readable format
+const formatDuration = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+  return `${remainingSeconds}s`;
+};
+
 // Content Renderer Component for different content types
 interface ContentRendererProps {
   contentData: any;
@@ -451,6 +466,12 @@ export default function LessonPage({
     autoTrackProgress: false // Manual control
   });
 
+  // Determine if course is free
+  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
+  
+  // Determine if user can access content (enrolled OR free course)
+  const canAccessContent = isEnrolled || isFreeCourse;
+
   const handleUpdateProgressRef = useRef(handleUpdateProgress);
 
   // Update ref when function changes
@@ -588,26 +609,38 @@ export default function LessonPage({
   const previousLecture = currentIndex > 0 ? allLectures[currentIndex - 1] : null;
 
   const handleNextLecture = useCallback(() => {
-    if (nextLecture && !nextLecture.isLocked) {
+    if (nextLecture && canAccessContent && !nextLecture.isLocked) {
       router.push(`/courses/${courseId}/learn/${nextLecture.id}`);
     } else if (!nextLecture) {
       toast.success("🎉 Congratulations! You've completed all lectures in this course!");
     }
-  }, [nextLecture, courseId, router]);
+  }, [nextLecture, canAccessContent, courseId, router]);
 
   const handlePreviousLecture = useCallback(() => {
-    if (previousLecture && !previousLecture.isLocked) {
+    if (previousLecture && canAccessContent && !previousLecture.isLocked) {
       router.push(`/courses/${courseId}/learn/${previousLecture.id}`);
     }
-  }, [previousLecture, courseId, router]);
+  }, [previousLecture, canAccessContent, courseId, router]);
 
   const handleLectureSelect = useCallback((lecture: any) => {
-    if (!lecture.isLocked) {
+    if (canAccessContent && !lecture.isLocked) {
       router.push(`/courses/${courseId}/learn/${lecture.id}`);
     } else {
-      toast.error("This lecture is locked. Please complete previous lectures first.");
+      if (lecture.isLocked) {
+        if (isFreeCourse) {
+          toast.error("Please sign in to access this lecture");
+        } else {
+          toast.error("Please enroll in the course to access this lecture");
+        }
+      } else {
+        if (isFreeCourse) {
+          toast.error("Please sign in to access this lecture");
+        } else {
+          toast.error("Please enroll in the course to access this lecture");
+        }
+      }
     }
-  }, [courseId, router]);
+  }, [canAccessContent, isFreeCourse, courseId, router]);
 
   const handleVideoProgress = useCallback((progress: number, currentTimeSeconds: number, durationSeconds: number) => {
     // Update local progress tracking
@@ -784,24 +817,24 @@ export default function LessonPage({
     );
   }
 
-  if (!isEnrolled) {
+  if (!canAccessContent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full">
           <CardContent className="text-center py-8">
             <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Access Required
+              {isFreeCourse ? "Sign In Required" : "Access Required"}
             </h1>
             <p className="text-gray-600 mb-6">
-              {!isAuthenticated 
-                ? "Please sign in and enroll to access this lecture."
+              {isFreeCourse 
+                ? "Please sign in to access this free course lecture."
                 : "Please enroll in this course to access this lecture."
               }
             </p>
             <Link href={`/courses/${courseId}`}>
               <Button className="w-full">
-                {!isAuthenticated ? "Sign In & Enroll" : "View Course Details"}
+                {isFreeCourse ? "Sign In & Access" : "View Course Details"}
               </Button>
             </Link>
           </CardContent>
@@ -897,11 +930,10 @@ export default function LessonPage({
                     hasTranscript: !!currentLecture.transcript,
                   }}
                 courseId={courseId}
-                  onNext={nextLecture ? handleNextLecture : undefined}
+                                    onNext={nextLecture ? handleNextLecture : undefined}
                   onPrevious={previousLecture ? handlePreviousLecture : undefined}
                   onProgress={handleVideoProgress}
-                  onSeek={handleJumpToTimestamp}
-                initialTime={getInitialTime()}
+                  initialTime={getInitialTime()}
                 />
               </Card>
             ) : (
@@ -1108,7 +1140,7 @@ export default function LessonPage({
               <Button
                 variant="outline"
                 onClick={handlePreviousLecture}
-                disabled={!previousLecture || previousLecture.isLocked}
+                disabled={!previousLecture || !canAccessContent || previousLecture.isLocked}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Previous Lecture
@@ -1122,7 +1154,7 @@ export default function LessonPage({
               
               <Button
                 onClick={handleNextLecture}
-                disabled={!nextLecture || nextLecture.isLocked}
+                disabled={!nextLecture || !canAccessContent || nextLecture.isLocked}
               >
                 Next Lecture
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -1138,6 +1170,8 @@ export default function LessonPage({
                 sections={courseData?.sections || navigation?.sections || []}
                 currentLectureId={currentLecture.id}
                 onLectureSelect={handleLectureSelect}
+                isFreeCourse={courseData?.price === 0 || courseData?.enrollmentType === "FREE"}
+                canAccessContent={isEnrolled || (courseData?.price === 0 || courseData?.enrollmentType === "FREE")}
                 progress={courseProgress ? {
                   completedLectures: courseProgress.completedLectures,
                   totalLectures: courseProgress.totalLectures,

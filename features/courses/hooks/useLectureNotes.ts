@@ -83,18 +83,18 @@ export const useLectureNotes = ({
             variables: { lectureId },
           }) as any;
 
-          if (existingData?.getLectureNotes?.notes) {
-            cache.writeQuery({
-              query: GET_LECTURE_NOTES,
-              variables: { lectureId },
-              data: {
-                getLectureNotes: {
-                  ...existingData.getLectureNotes,
-                  notes: [...existingData.getLectureNotes.notes, newNote]
-                }
-              },
-            });
-          }
+          const existingNotes = existingData?.getLectureNotes?.notes || [];
+          
+          cache.writeQuery({
+            query: GET_LECTURE_NOTES,
+            variables: { lectureId },
+            data: {
+              getLectureNotes: {
+                ...existingData?.getLectureNotes,
+                notes: [...existingNotes, newNote]
+              }
+            },
+          });
         } catch (e) {
           console.log('Cache update failed for add note:', e);
         }
@@ -114,22 +114,21 @@ export const useLectureNotes = ({
             variables: { lectureId },
           }) as any;
 
-          if (existingData?.getLectureNotes?.notes) {
-            const updatedNotes = existingData.getLectureNotes.notes.map((note: LectureNote) =>
-              note.id === updatedNote.id ? updatedNote : note
-            );
+          const existingNotes = existingData?.getLectureNotes?.notes || [];
+          const updatedNotes = existingNotes.map((note: LectureNote) =>
+            note.id === updatedNote.id ? updatedNote : note
+          );
 
-            cache.writeQuery({
-              query: GET_LECTURE_NOTES,
-              variables: { lectureId },
-              data: {
-                getLectureNotes: {
-                  ...existingData.getLectureNotes,
-                  notes: updatedNotes
-                }
-              },
-            });
-          }
+          cache.writeQuery({
+            query: GET_LECTURE_NOTES,
+            variables: { lectureId },
+            data: {
+              getLectureNotes: {
+                ...existingData?.getLectureNotes,
+                notes: updatedNotes
+              }
+            },
+          });
         } catch (e) {
           console.log('Cache update failed for update note:', e);
         }
@@ -149,22 +148,21 @@ export const useLectureNotes = ({
             variables: { lectureId },
           }) as any;
 
-          if (existingData?.getLectureNotes?.notes) {
-            const updatedNotes = existingData.getLectureNotes.notes.filter(
-              (note: LectureNote) => note.id !== deletedNoteId
-            );
+          const existingNotes = existingData?.getLectureNotes?.notes || [];
+          const updatedNotes = existingNotes.filter(
+            (note: LectureNote) => note.id !== deletedNoteId
+          );
 
-            cache.writeQuery({
-              query: GET_LECTURE_NOTES,
-              variables: { lectureId },
-              data: {
-                getLectureNotes: {
-                  ...existingData.getLectureNotes,
-                  notes: updatedNotes
-                }
-              },
-            });
-          }
+          cache.writeQuery({
+            query: GET_LECTURE_NOTES,
+            variables: { lectureId },
+            data: {
+              getLectureNotes: {
+                ...existingData?.getLectureNotes,
+                notes: updatedNotes
+              }
+            },
+          });
         } catch (e) {
           console.log('Cache update failed for delete note:', e);
         }
@@ -175,11 +173,13 @@ export const useLectureNotes = ({
   // Combine server data with optimistic updates
   const notes = useCallback(() => {
     const serverNotes = data?.getLectureNotes?.notes || [];
-    const allNotes = [...serverNotes, ...optimisticNotes];
     
-    // Remove optimistic notes that have been confirmed
+    // Remove optimistic notes that have been confirmed (by content and timestamp)
     const filteredOptimisticNotes = optimisticNotes.filter(optimisticNote => 
-      !serverNotes.some((serverNote: LectureNote) => serverNote.id === optimisticNote.id)
+      !serverNotes.some((serverNote: LectureNote) => 
+        serverNote.content === optimisticNote.content && 
+        serverNote.timestamp === optimisticNote.timestamp
+      )
     );
     
     return [...serverNotes, ...filteredOptimisticNotes].sort((a, b) => 

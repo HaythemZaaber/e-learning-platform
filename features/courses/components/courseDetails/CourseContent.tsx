@@ -16,6 +16,8 @@ interface CourseContentProps {
   sections: CourseSection[];
   courseId: string;
   isEnrolled?: boolean;
+  isFreeCourse?: boolean;
+  canAccessContent?: boolean;
   progress?: CourseProgress | null;
 }
 
@@ -23,6 +25,8 @@ export function CourseContent({
   sections = [], 
   courseId, 
   isEnrolled = false,
+  isFreeCourse = false,
+  canAccessContent = false,
   progress 
 }: CourseContentProps) {
   const { expandedSections, toggleSection } = useCoursePreviewStore();
@@ -51,13 +55,43 @@ export function CourseContent({
     }
   };
 
+  // Determine if a lecture should be locked for the current user
+  const isLectureLocked = (lecture: any) => {
+    // If user can access content (enrolled OR free course), nothing is locked
+    if (canAccessContent) {
+      return false;
+    }
+    
+    // For non-enrolled users in paid courses, respect the server's isLocked property
+    // If the server says it's locked, it's locked
+    if (lecture.isLocked) {
+      return true;
+    }
+    
+    // For non-enrolled users in paid courses, all lectures should be locked
+    return !isFreeCourse;
+  };
+
+  // Determine if a section should be locked (if any lecture in it is locked)
+  const isSectionLocked = (section: any) => {
+    if (canAccessContent) {
+      return false;
+    }
+    
+    // Check if any lecture in the section is locked
+    return section.lectures?.some((lecture: any) => isLectureLocked(lecture)) || !isFreeCourse;
+  };
+
   const getLectureIcon = (lecture: any) => {
     if (lecture.isCompleted) {
       return <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />;
     }
-    if (lecture.isLocked && !isEnrolled) {
+    
+    const locked = isLectureLocked(lecture);
+    if (locked) {
       return <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />;
     }
+    
     if (lecture.type === 'quiz') {
       return <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />;
     }
@@ -104,15 +138,26 @@ export function CourseContent({
   };
 
   const handleLectureClick = async (lecture: any, e: React.MouseEvent) => {
-    if (lecture.isLocked && !isEnrolled) {
+    const locked = isLectureLocked(lecture);
+    
+    if (locked) {
       e.preventDefault();
-      toast.error("Please enroll in the course to access this lecture");
+      if (isFreeCourse) {
+        toast.error("Please sign in to access this lecture");
+      } else {
+        toast.error("Please enroll in the course to access this lecture");
+      }
       return;
     }
 
-    if (!lecture.isPreview && !isEnrolled) {
+    // Only allow navigation if lecture is not locked
+    if (lecture.isLocked) {
       e.preventDefault();
-      toast.info("This lecture is available after enrollment");
+      if (isFreeCourse) {
+        toast.error("Please sign in to access this lecture");
+      } else {
+        toast.error("Please enroll in the course to access this lecture");
+      }
       return;
     }
 
@@ -193,7 +238,7 @@ export function CourseContent({
               <Clock className="w-4 h-4" />
               {formatTotalDuration(getTotalDuration)} total
             </span>
-            {isEnrolled && (
+            {canAccessContent && (
               <>
                 <span>•</span>
                 <span className="flex items-center gap-1 text-green-600">
@@ -222,7 +267,7 @@ export function CourseContent({
           >
             Collapse All
           </Button>
-          {isEnrolled && (
+          {canAccessContent && (
             <Link href={`/courses/${courseId}/learn`}>
               <Button size="sm" className="text-xs">
                 Continue Learning
@@ -232,8 +277,8 @@ export function CourseContent({
         </div>
       </div>
 
-      {/* Search and Filter (shown when enrolled) */}
-      {isEnrolled && (
+      {/* Search and Filter (shown when user can access content) */}
+      {canAccessContent && (
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <input
             type="text"
@@ -254,22 +299,22 @@ export function CourseContent({
         </div>
       )}
 
-      {/* Overall Progress (shown when enrolled) */}
-      {isEnrolled && progress && (
+      {/* Overall Progress (shown when user can access content) */}
+      {canAccessContent && progress && (
         <div className="bg-blue-50 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-blue-900">
               Overall Progress
             </span>
             <span className="text-sm font-bold text-blue-900">
-              {Math.round(progress.completionPercentage || 0)}%
+              {Math.round(progress?.completionPercentage || 0)}%
             </span>
           </div>
           <Progress 
-            value={progress.completionPercentage || 0} 
+            value={progress?.completionPercentage || 0} 
             className="h-2"
           />
-          {progress.certificateEarned && (
+          {progress?.certificateEarned && (
             <Badge className="mt-2 bg-green-500 text-white">
               Certificate Earned! 🎉
             </Badge>
@@ -277,71 +322,129 @@ export function CourseContent({
         </div>
       )}
 
+      {/* Access Notice for Non-Enrolled Users */}
+      {!canAccessContent && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <Lock className="w-5 h-5 text-amber-600" />
+            <div>
+              <h4 className="font-semibold text-amber-800">
+                {isFreeCourse ? "Sign in to access content" : "Enroll to access content"}
+              </h4>
+              <p className="text-sm text-amber-700">
+                {isFreeCourse 
+                  ? "This is a free course. Sign in to start learning."
+                  : "Enroll in this course to access all lectures and track your progress."
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Locked Content Notice */}
+      {!canAccessContent && !isFreeCourse && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <Lock className="w-5 h-5 text-gray-500" />
+            <div>
+              <h4 className="font-semibold text-gray-700">
+                Course Content is Locked
+              </h4>
+              <p className="text-sm text-gray-600">
+                Lectures are locked until you enroll in this course. 
+                You can expand sections to preview the course structure and content.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sections */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {filteredSections.map((section, sectionIndex) => {
           const isExpanded = expandedSections.has(section.id);
-          const sectionProgress = getSectionProgress(section);
+          const sectionProgress = canAccessContent ? getSectionProgress(section) : 0;
+          const sectionLocked = isSectionLocked(section);
           
           return (
             <div 
               key={section.id} 
               className={cn(
-                "border rounded-lg overflow-hidden transition-all",
-                isExpanded && "shadow-md"
+                "border-2 border-gray-200 rounded-lg overflow-hidden transition-all hover:border-gray-300",
+                isExpanded && "shadow-lg border-blue-200",
+                sectionLocked && "opacity-75 bg-gray-50"
               )}
             >
               <button
                 className={cn(
-                  "w-full flex justify-between items-center p-4 transition-colors",
+                  "w-full flex justify-between items-center p-6 transition-colors",
                   "hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset",
-                  isExpanded ? "bg-gray-50" : "bg-white"
+                  isExpanded ? "bg-blue-50 border-b border-gray-200" : "bg-white",
+                  sectionLocked && "opacity-80"
                 )}
-                onClick={() => toggleSection(section.id)}
+                onClick={() => {
+                  // Allow section expansion for all users to see course structure
+                  toggleSection(section.id);
+                }}
                 aria-expanded={isExpanded}
                 aria-controls={`section-${section.id}`}
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className={cn(
-                    "transition-transform duration-200",
-                    isExpanded && "rotate-180"
+                    "transition-transform duration-200 text-gray-600",
+                    isExpanded && "rotate-180 text-blue-600"
                   )}>
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">
+                      <span className="font-semibold text-lg text-gray-900">
                         Section {sectionIndex + 1}: {section.title}
                       </span>
-                      {sectionProgress === 100 && (
+                      {canAccessContent && sectionProgress === 100 && (
                         <Badge className="bg-green-100 text-green-800 text-xs">
                           Completed
+                        </Badge>
+                      )}
+                      {sectionLocked && (
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
+                          <Lock className="w-3 h-3 mr-1" />
+                          {isFreeCourse ? "Sign in required" : "Locked"}
                         </Badge>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  {isEnrolled && sectionProgress > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Progress value={sectionProgress} className="w-16 h-1.5" />
-                      <span className="text-xs font-medium">
-                        {Math.round(sectionProgress)}%
-                      </span>
-                    </div>
-                  )}
-                  <span className="whitespace-nowrap">
-                    {section.lectures?.length || 0} lectures
-                  </span>
-                  <span className="hidden sm:inline whitespace-nowrap">
-                    {formatTotalDuration(
-                      section.lectures?.reduce((total, lecture) => 
-                        total + (lecture.duration || 0), 0
-                      ) || 0
+                                  <div className="flex items-center gap-4 text-sm">
+                    {canAccessContent && sectionProgress > 0 && (
+                      <div className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
+                        <Progress value={sectionProgress} className="w-16 h-1.5" />
+                        <span className="text-xs font-semibold text-blue-700">
+                          {Math.round(sectionProgress)}%
+                        </span>
+                      </div>
                     )}
-                  </span>
-                </div>
+                    <div className="flex items-center gap-3">
+                      <span className="whitespace-nowrap font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+                        {section.lectures?.length || 0} lectures
+                      </span>
+                      <span className="hidden sm:inline whitespace-nowrap font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+                        {formatTotalDuration(
+                          section.lectures?.reduce((total, lecture) => 
+                            total + (lecture.duration || 0), 0
+                          ) || 0
+                        )}
+                      </span>
+                      {sectionLocked && (
+                        <span className="text-xs font-medium text-gray-600 bg-gray-200 px-3 py-1 rounded-full">
+                          <Lock className="w-3 h-3 inline mr-1" />
+                          Locked
+                        </span>
+                      )}
+                    </div>
+                  </div>
               </button>
 
               <div
@@ -356,23 +459,25 @@ export function CourseContent({
                 <div className="overflow-hidden">
                   <div className="divide-y border-t">
                     {section.lectures?.map((lecture, lectureIndex) => {
-                      const isAccessible = lecture.isPreview || isEnrolled;
+                      const locked = isLectureLocked(lecture);
+                      const isAccessible = !locked;
                       const isLoading = loadingLecture === lecture.id;
                       
-                      return (
-                        <Link
-                          key={lecture.id}
-                          href={isAccessible ? `/courses/${courseId}/learn/${lecture.id}` : '#'}
-                          onClick={(e) => handleLectureClick(lecture, e)}
-                          className={cn(
-                            "flex justify-between items-center p-4 transition-all group",
-                            isAccessible
-                              ? "hover:bg-blue-50 cursor-pointer"
-                              : "opacity-60 cursor-not-allowed bg-gray-50",
-                            lecture.isCompleted && "bg-green-50/50",
-                            isLoading && "animate-pulse"
-                          )}
-                        >
+                                              return (
+                          <Link
+                            key={lecture.id}
+                            href={isAccessible && !lecture.isLocked ? `/courses/${courseId}/learn/${lecture.id}` : '#'}
+                            onClick={(e) => handleLectureClick(lecture, e)}
+                            className={cn(
+                              "flex justify-between items-center p-4 transition-all group",
+                              isAccessible && !lecture.isLocked
+                                ? "hover:bg-blue-50 cursor-pointer"
+                                : "opacity-60 cursor-not-allowed bg-gray-50",
+                              lecture.isCompleted && "bg-green-50/50",
+                              isLoading && "animate-pulse",
+                              lecture.isLocked && "border-l-4 border-gray-300"
+                            )}
+                          >
                           <div className="flex items-start gap-3 flex-1">
                             <div className="mt-0.5">
                               {getLectureIcon(lecture)}
@@ -382,9 +487,12 @@ export function CourseContent({
                                 <span className={cn(
                                   "font-medium",
                                   lecture.isCompleted && "text-green-700",
-                                  !isAccessible && "text-gray-500"
+                                  (!isAccessible || lecture.isLocked) && "text-gray-500"
                                 )}>
                                   {lectureIndex + 1}. {lecture.title}
+                                  {lecture.isLocked && (
+                                    <Lock className="w-3 h-3 ml-1 inline" />
+                                  )}
                                 </span>
                                 {lecture.type === 'QUIZ' && (
                                   <Badge variant="secondary" className="text-xs">
@@ -405,7 +513,7 @@ export function CourseContent({
                               {formatDuration(lecture.duration || 0)}
                             </span>
                             
-                            {lecture.isPreview && !isEnrolled && (
+                            {lecture.isPreview && !canAccessContent && (
                               <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
                                 Preview
                               </Badge>
@@ -420,7 +528,7 @@ export function CourseContent({
                             {!isAccessible && (
                               <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
                                 <Lock className="w-3 h-3 mr-1" />
-                                Locked
+                                {isFreeCourse ? "Sign in required" : "Locked"}
                               </Badge>
                             )}
                             

@@ -799,12 +799,30 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
   const filteredProgressError = isEnrollmentError(progressError) ? null : progressError?.message;
   const filteredNavigationError = isEnrollmentError(navigationError) ? null : navigationError?.message;
 
+  // Determine enrollment status more accurately
+  const isEnrolled = useMemo(() => {
+    // Only consider user enrolled if they have an actual enrollment record
+    // The server returns enrollment: null for non-enrolled users
+    const enrollment = courseData?.getCoursePreview?.enrollment;
+    const hasEnrollment = enrollment !== null && enrollment !== undefined;
+    
+    // Debug logging
+    console.log('Enrollment Debug:', {
+      enrollment,
+      hasEnrollment,
+      isAuthenticated,
+      courseId
+    });
+    
+    return hasEnrollment;
+  }, [courseData?.getCoursePreview?.enrollment, isAuthenticated]);
+
   return {
     // Data
     course: courseData?.getCoursePreview,
     lecture: lectureData?.getLecturePreview,
-    progress: progressData?.getCourseProgress,
-    navigation: navigationData?.getCourseNavigation,
+    progress: isEnrolled ? progressData?.getCourseProgress : null, // Only show progress for enrolled users
+    navigation: isEnrolled ? navigationData?.getCourseNavigation : null, // Only show navigation for enrolled users
     
     // Loading states
     isLoading: courseLoading || lectureLoading || progressLoading || navigationLoading,
@@ -821,7 +839,7 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     navigationError,
     
     // Enrollment status
-    isEnrolled: progressData?.getCourseProgress !== null,
+    isEnrolled,
     isAuthenticated,
     
     // Refetch functions

@@ -118,7 +118,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
   const [newLecture, setNewLecture] = useState<Partial<CourseLecture>>({
     title: "",
     type: LECTURE_TYPES[0],
-    duration: 0,
+    duration: 0, // Duration in seconds
     description: "",
   });
   const [openSections, setOpenSections] = useState<string[]>(["section-1"]);
@@ -242,7 +242,7 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
         id: `lecture-${Date.now()}`,
         title: newLecture.title.trim(),
         type: newLecture.type || LECTURE_TYPES[0],
-        duration: newLecture.duration || 0,
+        duration: newLecture.duration || 0, // Duration in seconds
         description: newLecture.description?.trim(),
         status: "draft",
         isCompleted: false,
@@ -384,10 +384,17 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
       });
     });
 
-    const hours = Math.floor(total / 60);
-    const minutes = total % 60;
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
 
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    }
+    return `${seconds}s`;
   }, [sections]);
 
   const getTotalLectures = useCallback(() => {
@@ -695,12 +702,24 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
                 {section.lectures.length > 0 && (
                   <div className="text-sm text-gray-500 bg-blue-100 px-3 py-1 rounded-full">
-                    {section.lectures.reduce(
-                      (total: number, lecture: CourseLecture) =>
-                        total + (lecture.duration || 0),
-                      0
-                    )}
-                    m
+                    {(() => {
+                      const totalSeconds = section.lectures.reduce(
+                        (total: number, lecture: CourseLecture) =>
+                          total + (lecture.duration || 0),
+                        0
+                      );
+                      const hours = Math.floor(totalSeconds / 3600);
+                      const minutes = Math.floor((totalSeconds % 3600) / 60);
+                      const seconds = totalSeconds % 60;
+                      
+                      if (hours > 0) {
+                        return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+                      }
+                      if (minutes > 0) {
+                        return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                      }
+                      return `${seconds}s`;
+                    })()}
                   </div>
                 )}
 
@@ -795,7 +814,19 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
                             {lecture.duration > 0 && (
                               <div className="flex items-center text-xs text-gray-500 bg-white px-2 py-1 rounded border">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {lecture.duration}m
+                                {(() => {
+                                  const hours = Math.floor(lecture.duration / 3600);
+                                  const minutes = Math.floor((lecture.duration % 3600) / 60);
+                                  const seconds = lecture.duration % 60;
+                                  
+                                  if (hours > 0) {
+                                    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+                                  }
+                                  if (minutes > 0) {
+                                    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                                  }
+                                  return `${seconds}s`;
+                                })()}
                               </div>
                             )}
 
@@ -954,21 +985,19 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Duration (minutes)
+                  Duration (seconds) - Auto-calculated from content
                 </label>
                 <input
                   type="number"
                   min="0"
                   placeholder="0"
                   value={newLecture.duration || ""}
-                  onChange={(e) =>
-                    setNewLecture((prev) => ({
-                      ...prev,
-                      duration: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  disabled
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Duration will be automatically calculated when you upload content in the next step
+                </p>
               </div>
 
               <div>
@@ -1108,21 +1137,19 @@ export function CourseStructure({ data, updateData }: CourseStructureProps) {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Duration (minutes)
+                  Duration (seconds) - Auto-calculated from content
                 </label>
                 <input
                   type="number"
                   min="0"
                   placeholder="0"
                   value={newLecture.duration || ""}
-                  onChange={(e) =>
-                    setNewLecture((prev) => ({
-                      ...prev,
-                      duration: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                  disabled
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Duration will be automatically calculated when you upload content in the next step
+                </p>
               </div>
 
               <div>

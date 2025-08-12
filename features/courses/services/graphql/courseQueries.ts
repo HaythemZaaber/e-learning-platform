@@ -1013,6 +1013,9 @@ export const GET_LECTURE_NOTES = gql`
       notes {
         id
         content
+        timestamp
+        createdAt
+        updatedAt
        
       }
       errors

@@ -31,6 +31,21 @@ import { useCoursePreviewStore } from "@/stores/coursePreview.store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Format duration from seconds to human readable format
+const formatDuration = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+  return `${remainingSeconds}s`;
+};
+
 // Loading skeleton
 const CourseLearnSkeleton = () => (
   <div className="min-h-screen bg-gray-50">
@@ -85,6 +100,12 @@ export default function CourseLearnPage({
     isAuthenticated,
     handleMarkLectureComplete,
   } = useCoursePreview({ courseId });
+
+  // Determine if course is free
+  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
+  
+  // Determine if user can access content (enrolled OR free course)
+  const canAccessContent = isEnrolled || isFreeCourse;
 
   // Update store when course data changes
   useEffect(() => {
@@ -193,13 +214,28 @@ export default function CourseLearnPage({
   const handleLectureClick = useCallback((lecture: any, e: React.MouseEvent) => {
     e.preventDefault();
     
-    if (lecture.isLocked && !isEnrolled) {
-      toast.error("Please enroll in the course to access this lecture");
+    // Check if lecture is locked by server
+    if (lecture.isLocked) {
+      if (isFreeCourse) {
+        toast.error("Please sign in to access this lecture");
+      } else {
+        toast.error("Please enroll in the course to access this lecture");
+      }
+      return;
+    }
+    
+    // Check if user can access content
+    if (!canAccessContent) {
+      if (isFreeCourse) {
+        toast.error("Please sign in to access this lecture");
+      } else {
+        toast.error("Please enroll in the course to access this lecture");
+      }
       return;
     }
 
     router.push(`/courses/${courseId}/learn/${lecture.id}`);
-  }, [isEnrolled, courseId, router]);
+  }, [canAccessContent, isFreeCourse, courseId, router]);
 
   const handleToggleLectureComplete = useCallback(async (lecture: any, e: React.MouseEvent) => {
     e.preventDefault();
@@ -282,24 +318,24 @@ export default function CourseLearnPage({
     );
   }
 
-  if (!isEnrolled) {
+  if (!canAccessContent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full">
           <CardContent className="text-center py-8">
             <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Enrollment Required
+              {isFreeCourse ? "Sign In Required" : "Enrollment Required"}
             </h1>
             <p className="text-gray-600 mb-6">
-              {!isAuthenticated 
-                ? "Please sign in and enroll to access course content."
+              {isFreeCourse 
+                ? "Please sign in to access this free course content."
                 : "Please enroll in this course to access the learning content."
               }
             </p>
             <Link href={`/courses/${courseId}`}>
               <Button className="w-full">
-                {!isAuthenticated ? "Sign In & Enroll" : "View Course Details"}
+                {isFreeCourse ? "Sign In & Access" : "View Course Details"}
               </Button>
             </Link>
           </CardContent>
@@ -457,7 +493,7 @@ export default function CourseLearnPage({
                           <CardContent className="pt-0">
                             <div className="divide-y">
                               {section.lectures?.map((lecture: any, lectureIndex: number) => {
-                                const isAccessible = !lecture.isLocked || isEnrolled;
+                                const isAccessible = !lecture.isLocked && canAccessContent;
                                 const isCurrent = navigation?.currentLecture === lecture.id;
                                 
                                 return (
@@ -512,7 +548,7 @@ export default function CourseLearnPage({
                                         </Badge>
                                       )}
                                       
-                                      {lecture.isPreview && !isEnrolled && (
+                                      {lecture.isPreview && !canAccessContent && (
                                         <Badge variant="outline" className="text-xs">
                                           Preview
                                         </Badge>
@@ -742,9 +778,9 @@ export default function CourseLearnPage({
                     </div>
                     <div>
                       <div className="text-sm font-medium">Completion Rate</div>
-                                             <div className="text-xs text-gray-600">
-                         {currentCourse?.completionRate || courseData?.completionRate || 0}% avg for all students
-                       </div>
+                      <div className="text-xs text-gray-600">
+                        {currentCourse?.completionRate || courseData?.completionRate || 0}% avg for all students
+                      </div>
                     </div>
                   </div>
                   

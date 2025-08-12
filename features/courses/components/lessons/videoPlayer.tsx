@@ -50,7 +50,6 @@ interface VideoPlayerProps {
   onPrevious?: () => void;
   onProgress?: (progress: number, currentTime: number, duration: number) => void;
   initialTime?: number; // Start time in seconds
-  onSeek?: (timestamp: number) => void; // Add seek callback
 }
 
 export function VideoPlayer({
@@ -62,7 +61,6 @@ export function VideoPlayer({
   onPrevious,
   onProgress,
   initialTime = 0,
-  onSeek,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,26 +126,19 @@ export function VideoPlayer({
       videoRef.current.currentTime = clampedTime;
       setCurrentTime(clampedTime);
       
-      // Notify parent component
-      if (onSeek) {
-        onSeek(clampedTime);
-      }
-      
       console.log('🎯 Seeking to:', formatTime(clampedTime));
     }
-  }, [duration, onSeek]);
+  }, [duration]);
 
   // Expose seek function to parent component
   useEffect(() => {
-    if (onSeek) {
-      // Create a global function that can be called from parent
-      (window as any).seekVideoTo = seekTo;
-    }
+    // Create a global function that can be called from parent
+    (window as any).seekVideoTo = seekTo;
     
     return () => {
       delete (window as any).seekVideoTo;
     };
-  }, [seekTo, onSeek]);
+  }, [seekTo]);
 
   // Set up progress sync interval - only when playing
   useEffect(() => {
@@ -544,7 +535,20 @@ export function VideoPlayer({
             <h2 className="text-white font-semibold">{currentLecture.title}</h2>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-gray-400 text-sm">
-                Duration: {currentLecture.duration}
+                Duration: {(() => {
+                  const duration = parseInt(currentLecture.duration) || 0;
+                  const hours = Math.floor(duration / 3600);
+                  const minutes = Math.floor((duration % 3600) / 60);
+                  const seconds = duration % 60;
+                  
+                  if (hours > 0) {
+                    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+                  }
+                  if (minutes > 0) {
+                    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                  }
+                  return `${seconds}s`;
+                })()}
               </span>
               {progressPercentage > 0 && (
                 <Badge variant="secondary" className="text-xs">

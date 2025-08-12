@@ -13,6 +13,8 @@ interface LectureNavigationProps {
   sections: CourseSection[];
   currentLectureId: string;
   onLectureSelect: (lecture: CourseLecture) => void;
+  isFreeCourse?: boolean;
+  canAccessContent?: boolean;
   progress?: {
     completedLectures: number;
     totalLectures: number;
@@ -24,6 +26,8 @@ export function LectureNavigation({
   sections,
   currentLectureId,
   onLectureSelect,
+  isFreeCourse = false,
+  canAccessContent = false,
   progress,
 }: LectureNavigationProps) {
   // Use the store for consistent state management
@@ -304,7 +308,7 @@ export function LectureNavigation({
                   {section.lectures && section.lectures.length > 0 ? (
                     section.lectures.map((lecture, lectureIndex) => {
                       const isCurrent = currentLectureId === lecture.id;
-                      const isAccessible = !lecture.isLocked;
+                      const isAccessible = canAccessContent && !lecture.isLocked;
                     
                     return (
                       <button

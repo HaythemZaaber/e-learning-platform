@@ -194,9 +194,24 @@ export function NotesPanel({
   // Handle note click (jump to timestamp)
   const handleNoteClick = useCallback((note: LectureNote) => {
     if (note.timestamp && note.timestamp > 0 && onNoteClick) {
-      onNoteClick(note.timestamp);
+      // Scroll to video first
+      const videoElement = document.querySelector('video');
+      if (videoElement) {
+        videoElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Show feedback
+        toast.success(`Jumping to ${formatTimestamp(note.timestamp)}`);
+      }
+      
+      // Small delay to ensure scroll completes before seeking
+      setTimeout(() => {
+        onNoteClick(note.timestamp!);
+      }, 300);
     }
-  }, [onNoteClick]);
+  }, [onNoteClick, formatTimestamp]);
 
   // Handle copy note content
   const handleCopyNote = useCallback(async (content: string) => {
@@ -310,9 +325,9 @@ export function NotesPanel({
               className="pl-10 h-8"
             />
           </div>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2">
+              <Button variant="outline" size="sm" className="h-8 px-2 hover:bg-blue-500 hover:text-white">
                 <Filter className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -328,9 +343,9 @@ export function NotesPanel({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2">
+              <Button variant="outline" size="sm" className="h-8 px-2 hover:bg-blue-500 hover:text-white">
                 {sortBy === 'newest' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
               </Button>
             </DropdownMenuTrigger>
@@ -496,7 +511,7 @@ export function NotesPanel({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity "
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500 hover:text-white"
                             >
                               
 
@@ -504,16 +519,16 @@ export function NotesPanel({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => startEditing(note)}>
+                            <DropdownMenuItem onClick={() => startEditing(note)} className="hover:bg-blue-500 hover:text-white">
                               <Edit3 className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCopyNote(note.content)}>
+                            <DropdownMenuItem onClick={() => handleCopyNote(note.content)} className="hover:bg-blue-500 hover:text-white">
                               <Copy className="w-4 h-4 mr-2" />
                               Copy
                             </DropdownMenuItem>
                             {note.timestamp && note.timestamp > 0 && (
-                              <DropdownMenuItem onClick={() => handleNoteClick(note)}>
+                              <DropdownMenuItem onClick={() => handleNoteClick(note)} className="hover:bg-blue-500 hover:text-white">
                                 <Clock className="w-4 h-4 mr-2" />
                                 Jump to Time
                               </DropdownMenuItem>

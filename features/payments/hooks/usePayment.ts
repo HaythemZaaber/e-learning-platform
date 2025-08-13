@@ -205,6 +205,8 @@ export const useCoupon = () => {
       try {
         const token = await clerkAuth.getToken();
         const response = await couponService.validateCoupon(request, token || undefined);
+
+        console.log("response", response);
         
         if (response.isValid && response.coupon) {
           setAppliedCoupon(response.coupon);

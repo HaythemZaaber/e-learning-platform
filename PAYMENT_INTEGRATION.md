@@ -74,6 +74,7 @@ JWT_EXPIRES_IN=7d
 # App
 PORT=3001
 NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
 ```
 
 ## 🗄️ Database Schema
@@ -382,7 +383,7 @@ export class CreatePaymentSessionDto {
 
   @IsOptional()
   @IsString()
-  successUrl?: string;
+  returnUrl?: string;
 
   @IsOptional()
   @IsString()
@@ -489,14 +490,10 @@ export class PaymentService {
           },
         ],
         mode: "payment",
-        success_url:
-          dto.successUrl ||
-          `${this.configService.get(
-            "FRONTEND_URL"
-          )}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url:
-          dto.cancelUrl ||
-          `${this.configService.get("FRONTEND_URL")}/payment/cancel`,
+        success_url: `${this.configService.get(
+          "FRONTEND_URL"
+        )}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get("FRONTEND_URL")}/payment/cancel`,
         metadata: {
           courseId: dto.courseId,
           userId,
@@ -1103,6 +1100,107 @@ stripe listen --forward-to your-domain.com/api/payments/webhooks/stripe
 2. **Backend Fix**: Added `/api/payments/sessions/stripe/:stripeSessionId` endpoint in `PaymentController`
 3. **Frontend Fix**: Added `getSessionByStripeId()` method in `paymentSessionService`
 4. **Frontend Fix**: Updated `/payment/success` page to use the correct method
+
+### 🔧 Fix: "property successUrl should not exist" Error
+
+**Problem**: Backend returns 400 error with "property successUrl should not exist" when creating payment sessions.
+
+**Root Cause**: The frontend was sending `successUrl` and `cancelUrl` properties, but the backend's `CreatePaymentSessionDto` expects `returnUrl` and `cancelUrl`.
+
+**Solution Implemented**:
+
+1. **Frontend Fix**: Updated `CreatePaymentSessionRequest` interface to use `returnUrl` and `cancelUrl` instead of `successUrl` and `cancelUrl`
+2. **Frontend Fix**: Updated `paymentSessionService.createSession()` to correctly handle the new property names
+3. **Frontend Fix**: Updated checkout page to include proper `returnUrl` and `cancelUrl` values
+4. **Backend Fix**: Confirmed `CreatePaymentSessionDto` includes `returnUrl` and `cancelUrl` properties
+
+**Key Changes**:
+
+```typescript
+// Frontend: types/paymentTypes.ts
+export interface CreatePaymentSessionRequest {
+  courseId: string;
+  userId?: string;
+  couponCode?: string;
+  metadata?: Record<string, any>;
+  returnUrl?: string; // Matches backend CreatePaymentSessionDto
+  cancelUrl?: string; // Matches backend CreatePaymentSessionDto
+}
+
+// Frontend: paymentService.ts
+async createSession(request: CreatePaymentSessionRequest, token?: string) {
+  const { userId, ...requestBody } = request; // No longer destructuring successUrl/cancelUrl
+  const response = await fetch(`${API_BASE_URL}/payments/sessions`, {
+    method: "POST",
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(requestBody), // Includes returnUrl and cancelUrl
+  });
+}
+
+// Frontend: checkout/page.tsx
+const session = await createSession({
+  courseId: firstCourse.courseId,
+  couponCode: appliedCoupon?.code,
+  returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+  cancelUrl: `${frontendUrl}/payment/cancel`,
+  metadata: {
+    totalAmount: total,
+    itemCount: checkoutItems.length,
+  },
+});
+
+// Backend: CreatePaymentSessionDto
+export class CreatePaymentSessionDto {
+  @IsString()
+  courseId: string;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
+  returnUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  cancelUrl?: string;
+}
+
+// Backend: PaymentService
+async createPaymentSession(dto: CreatePaymentSessionDto, userId: string) {
+  const session = await this.stripe.checkout.sessions.create({
+    // ... other properties
+    success_url: dto.returnUrl || `${this.configService.get('FRONTEND_URL')}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: dto.cancelUrl || `${this.configService.get('FRONTEND_URL')}/payment/cancel`,
+  });
+}
+```
+
+**Environment Variables Required**:
+
+Add to your backend `.env` file:
+
+```env
+FRONTEND_URL=http://localhost:3000
+```
+
+Add to your frontend `.env.local` file:
+
+```env
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+```
+
+**Verification Steps**:
+
+1. Ensure both `FRONTEND_URL` and `NEXT_PUBLIC_FRONTEND_URL` are set in your environment files
+2. Verify the backend DTO includes `returnUrl` and `cancelUrl` properties
+3. Test payment session creation with the correct property names
+4. Confirm Stripe redirects work correctly after payment
 
 **Key Changes**:
 

@@ -118,9 +118,12 @@ export default function CheckoutPage() {
     try {
       // Create payment session for the first course (simplified for demo)
       const firstCourse = checkoutItems[0];
+      const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
       const session = await createSession({
         courseId: firstCourse.courseId,
         couponCode: appliedCoupon?.code,
+        returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${frontendUrl}/payment/cancel`,
         metadata: {
           totalAmount: total,
           itemCount: checkoutItems.length,

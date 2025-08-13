@@ -88,17 +88,10 @@ export const paymentSessionService = {
       // Remove userId from request body since it will be extracted from the token
       const { userId, ...requestBody } = request;
       
-      // Add success and cancel URLs to the request
-      const requestWithUrls = {
-        ...requestBody,
-        successUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/payment/cancel`,
-      };
-      
       const response = await fetch(`${API_BASE_URL}/payments/sessions`, {
         method: "POST",
         headers: getAuthHeaders(token),
-        body: JSON.stringify(requestWithUrls),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await handleApiResponse<PaymentSessionApiResponse>(response);
@@ -230,7 +223,7 @@ export const couponService = {
       const data = await handleApiResponse<CouponApiResponse>(response);
       
       return {
-        isValid: data.success && !!data.coupon,
+        isValid: data.isValid || false,
         coupon: data.coupon,
         discountAmount: data.discountAmount || 0,
         finalAmount: data.finalAmount || request.amount,
@@ -294,7 +287,7 @@ export const enrollmentService = {
   async createEnrollment(courseId: string, userId: string, paymentSessionId?: string, token?: string): Promise<Enrollment | null> {
     try {
       // Remove userId from request body since it will be extracted from the token
-      const response = await fetch(`${API_BASE_URL}/enrollments`, {
+      const response = await fetch(`${API_BASE_URL}/payments/enrollments`, {
         method: "POST",
         headers: getAuthHeaders(token),
         body: JSON.stringify({
@@ -303,8 +296,8 @@ export const enrollmentService = {
         }),
       });
 
-      const data = await handleApiResponse<EnrollmentApiResponse>(response);
-      return data.enrollment || null;
+      const data = await handleApiResponse(response);
+      return data as Enrollment;
     } catch (error) {
       console.error("Error creating enrollment:", error);
       return null;
@@ -331,14 +324,14 @@ export const enrollmentService = {
   /**
    * Get enrollment by course ID
    */
-  async getEnrollmentByCourse(courseId: string, userId: string, token?: string): Promise<Enrollment | null> {
+  async getEnrollmentByCourse(courseId: string, token?: string): Promise<Enrollment | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/enrollments/course/${courseId}/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/payments/enrollments/course/${courseId}`, {
         headers: getAuthHeaders(token),
       });
 
-      const data = await handleApiResponse<EnrollmentApiResponse>(response);
-      return data.enrollment || null;
+      const data = await handleApiResponse(response);
+      return data as Enrollment;
     } catch (error) {
       console.error("Error fetching enrollment:", error);
       return null;

@@ -88,8 +88,8 @@ export interface CreatePaymentSessionRequest {
   userId?: string; // Optional since it will be extracted from the token
   couponCode?: string;
   metadata?: Record<string, any>;
-  successUrl?: string; // URL to redirect to after successful payment
-  cancelUrl?: string; // URL to redirect to after cancelled payment
+  returnUrl?: string; // Matches backend CreatePaymentSessionDto
+  cancelUrl?: string; // Matches backend CreatePaymentSessionDto
 }
 
 export interface PaymentSessionResponse {
@@ -452,11 +452,13 @@ export interface CouponApiResponse extends ApiResponse {
   coupon?: Coupon;
   discountAmount?: number;
   finalAmount?: number;
+  isValid?: boolean;
 }
 
 export interface EnrollmentApiResponse extends ApiResponse {
-  enrollment?: Enrollment;
-  paymentSession?: PaymentSession;
+  // enrollments?: Enrollment[];
+  // paymentSession?: PaymentSession;
+  data?: Enrollment;
 }
 
 export interface CheckoutApiResponse extends ApiResponse {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuth as useClerkAuth } from "@clerk/nextjs";
 import { usePaymentSession } from "@/features/payments/hooks/usePayment";
 import { useEnrollment } from "@/features/payments/hooks/usePayment";
-import { paymentSessionService } from "@/features/payments/services/paymentService";
+import { enrollmentService, paymentSessionService } from "@/features/payments/services/paymentService";
 import { usePaymentStore } from "@/stores/payment.store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { getSession } = usePaymentSession();
-  const { user: clerkUser } = useAuth();
+  const clerkAuth = useClerkAuth();
   const { createEnrollment } = useEnrollment();
   const { clearCheckout, resetPaymentSession } = usePaymentStore();
 
@@ -26,54 +27,79 @@ export default function PaymentSuccessPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [paymentSession, setPaymentSession] = useState<any>(null);
   const [enrollment, setEnrollment] = useState<any>(null);
+  const [hasProcessed, setHasProcessed] = useState(false);
+
+  // Use ref to prevent multiple executions
+  const isProcessingRef = useRef(false);
+
+  const handlePaymentSuccess = useCallback(async () => {
+    // Prevent multiple executions
+    if (isProcessingRef.current || hasProcessed) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    setHasProcessed(true);
+
+    try {
+      // Get session_id from URL params
+      const sessionIdParam = searchParams.get("session_id");
+      if (!sessionIdParam) {
+        toast.error("No session ID found");
+        router.push("/");
+        return;
+      }
+
+      setSessionId(sessionIdParam);
+
+      // Get payment session details using Stripe session ID
+      const token = await clerkAuth.getToken();
+      if (!token) {
+        toast.error("Authentication token not found");
+        router.push("/sign-in");
+        return;
+      }
+
+      const session = await paymentSessionService.getSessionByStripeId(sessionIdParam, token);
+      if (!session) {
+        toast.error("Payment session not found");
+        router.push("/");
+        return;
+      }
+
+      setPaymentSession(session);
+
+      const enrollment = await enrollmentService.getEnrollmentByCourse(session.courseId, token);
+      console.log("enrollment", enrollment);
+      if (enrollment) {
+        setEnrollment(enrollment);
+      } else {
+        const newEnrollment = await createEnrollment(session.courseId, session.id);
+        if (newEnrollment) {
+          setEnrollment(newEnrollment);
+        }
+      }
+
+
+
+      // Clear checkout and reset payment session
+      clearCheckout();
+      resetPaymentSession();
+
+      toast.success("Payment completed successfully! You are now enrolled in the course.");
+
+    } catch (error) {
+      console.error("Error handling payment success:", error);
+      toast.error("There was an issue processing your payment success");
+    } finally {
+      setIsLoading(false);
+      isProcessingRef.current = false;
+    }
+  }, [searchParams, user, clerkAuth, createEnrollment, clearCheckout, resetPaymentSession, router, hasProcessed]);
 
   useEffect(() => {
-    const handlePaymentSuccess = async () => {
-      try {
-        // Get session_id from URL params
-        const sessionIdParam = searchParams.get("session_id");
-        if (!sessionIdParam) {
-          toast.error("No session ID found");
-          router.push("/");
-          return;
-        }
-
-        setSessionId(sessionIdParam);
-
-        // Get payment session details using Stripe session ID
-        const session = await paymentSessionService.getSessionByStripeId(sessionIdParam, await clerkUser?.getToken());
-        if (!session) {
-          toast.error("Payment session not found");
-          router.push("/");
-          return;
-        }
-
-        setPaymentSession(session);
-
-        // Create enrollment if not already enrolled
-        if (session.courseId && user) {
-          const newEnrollment = await createEnrollment(session.courseId, session.id);
-          if (newEnrollment) {
-            setEnrollment(newEnrollment);
-          }
-        }
-
-        // Clear checkout and reset payment session
-        clearCheckout();
-        resetPaymentSession();
-
-        toast.success("Payment completed successfully! You are now enrolled in the course.");
-
-      } catch (error) {
-        console.error("Error handling payment success:", error);
-        toast.error("There was an issue processing your payment success");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     handlePaymentSuccess();
-  }, [searchParams, user, clerkUser, createEnrollment, clearCheckout, resetPaymentSession, router]);
+  }, [handlePaymentSuccess]);
 
   const handleStartLearning = () => {
     if (paymentSession?.courseId) {
@@ -133,13 +159,13 @@ export default function PaymentSuccessPage() {
                 <div>
                   <span className="text-gray-600">Amount:</span>
                   <span className="ml-2 font-medium">
-                    ${(paymentSession.finalAmount / 100).toFixed(2)}
+                    ${(paymentSession.finalAmount).toFixed(2)}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Status:</span>
                   <Badge variant="default" className="ml-2 bg-green-100 text-green-800">
-                    Completed
+                    {paymentSession.status}
                   </Badge>
                 </div>
                 {paymentSession.couponCode && (

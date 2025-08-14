@@ -352,7 +352,7 @@ export const useEnrollment = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const enrollment = await enrollmentService.getEnrollmentByCourse(courseId, user.id, token || undefined);
+        const enrollment = await enrollmentService.getEnrollmentByCourse(courseId, token || undefined);
         return enrollment;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollment";
@@ -786,6 +786,7 @@ export const useStripe = () => {
 export const useQuickPayment = () => {
   const router = useRouter();
   const { user } = useAuth();
+  const clerkAuth = useClerkAuth();
   const {
     addToCheckout,
     removeFromCheckout,
@@ -856,12 +857,39 @@ export const useQuickPayment = () => {
         return;
       }
 
-      const enrollment = await createEnrollment(course.id);
-      if (enrollment) {
-        router.push(`/courses/${course.id}/learn`);
+      try {
+        // For free courses, create a payment session with $0 amount
+        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+        const token = await clerkAuth.getToken();
+        const response = await paymentSessionService.createSession({
+          courseId: course.id,
+          returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${frontendUrl}/payment/cancel`,
+          metadata: {
+            courseType: 'free',
+            enrollmentType: 'free'
+          },
+        }, token || undefined);
+
+        if (response.success && response.session) {
+          // The payment session will handle the enrollment
+          // If there's a redirect URL, redirect to it
+          if (response.redirectUrl) {
+            window.location.href = response.redirectUrl;
+          } else {
+            // If no redirect URL, the enrollment was successful
+            toast.success("Successfully enrolled in free course!");
+            router.push(`/courses/${course.id}/learn`);
+          }
+        } else {
+          toast.error(response.error || "Failed to enroll in free course");
+        }
+      } catch (error) {
+        console.error("Free enrollment error:", error);
+        toast.error("Failed to enroll in free course");
       }
     },
-    [user, router, createEnrollment]
+    [user, router, clerkAuth]
   );
 
   const handleApplyCoupon = useCallback(

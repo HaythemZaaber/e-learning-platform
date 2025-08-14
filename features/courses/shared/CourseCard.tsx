@@ -75,6 +75,8 @@ interface CourseCardProps {
   certificateEarned?: boolean;
   lastWatchedLecture?: string;
   nextLessonId?: string;
+  completedLectures?: number;
+  totalLectures?: number;
   difficultyMatch?: number; // 0-100 how well it matches student's level
   estimatedTimeToComplete?: number; // in hours
   
@@ -84,6 +86,12 @@ interface CourseCardProps {
   onPreview?: (courseId: string) => void;
   onShare?: (course: Course) => void;
   onTrackView?: (courseId: string) => void;
+  
+  // Cart and payment callbacks
+  onAddToCart?: (courseId: string) => Promise<void>;
+  onRemoveFromCart?: (courseId: string) => Promise<void>;
+  onBuyNow?: (courseId: string) => Promise<void>;
+  isInCart?: boolean;
 }
 
 // Enhanced Badge Component with Premium Styling
@@ -180,12 +188,13 @@ const StudentPriceDisplay = ({
 
   if (isEnrolled) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full shadow-lg">
-          <CheckCircle className="h-4 w-4" />
-          <span className="font-bold">Enrolled</span>
-        </div>
-      </div>
+      // <div className={cn("flex items-center gap-2", className)}>
+      //   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full shadow-lg">
+      //     <CheckCircle className="h-4 w-4" />
+      //     <span className="font-bold">Enrolled</span>
+      //   </div>
+      // </div>
+      <div className={cn("flex items-center gap-2", className)}></div>
     );
   }
 
@@ -254,6 +263,71 @@ const StudentPriceDisplay = ({
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// Progress Status Badge Component
+const ProgressStatusBadge = ({ 
+  progress, 
+  className 
+}: { 
+  progress: number;
+  className?: string;
+}) => {
+  const getStatusInfo = () => {
+    if (progress === 0) {
+      return {
+        text: "Not Started",
+        color: "bg-gray-100 text-gray-700 border-gray-300",
+        icon: Clock,
+        progressColor: "bg-gray-300"
+      };
+    } else if (progress === 100) {
+      return {
+        text: "Completed",
+        color: "bg-green-100 text-green-700 border-green-300",
+        icon: CheckCircle,
+        progressColor: "bg-green-500"
+      };
+    } else if (progress >= 50) {
+      return {
+        text: "In Progress",
+        color: "bg-blue-100 text-blue-700 border-blue-300",
+        icon: TrendingUp,
+        progressColor: "bg-blue-500"
+      };
+    } else {
+      return {
+        text: "Just Started",
+        color: "bg-orange-100 text-orange-700 border-orange-300",
+        icon: Play,
+        progressColor: "bg-orange-500"
+      };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+  const Icon = statusInfo.icon;
+
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      {/* Progress indicator dot */}
+      <div className={cn(
+        "w-2 h-2 rounded-full",
+        statusInfo.progressColor
+      )} />
+      
+      <Badge 
+        variant="outline" 
+        className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border-2",
+          statusInfo.color
+        )}
+      >
+        <Icon className="h-3 w-3" />
+        {statusInfo.text}
+      </Badge>
     </div>
   );
 };
@@ -342,7 +416,7 @@ const getIntensityIcon = (intensity?: CourseIntensity) => {
 };
 
 // Student Action Configuration
-const getStudentActions = (isEnrolled: boolean) => {
+const getStudentActions = (isEnrolled: boolean, isFree: boolean = false, isInCart: boolean = false) => {
   if (isEnrolled) {
     return {
       primary: {
@@ -359,20 +433,53 @@ const getStudentActions = (isEnrolled: boolean) => {
       },
     };
   } else {
-    return {
-      primary: {
-        icon: ShoppingCart,
-        label: "Enroll Now",
-        action: "enroll",
-        className: "bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg",
-      },
-      secondary: { 
-        icon: Eye, 
-        label: "Preview", 
-        action: "preview",
-        className: "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-700"
-      },
-    };
+    if (isFree) {
+      return {
+        primary: {
+          icon: ShoppingCart,
+          label: isInCart ? "Remove from Cart" : "Add to Cart",
+          action: isInCart ? "removeFromCart" : "addToCart",
+          className: isInCart 
+            ? "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
+            : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg",
+        },
+        secondary: { 
+          icon: BookOpen, 
+          label: "Enroll for Free", 
+          action: "enroll",
+          className: "border-green-200 text-green-700 hover:bg-green-50"
+        },
+        tertiary: {
+          icon: Eye,
+          label: "Preview",
+          action: "preview",
+          className: "border-gray-200 text-gray-700 hover:bg-gray-50"
+        }
+      };
+    } else {
+      return {
+        primary: {
+          icon: ShoppingCart,
+          label: isInCart ? "Remove from Cart" : "Add to Cart",
+          action: isInCart ? "removeFromCart" : "addToCart",
+          className: isInCart 
+            ? "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
+            : "bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg",
+        },
+        secondary: { 
+          icon: DollarSign, 
+          label: "Buy Now", 
+          action: "buyNow",
+          className: "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+        },
+        tertiary: {
+          icon: Eye,
+          label: "Preview",
+          action: "preview",
+          className: "border-gray-200 text-gray-700 hover:bg-gray-50"
+        }
+      };
+    }
   }
 };
 
@@ -389,6 +496,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   certificateEarned = false,
   lastWatchedLecture,
   nextLessonId,
+  completedLectures = 0,
+  totalLectures = 0,
   difficultyMatch,
   estimatedTimeToComplete,
   onEnroll,
@@ -396,6 +505,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   onPreview,
   onShare,
   onTrackView,
+  onAddToCart,
+  onRemoveFromCart,
+  onBuyNow,
+  isInCart = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isBookmarking, setIsBookmarking] = useState(false);
@@ -435,10 +548,20 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       case "view":
         handleViewDetails();
         break;
+      case "addToCart":
+        if (onAddToCart) await onAddToCart(course.id);
+        break;
+      case "removeFromCart":
+        if (onRemoveFromCart) await onRemoveFromCart(course.id);
+        break;
+      case "buyNow":
+        if (onBuyNow) await onBuyNow(course.id);
+        break;
     }
   };
 
-  const actions = getStudentActions(isEnrolled);
+  const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+  const actions = getStudentActions(isEnrolled, isFree, isInCart);
 
   const GridView = () => (
     <Card
@@ -487,7 +610,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               />
             )}
             {isEnrolled && (
-              <EnhancedCourseBadge text="✅ Enrolled" variant="enrolled" icon={CheckCircle} />
+              <EnhancedCourseBadge text="Enrolled" variant="enrolled" icon={CheckCircle} />
             )}
           </div>
 
@@ -619,9 +742,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
 
         {/* Enhanced title with premium styling */}
-        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
-          {course.title}
-        </h3>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="font-bold text-lg line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors leading-tight flex-1">
+            {course.title}
+          </h3>
+          {/* Progress Status Badge for enrolled students */}
+          {isEnrolled && progress !== undefined && (
+            <ProgressStatusBadge progress={progress} />
+          )}
+        </div>
 
         {/* Enhanced description */}
         <p className="text-gray-600 text-sm  mb-2 leading-relaxed flex-grow">
@@ -629,17 +758,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </p>
 
         {/* Enhanced progress section for enrolled students */}
-        {isEnrolled && (
+        {/* {isEnrolled && (
           <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 rounded-xl border-2 border-blue-100 shadow-sm">
             <StudentProgressBar
               progress={progress}
               timeSpent={timeSpent}
               streakDays={streakDays}
               certificateEarned={certificateEarned}
-            />
+            /> */}
             
-            {/* Continue learning section */}
-            {lastWatchedLecture && (
+           {/* Continue learning section  */}
+            {/* {lastWatchedLecture && (
               <div className="mt-4 pt-3 border-t border-blue-200">
                 <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
                   <Play className="h-4 w-4" />
@@ -649,7 +778,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </div>
             )}
           </div>
-        )}
+        )} */}
 
         {/* Learning outcomes preview for non-enrolled students */}
         {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
@@ -734,80 +863,165 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </div>
       </CardContent>
 
-      {/* Enhanced Footer */}
-      <CardFooter className="p-5 pt-0 pb-2 border-t border-gray-100">
-        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          {/* Enhanced Price Section */}
-          <div className="flex-1">
-            <StudentPriceDisplay
-              price={course.price}
-              originalPrice={course.originalPrice}
-              size="md"
-              isEnrolled={isEnrolled}
-              currency={course.currency}
-            />
-            
-            {/* Additional course value indicators */}
-            {/* {!isEnrolled && course.price > 0 && (
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-                {course.hasLifetimeAccess && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full">
-                    <Timer className="h-3 w-3" />
-                    <span className="font-medium">Lifetime access</span>
-                  </div>
-                )}
-                {course.hasCertificate && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full">
-                    <GraduationCap className="h-3 w-3" />
-                    <span className="font-medium">Certificate</span>
-                  </div>
-                )}
-                {course.downloadableResources && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-full">
-                    <Download className="h-3 w-3" />
-                    <span className="font-medium">Resources</span>
-                  </div>
-                )}
-              </div>
-            )} */}
-          </div>
+      {/* Enhanced Responsive Footer */}
+      <CardFooter className="p-4 sm:p-5 pt-0 border-t border-gray-100 bg-gradient-to-r from-gray-50/50 to-white/50">
+        <div className="w-full space-y-4">
+          {/* Price and Course Features Row */}
+          <div className="flex flex-col  justify-between items-start sm:items-center gap-3 sm:gap-4">
+            {/* Enhanced Price Section */}
+            <div className="flex-1 min-w-0">
+              <StudentPriceDisplay
+                price={course.price}
+                originalPrice={course.originalPrice}
+                size="md"
+                isEnrolled={isEnrolled}
+                currency={course.currency}
+              />
+              
+              {/* Course Value Indicators - Responsive */}
+              {!isEnrolled && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {course.hasLifetimeAccess && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                      <Timer className="h-3 w-3" />
+                      <span className="hidden xs:inline">Lifetime</span>
+                      <span className="xs:hidden">∞</span>
+                    </div>
+                  )}
+                  {course.hasCertificate && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                      <GraduationCap className="h-3 w-3" />
+                      <span className="hidden xs:inline">Certificate</span>
+                      <span className="xs:hidden">Cert</span>
+                    </div>
+                  )}
+                  {course.downloadableResources && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
+                      <Download className="h-3 w-3" />
+                      <span className="hidden xs:inline">Resources</span>
+                      <span className="xs:hidden">
+                        {typeof course.downloadableResources === 'number' ? course.downloadableResources : '✓'}
+                      </span>
+                    </div>
+                  )}
+                  {course.hasMobileAccess && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                      <Smartphone className="h-3 w-3" />
+                      <span className="hidden xs:inline">Mobile</span>
+                      <span className="xs:hidden">📱</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="flex gap-2 flex-shrink-0">
-            {/* Enhanced share button */}
-            {onShare && !isEnrolled && (
+            {/* Action Buttons - Responsive Stack */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {/* Share Button - Only show on larger screens */}
+              {/* {onShare && !isEnrolled && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn(
+                    "rounded-xl border-2 hover:scale-105 transition-all duration-200 hidden sm:flex",
+                    actions.secondary.className
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onShare(course);
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              )} */}
+              
+              {/* Tertiary Action Button - Only for non-enrolled paid courses */}
+              {!isEnrolled && !isFree && actions.tertiary && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn(
+                    "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                    actions.tertiary.className
+                  )}
+                  onClick={(e) => handleActionClick(actions.tertiary.action, e)}
+                >
+                  <actions.tertiary.icon className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">{actions.tertiary.label}</span>
+                  <span className="sm:hidden">{actions.tertiary.label.split(' ')[0]}</span>
+                </Button>
+              )}
+              
+              {/* Secondary Action Button */}
               <Button 
                 variant="outline" 
                 size="sm" 
-                className={cn("rounded-xl border-2 hover:scale-105 transition-all duration-200", actions.secondary.className)}
+                className={cn(
+                  "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                  actions.secondary.className
+                )}
+                onClick={(e) => handleActionClick(actions.secondary.action, e)}
+              >
+                <actions.secondary.icon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">{actions.secondary.label}</span>
+                <span className="sm:hidden">{actions.secondary.label.split(' ')[0]}</span>
+              </Button>
+            
+              {/* Primary Action Button */}
+              <Button 
+                size="sm" 
+                className={cn(
+                  "rounded-xl hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                  actions.primary.className
+                )}
+                onClick={(e) => handleActionClick(actions.primary.action, e)}
+              >
+                <actions.primary.icon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">{actions.primary.label}</span>
+                <span className="sm:hidden">{actions.primary.label.split(' ')[0]}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Share Button - Only show on small screens */}
+          {onShare && !isEnrolled && (
+            <div className="sm:hidden">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-gray-600 hover:text-gray-800"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onShare(course);
                 }}
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-4 w-4 mr-2" />
+                Share this course
               </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className={cn("rounded-xl border-2 hover:scale-105 transition-all duration-200", actions.secondary.className)}
-              onClick={(e) => handleActionClick(actions.secondary.action, e)}
-            >
-              <actions.secondary.icon className="h-4 w-4 mr-2" />
-              {actions.secondary.label}
-            </Button>
-          
-            <Button 
-              size="sm" 
-              className={cn("rounded-xl hover:scale-105 transition-all duration-200", actions.primary.className)}
-              onClick={(e) => handleActionClick(actions.primary.action, e)}
-            >
-              <actions.primary.icon className="h-4 w-4 mr-2" />
-              {actions.primary.label}
-            </Button>
-          </div>
+            </div>
+          )}
+
+          {/* Progress Bar for Enrolled Students */}
+          {isEnrolled && progress !== undefined && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600 font-medium">Your Progress</span>
+                <span className="text-gray-900 font-semibold">{Math.round(progress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{completedLectures || 0} of {totalLectures || 0} lectures</span>
+                <span>{timeSpent ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m` : '0m'} watched</span>
+              </div>
+            </div>
+          )}
         </div>
       </CardFooter>
     </Card>
@@ -965,17 +1179,24 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </div>
           </div>
 
-          {/* Enhanced title and description */}
-          <h3 className="font-bold text-2xl mb-4 text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
-            {course.title}
-          </h3>
+          {/* Enhanced title with premium styling */}
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h3 className="font-bold text-2xl text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight flex-1">
+              {course.title}
+            </h3>
+            {/* Progress Status Badge for enrolled students */}
+            {isEnrolled && progress !== undefined && (
+              <ProgressStatusBadge progress={progress} />
+            )}
+          </div>
 
+          {/* Enhanced description */}
           <p className="text-gray-600 mb-5 line-clamp-3 text-base leading-relaxed">
             {course.description}
           </p>
 
           {/* Enhanced progress section for enrolled students */}
-          {isEnrolled && (
+          {/* {isEnrolled && (
             <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 rounded-2xl border-2 border-blue-100 shadow-sm">
               <StudentProgressBar
                 progress={progress}
@@ -983,9 +1204,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 streakDays={streakDays}
                 certificateEarned={certificateEarned}
               />
-              
+
               {/* Next lesson continuation */}
-              {lastWatchedLecture && (
+              {/* {lastWatchedLecture && (
                 <div className="mt-4 pt-4 border-t border-blue-200">
                   <div className="flex items-center gap-3 text-base text-blue-700 bg-blue-100 px-4 py-3 rounded-xl">
                     <Play className="h-5 w-5" />
@@ -997,230 +1218,224 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 </div>
               )}
             </div>
-          )}
+          )} */}
 
-          {/* Learning outcomes preview for non-enrolled */}
+          {/* Learning outcomes preview for non-enrolled students */}
           {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
             <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
               <div className="text-base font-semibold text-green-800 mb-3 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-green-600" />
-                What you'll master in this course
+                What you'll learn
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                {course.whatYouLearn.slice(0, 6).map((item, index) => (
+              <div className="space-y-1">
+                {course.whatYouLearn.slice(0, 2).map((item, index) => (
                   <div key={index} className="flex items-start gap-2 text-sm text-green-700">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="line-clamp-2">{item}</span>
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
+                    <span className="line-clamp-1">{item}</span>
                   </div>
                 ))}
+                {course.whatYouLearn.length > 2 && (
+                  <div className="text-sm text-green-600 font-semibold">
+                    +{course.whatYouLearn.length - 2} more skills to unlock
+                  </div>
+                )}
               </div>
-              {course.whatYouLearn.length > 6 && (
-                <div className="mt-3 text-sm text-green-600 font-semibold">
-                  +{course.whatYouLearn.length - 6} more skills to unlock
-                </div>
-              )}
             </div>
           )}
 
-          {/* Enhanced course features grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-6">
-            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+          {/* Enhanced stats with premium styling */}
+          <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-6">
+            <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1.5 rounded-lg">
               <BookOpen className="h-4 w-4 text-blue-500" />
-              <span className="font-medium text-blue-700">{course.totalLectures} lessons</span>
+              <span className="font-medium">{course.totalSections} sections</span>
             </div>
-            <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1.5 rounded-lg">
+              <BookOpen className="h-4 w-4 text-blue-500" />
+              <span className="font-medium">{course.totalLectures} lessons</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1.5 rounded-lg">
               <Users className="h-4 w-4 text-green-500" />
-              <span className="font-medium text-green-700">{course.currentEnrollments?.toLocaleString()}</span>
+              <span className="font-medium">{course.currentEnrollments?.toLocaleString()} students</span>
             </div>
-            
-            {course.downloadableResources && (
-              <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
-                <Download className="h-4 w-4 text-purple-500" />
-                <span className="font-medium text-purple-700">Resources</span>
-              </div>
-            )}
-            
-            {course.hasCertificate && (
-              <div className="flex items-center gap-2 bg-amber-50 px-3 py-2 rounded-lg">
-                <GraduationCap className="h-4 w-4 text-amber-500" />
-                <span className="font-medium text-amber-700">Certificate</span>
-              </div>
-            )}
-            
-            {course.hasLifetimeAccess && (
-              <div className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-lg">
-                <Timer className="h-4 w-4 text-indigo-500" />
-                <span className="font-medium text-indigo-700">Lifetime access</span>
-              </div>
-            )}
-            
-            {course.mobileOptimized && (
-              <div className="flex items-center gap-2 bg-teal-50 px-3 py-2 rounded-lg">
-                <Smartphone className="h-4 w-4 text-teal-500" />
-                <span className="font-medium text-teal-700">Mobile friendly</span>
-              </div>
-            )}
             
             {course.hasSubtitles && (
-              <div className="flex items-center gap-2 bg-cyan-50 px-3 py-2 rounded-lg">
-                <Languages className="h-4 w-4 text-cyan-500" />
-                <span className="font-medium text-cyan-700">Subtitles</span>
-              </div>
-            )}
-            
-            {course.hasAssignments && (
-              <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg">
-                <Brain className="h-4 w-4 text-orange-500" />
-                <span className="font-medium text-orange-700">Assignments</span>
+              <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1.5 rounded-lg">
+                <Languages className="h-4 w-4 text-indigo-500" />
+                <span className="font-medium">Subtitles</span>
               </div>
             )}
           </div>
 
           {/* Enhanced instructor section */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 ring-3 ring-white shadow-lg">
-                  <Image
-                    src={course.instructor?.profileImage || courseThumbnail}
-                    alt={course.instructor?.firstName + " " + course.instructor?.lastName}
-                    width={56}
-                    height={56}
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 text-lg">{course.instructor?.firstName + " " + course.instructor?.lastName}</p>
-                  <p className="text-gray-600 mb-2">{course.instructor?.title}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    {course.instructor?.teachingRating && (
-                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-200">
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                        <span className="font-semibold text-yellow-700">{course.instructor.teachingRating}</span>
-                      </div>
-                    )}
-                    {course.instructor?.totalStudentsTaught && (
-                      <span className="font-medium">{course.instructor.totalStudentsTaught.toLocaleString()} students</span>
-                    )}
-                    {course.instructor?.totalCourses && (
-                      <span className="font-medium">{course.instructor.totalCourses} courses</span>
-                    )}
-                  </div>
-                </div>
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 ring-3 ring-white shadow-md">
+                <Image
+                  src={course.instructor?.profileImage || courseThumbnail}
+                  alt={course.instructor?.firstName + " " + course.instructor?.lastName || "Instructor"}
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
               </div>
-              
-              {course.instructor?.expertise && course.instructor.expertise.length > 0 && (
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 mb-2 font-medium">Expertise</div>
-                  <div className="flex flex-wrap gap-1 justify-end">
-                    {course.instructor.expertise.slice(0, 3).map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {course.instructor?.firstName + " " + course.instructor?.lastName}
+                </p>
+                <p className="text-xs text-gray-600 truncate">
+                  {course.instructor?.title}
+                </p>
+              </div>
             </div>
+            
+            {course.instructor?.teachingRating && (
+              <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-200">
+                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                <span className="text-xs font-semibold text-yellow-700">{course.instructor.teachingRating}</span>
+              </div>
+            )}
           </div>
 
-          {/* Enhanced Footer with pricing and actions */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pt-6 border-t border-gray-200 mt-auto">
-            <div className="flex-1">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-                <StudentPriceDisplay
-                  price={course.price}
-                  originalPrice={course.originalPrice}
-                  size="lg"
-                  isEnrolled={isEnrolled}
-                  currency={course.currency}
-                />
-                
-                {/* Additional course info */}
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  {estimatedTimeToComplete && (
-                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
-                      <Clock className="h-4 w-4" />
-                      <span className="font-medium">~{estimatedTimeToComplete}h to complete</span>
+          {/* Enhanced Responsive Footer */}
+          <div className="p-4 sm:p-5 pt-0 border-t border-gray-100 bg-gradient-to-r from-gray-50/50 to-white/50">
+            <div className="w-full space-y-4">
+              {/* Price and Course Features Row */}
+              <div className="flex flex-col justify-between items-start sm:items-center gap-3 sm:gap-4">
+                {/* Enhanced Price Section */}
+                <div className="flex-1 min-w-0">
+                  <StudentPriceDisplay
+                    price={course.price}
+                    originalPrice={course.originalPrice}
+                    size="md"
+                    isEnrolled={isEnrolled}
+                    currency={course.currency}
+                  />
+                  
+                  {/* Course Value Indicators - Responsive */}
+                  {!isEnrolled && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {course.hasLifetimeAccess && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                          <Timer className="h-3 w-3" />
+                          <span className="hidden xs:inline">Lifetime</span>
+                          <span className="xs:hidden">∞</span>
+                        </div>
+                      )}
+                      {course.hasCertificate && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                          <GraduationCap className="h-3 w-3" />
+                          <span className="hidden xs:inline">Certificate</span>
+                          <span className="xs:hidden">Cert</span>
+                        </div>
+                      )}
+                      {course.downloadableResources && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
+                          <Download className="h-3 w-3" />
+                          <span className="hidden xs:inline">Resources</span>
+                          <span className="xs:hidden">
+                            {typeof course.downloadableResources === 'number' ? course.downloadableResources : '✓'}
+                          </span>
+                        </div>
+                      )}
+                      {course.hasMobileAccess && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                          <Smartphone className="h-3 w-3" />
+                          <span className="hidden xs:inline">Mobile</span>
+                          <span className="xs:hidden">📱</span>
+                        </div>
+                      )}
                     </div>
+                  )}
+                </div>
+
+                {/* Action Buttons - Responsive Stack */}
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  {/* Tertiary Action Button - Only for non-enrolled paid courses */}
+                  {!isEnrolled && !isFree && actions.tertiary && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className={cn(
+                        "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                        actions.tertiary.className
+                      )}
+                      onClick={(e) => handleActionClick(actions.tertiary.action, e)}
+                    >
+                      <actions.tertiary.icon className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">{actions.tertiary.label}</span>
+                      <span className="sm:hidden">{actions.tertiary.label.split(' ')[0]}</span>
+                    </Button>
                   )}
                   
-                  {course.language && course.language !== 'en' && (
-                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
-                      <Globe className="h-4 w-4" />
-                      <span className="font-medium">{course.language.toUpperCase()}</span>
-                    </div>
-                  )}
+                  {/* Secondary Action Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className={cn(
+                      "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                      actions.secondary.className
+                    )}
+                    onClick={(e) => handleActionClick(actions.secondary.action, e)}
+                  >
+                    <actions.secondary.icon className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">{actions.secondary.label}</span>
+                    <span className="sm:hidden">{actions.secondary.label.split(' ')[0]}</span>
+                  </Button>
+                
+                  {/* Primary Action Button */}
+                  <Button 
+                    size="sm" 
+                    className={cn(
+                      "rounded-xl hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
+                      actions.primary.className
+                    )}
+                    onClick={(e) => handleActionClick(actions.primary.action, e)}
+                  >
+                    <actions.primary.icon className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">{actions.primary.label}</span>
+                    <span className="sm:hidden">{actions.primary.label.split(' ')[0]}</span>
+                  </Button>
                 </div>
               </div>
-              
-              {/* Enhanced course value indicators for list view */}
-              {!isEnrolled && course.price > 0 && (
-                <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
-                  {course.hasLifetimeAccess && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
-                      <Timer className="h-4 w-4" />
-                      <span className="font-medium">Lifetime access</span>
-                    </div>
-                  )}
-                  {course.hasCertificate && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg">
-                      <GraduationCap className="h-4 w-4" />
-                      <span className="font-medium">Certificate included</span>
-                    </div>
-                  )}
-                  {course.downloadableResources && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg">
-                      <Download className="h-4 w-4" />
-                      <span className="font-medium">Downloadable resources</span>
-                    </div>
-                  )}
-                  {course.mobileOptimized && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-teal-50 text-teal-700 rounded-lg">
-                      <Smartphone className="h-4 w-4" />
-                      <span className="font-medium">Mobile optimized</span>
-                    </div>
-                  )}
+
+              {/* Mobile Share Button - Only show on small screens */}
+              {onShare && !isEnrolled && (
+                <div className="sm:hidden">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full text-gray-600 hover:text-gray-800"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onShare(course);
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share this course
+                  </Button>
                 </div>
               )}
-            </div>
 
-            <div className="flex gap-3 flex-shrink-0">
-              {/* Enhanced share button */}
-              {onShare && !isEnrolled && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onShare(course);
-                  }}
-                  className={cn("rounded-xl border-2 hover:scale-105 transition-all duration-200", actions.secondary.className)}
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
+              {/* Progress Bar for Enrolled Students */}
+              {isEnrolled && progress !== undefined && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 font-medium">Your Progress</span>
+                    <span className="text-gray-900 font-semibold">{Math.round(progress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{completedLectures || 0} of {totalLectures || 0} lectures</span>
+                    <span>{timeSpent ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m` : '0m'} watched</span>
+                  </div>
+                </div>
               )}
-
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={(e) => handleActionClick(actions.secondary.action, e)}
-                className={cn("rounded-xl border-2 hover:scale-105 transition-all duration-200", actions.secondary.className)}
-              >
-                <actions.secondary.icon className="h-4 w-4 mr-2" />
-                {actions.secondary.label}
-              </Button>
-              
-              <Button 
-                size="lg" 
-                className={cn("rounded-xl hover:scale-105 transition-all duration-200 px-8", actions.primary.className)}
-                onClick={(e) => handleActionClick(actions.primary.action, e)}
-              >
-                <actions.primary.icon className="h-5 w-5 mr-2" />
-                {actions.primary.label}
-              </Button>
             </div>
           </div>
         </div>

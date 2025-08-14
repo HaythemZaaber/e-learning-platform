@@ -138,6 +138,24 @@ export function PriceCard({
     router.push(`/courses/${course.id}/learn`);
   };
 
+  // Handle free course enrollment
+  const handleEnrollFreeClick = async (course: Course) => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to enroll in courses");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await handleEnrollFree(course);
+    } catch (error) {
+      console.error("Free enrollment error:", error);
+      toast.error("Failed to enroll in free course");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (!course) {
     return null;
   }
@@ -422,7 +440,7 @@ export function PriceCard({
             <Button 
               className="w-full bg-green-600 hover:bg-green-700"
               size="lg"
-              onClick={() => course && handleEnrollFree(course)}
+              onClick={() => course && handleEnrollFreeClick(course)}
               disabled={isProcessing}
             >
               {isProcessing ? "Processing..." : "Enroll for Free"}

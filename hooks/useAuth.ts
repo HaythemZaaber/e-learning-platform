@@ -13,6 +13,7 @@ interface UseAuthReturn {
   error: string | null;
   refetchUser: () => void;
   logout: () => Promise<void>;
+  getToken: () => Promise<string | null>;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -86,6 +87,16 @@ export function useAuth(): UseAuthReturn {
     refetch();
   };
 
+  // Get authentication token
+  const getToken = async (): Promise<string | null> => {
+    try {
+      return await clerkAuth.getToken();
+    } catch (error) {
+      console.error("Error getting token:", error);
+      return null;
+    }
+  };
+
   const isLoading =
     storeLoading || queryLoading || clerkAuth.isLoaded === false;
 
@@ -96,5 +107,6 @@ export function useAuth(): UseAuthReturn {
     error,
     refetchUser,
     logout,
+    getToken,
   };
 }

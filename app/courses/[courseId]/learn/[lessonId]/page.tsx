@@ -445,32 +445,27 @@ export default function LessonPage({
 
   const {
     course: courseData,
-    lecture: currentLecture,
-    progress: courseProgress,
+    lecture: lectureData,
+    progress,
     navigation,
     isLoading,
     error,
     isEnrolled,
     isAuthenticated,
+    isFreeCourse,
+    canAccessContent,
     handleMarkLectureComplete,
     handleUpdateProgress,
+    handleTrackInteraction,
     handleToggleBookmark,
     handleDownloadResource,
-    handleTrackInteraction,
     refetchProgress,
     updateZustandStore,
-  } = useCoursePreview({ 
-    courseId,
-    lectureId: lessonId,
-    autoTrackView: false, // Disable auto view tracking to prevent conflicts with milestone tracking
-    autoTrackProgress: false // Manual control
-  });
+  } = useCoursePreview({ courseId, lectureId: lessonId });
 
-  // Determine if course is free
-  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
-  
-  // Determine if user can access content (enrolled OR free course)
-  const canAccessContent = isEnrolled || isFreeCourse;
+  // Remove the old logic since it's now handled in the hook
+  // const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
+  // const canAccessContent = isEnrolled || isFreeCourse;
 
   const handleUpdateProgressRef = useRef(handleUpdateProgress);
 
@@ -494,7 +489,7 @@ export default function LessonPage({
     updateProgress: updateVideoProgress,
     getInitialTime,
 
-  } = useVideoProgress(courseId, lessonId, progressUpdateCallback, currentLecture?.isCompleted);
+  } = useVideoProgress(courseId, lessonId, progressUpdateCallback, lectureData?.isCompleted);
 
   // Track lecture view once when lecture is loaded
   const hasTrackedView = useRef<boolean>(false);
@@ -509,15 +504,15 @@ export default function LessonPage({
 
   // Update store when lecture changes
   useEffect(() => {
-    if (currentLecture) {
+    if (lectureData) {
       // Reset tracking if lecture changed
-      if (currentLectureIdRef.current !== currentLecture.id) {
+      if (currentLectureIdRef.current !== lectureData.id) {
         hasTrackedView.current = false;
-        currentLectureIdRef.current = currentLecture.id;
+        currentLectureIdRef.current = lectureData.id;
         trackedMilestones.current.clear(); // Reset milestone tracking for new lecture
       }
       
-      setStoreLecture(currentLecture);
+      setStoreLecture(lectureData);
       
       // Reset completion state for new lecture
       setCompletionInProgress(false);
@@ -525,20 +520,20 @@ export default function LessonPage({
       
       // Track lecture view only once per lecture
       if (!hasTrackedView.current && isAuthenticated) {
-        handleTrackInteractionRef.current(currentLecture.id, 'lecture_view', {
+        handleTrackInteractionRef.current(lectureData.id, 'lecture_view', {
           timestamp: Date.now(),
-          lectureTitle: currentLecture.title
+          lectureTitle: lectureData.title
         });
         hasTrackedView.current = true;
       }
       
       console.log('📚 Lecture loaded:', {
-        id: currentLecture.id,
-        title: currentLecture.title,
-        isCompleted: currentLecture.isCompleted
+        id: lectureData.id,
+        title: lectureData.title,
+        isCompleted: lectureData.isCompleted
       });
     }
-  }, [currentLecture, setStoreLecture, isAuthenticated]);
+  }, [lectureData, setStoreLecture, isAuthenticated]);
 
   // Format duration helper
   const formatDuration = useCallback((duration: number) => {
@@ -571,21 +566,21 @@ export default function LessonPage({
 
   // Get content from contentItem
   const getContentData = useCallback(() => {
-    if (!currentLecture) return null;
+    if (!lectureData) return null;
     
     // First check if lecture has direct videoUrl (legacy support)
-    if (currentLecture.videoUrl) {
+    if (lectureData.videoUrl) {
       return {
         type: 'VIDEO' as ContentType,
-        url: currentLecture.videoUrl,
-        title: currentLecture.title,
-        description: currentLecture.description
+        url: lectureData.videoUrl,
+        title: lectureData.title,
+        description: lectureData.description
       };
     }
     
     // Then check contentItem
-    if (currentLecture.contentItem) {
-      const contentItem = currentLecture.contentItem;
+    if (lectureData.contentItem) {
+      const contentItem = lectureData.contentItem;
       return {
         type: contentItem.type,
         url: contentItem.fileUrl,
@@ -600,11 +595,11 @@ export default function LessonPage({
     }
     
     return null;
-  }, [currentLecture]);
+  }, [lectureData]);
 
   // Calculate lecture navigation
   const allLectures = courseData?.sections?.flatMap((section: any) => section.lectures || []) || [];
-  const currentIndex = allLectures.findIndex((lecture: any) => lecture.id === currentLecture?.id);
+  const currentIndex = allLectures.findIndex((lecture: any) => lecture.id === lectureData?.id);
   const nextLecture = currentIndex < allLectures.length - 1 ? allLectures[currentIndex + 1] : null;
   const previousLecture = currentIndex > 0 ? allLectures[currentIndex - 1] : null;
 
@@ -679,24 +674,24 @@ export default function LessonPage({
     }
     
     // Auto-complete at 100% - ONLY for incomplete lectures
-    if (progress === 100 && currentLecture && 
+    if (progress === 100 && lectureData && 
         !isCompleted && 
-        !currentLecture.isCompleted && 
+        !lectureData.isCompleted && 
         !completionInProgress && 
         !completionAttemptedRef.current) {
       
       console.log('🎯 Auto-completing lecture at 100%:', {
-        lectureId: currentLecture.id,
+        lectureId: lectureData.id,
         progress: progress.toFixed(1),
         isCompleted,
-        lectureCompleted: currentLecture.isCompleted,
+        lectureCompleted: lectureData.isCompleted,
         completionInProgress
       });
       
       setCompletionInProgress(true);
       completionAttemptedRef.current = true;
       
-      handleMarkLectureComplete(currentLecture.id, 100, timeSpent * 60).then(async () => {
+      handleMarkLectureComplete(lectureData.id, 100, timeSpent * 60).then(async () => {
         toast.success("🎉 Lecture completed! Great job!", {
           description: "You've mastered this content!",
           duration: 5000,
@@ -721,18 +716,18 @@ export default function LessonPage({
       });
     }
 
-  }, [updateVideoProgress, lessonId, currentLecture, isCompleted, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
+  }, [updateVideoProgress, lessonId, lectureData, isCompleted, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
 
   const handleManualComplete = useCallback(async () => {
-    if (!currentLecture || completionInProgress || completionAttemptedRef.current) return;
+    if (!lectureData || completionInProgress || completionAttemptedRef.current) return;
     
     try {
       setCompletionInProgress(true);
       completionAttemptedRef.current = true;
       
-      toast.loading("Marking lecture as complete...", { id: `complete-${currentLecture.id}` });
-      await handleMarkLectureComplete(currentLecture.id, 100, currentLecture.duration);
-      toast.success("🎉 Lecture completed!", { id: `complete-${currentLecture.id}` });
+      toast.loading("Marking lecture as complete...", { id: `complete-${lectureData.id}` });
+      await handleMarkLectureComplete(lectureData.id, 100, lectureData.duration);
+      toast.success("🎉 Lecture completed!", { id: `complete-${lectureData.id}` });
       
       // Update completion state without aggressive refetching
       setCompletionInProgress(false);
@@ -746,23 +741,23 @@ export default function LessonPage({
         updateZustandStore(); // Update store again with fresh data
       }, 1000);
     } catch (error) {
-      toast.error("Failed to mark lecture as complete", { id: `complete-${currentLecture.id}` });
+      toast.error("Failed to mark lecture as complete", { id: `complete-${lectureData.id}` });
       setCompletionInProgress(false);
       completionAttemptedRef.current = false; // Allow retry on error
     }
-  }, [currentLecture, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
+  }, [lectureData, handleMarkLectureComplete, refetchProgress, completionInProgress, updateZustandStore]);
 
   const handleBookmark = useCallback(async () => {
-    if (!currentLecture) return;
+    if (!lectureData) return;
     
     try {
-      await handleToggleBookmark(currentLecture.id);
+      await handleToggleBookmark(lectureData.id);
       setIsBookmarked(!isBookmarked);
       toast.success(isBookmarked ? "Bookmark removed" : "Lecture bookmarked");
     } catch (error) {
       toast.error("Failed to update bookmark");
     }
-  }, [currentLecture, handleToggleBookmark, isBookmarked]);
+  }, [lectureData, handleToggleBookmark, isBookmarked]);
 
   const handleJumpToTimestamp = useCallback((timestamp: number) => {
     // Use the global seek function exposed by VideoPlayer
@@ -772,15 +767,15 @@ export default function LessonPage({
   }, []);
 
   const handleShareLecture = useCallback(async () => {
-    if (!currentLecture) return;
+    if (!lectureData) return;
     
     try {
-      const shareUrl = `${window.location.origin}/courses/${courseId}/learn/${currentLecture.id}`;
+      const shareUrl = `${window.location.origin}/courses/${courseId}/learn/${lectureData.id}`;
       
       if (navigator.share) {
         await navigator.share({
-          title: currentLecture.title,
-          text: `Check out this lecture: ${currentLecture.title}`,
+          title: lectureData.title,
+          text: `Check out this lecture: ${lectureData.title}`,
           url: shareUrl,
         });
       } else {
@@ -790,13 +785,13 @@ export default function LessonPage({
     } catch (error) {
       toast.error("Failed to share lecture");
     }
-  }, [currentLecture, courseId]);
+  }, [lectureData, courseId]);
 
   if (isLoading) {
     return <LessonSkeleton />;
   }
 
-  if (error || !courseData || !currentLecture) {
+  if (error || !courseData || !lectureData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full">
@@ -824,17 +819,17 @@ export default function LessonPage({
           <CardContent className="text-center py-8">
             <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {isFreeCourse ? "Sign In Required" : "Access Required"}
+              {isFreeCourse ? "Enrollment Required" : "Access Required"}
             </h1>
             <p className="text-gray-600 mb-6">
               {isFreeCourse 
-                ? "Please sign in to access this free course lecture."
+                ? "Please enroll in this free course to access this lecture and track your progress."
                 : "Please enroll in this course to access this lecture."
               }
             </p>
             <Link href={`/courses/${courseId}`}>
               <Button className="w-full">
-                {isFreeCourse ? "Sign In & Access" : "View Course Details"}
+                {isFreeCourse ? "Enroll for Free" : "View Course Details"}
               </Button>
             </Link>
           </CardContent>
@@ -845,8 +840,8 @@ export default function LessonPage({
 
   const contentData = getContentData();
   const hasVideo = contentData?.type === 'VIDEO';
-  const hasResources = currentLecture.resources && currentLecture.resources.length > 0;
-  const hasQuiz = !!currentLecture.quiz;
+  const hasResources = lectureData.resources && lectureData.resources.length > 0;
+  const hasQuiz = !!lectureData.quiz;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -862,7 +857,7 @@ export default function LessonPage({
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-bold line-clamp-1">{currentLecture.title}</h1>
+                <h1 className="text-xl font-bold line-clamp-1">{lectureData.title}</h1>
                 <p className="text-sm text-gray-600">
                   {courseData.title}
                 </p>
@@ -921,13 +916,13 @@ export default function LessonPage({
               <Card className="overflow-hidden mb-6">
                                               <VideoPlayer
                 src={contentData?.url || ''}
-                  title={currentLecture.title}
+                  title={lectureData.title}
                   currentLecture={{
-                    id: currentLecture.id,
-                    title: currentLecture.title,
-                    duration: formatDuration(currentLecture.duration || 0),
+                    id: lectureData.id,
+                    title: lectureData.title,
+                    duration: formatDuration(lectureData.duration || 0),
                     hasNotes: true,
-                    hasTranscript: !!currentLecture.transcript,
+                    hasTranscript: !!lectureData.transcript,
                   }}
                 courseId={courseId}
                                     onNext={nextLecture ? handleNextLecture : undefined}
@@ -939,8 +934,8 @@ export default function LessonPage({
             ) : (
               <ContentRenderer 
                 contentData={contentData}
-                lecture={currentLecture}
-                onMarkComplete={(lectureId, progress) => handleMarkLectureComplete(lectureId, progress, currentLecture.duration)}
+                lecture={lectureData}
+                onMarkComplete={(lectureId, progress) => handleMarkLectureComplete(lectureId, progress, lectureData.duration)}
                 isCompleted={isCompleted}
               />
             )}
@@ -989,7 +984,7 @@ export default function LessonPage({
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="notes">Notes</TabsTrigger>
                     <TabsTrigger value="resources">
-                      Resources {hasResources && `(${currentLecture.resources?.length || 0})`}
+                      Resources {hasResources && `(${lectureData.resources?.length || 0})`}
                     </TabsTrigger>
                     <TabsTrigger value="discussion">Discussion</TabsTrigger>
                   </TabsList>
@@ -1001,16 +996,16 @@ export default function LessonPage({
                         <div>
                           <h3 className="text-lg font-semibold mb-2">About This Lecture</h3>
                           <p className="text-gray-700">
-                            {currentLecture.description || "No description available."}
+                            {lectureData.description || "No description available."}
                           </p>
                         </div>
 
-                        {currentLecture.content && (
+                        {lectureData.content && (
                           <div>
                             <Separator className="my-4" />
                             <div 
                               className="prose prose-gray max-w-none"
-                              dangerouslySetInnerHTML={{ __html: currentLecture.content }}
+                              dangerouslySetInnerHTML={{ __html: lectureData.content }}
                             />
                           </div>
                         )}
@@ -1034,7 +1029,7 @@ export default function LessonPage({
                     {/* Notes Tab */}
                     <TabsContent value="notes" className="mt-0">
                       <NotesPanel
-                        lectureId={currentLecture.id}
+                        lectureId={lectureData.id}
                         courseId={courseId}
                         currentTime={currentTime}
                         onNoteClick={handleJumpToTimestamp}
@@ -1048,7 +1043,7 @@ export default function LessonPage({
                         <h3 className="text-lg font-semibold">Downloadable Resources</h3>
                         {hasResources ? (
                           <div className="space-y-2">
-                            {currentLecture.resources?.map((resource: any, index: number) => (
+                            {lectureData.resources?.map((resource: any, index: number) => (
                               <div 
                                 key={index}
                                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
@@ -1063,7 +1058,7 @@ export default function LessonPage({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDownloadResource(resource.url, currentLecture.id)}
+                                  onClick={() => handleDownloadResource(resource.url, lectureData.id)}
                                 >
                                   <Download className="w-4 h-4" />
                                 </Button>
@@ -1099,7 +1094,7 @@ export default function LessonPage({
             {/* Lecture Actions */}
             <div className="mt-6 space-y-4">
                           {/* Mark as Complete Button */}
-            {!currentLecture.isCompleted && !isCompleted && !completionInProgress && (
+            {!lectureData.isCompleted && !isCompleted && !completionInProgress && (
               <div className="text-center">
                 <Button
                   onClick={handleManualComplete}
@@ -1126,7 +1121,7 @@ export default function LessonPage({
             )}
               
               {/* Completed Badge */}
-              {(currentLecture.isCompleted || isCompleted) && (
+              {(lectureData.isCompleted || isCompleted) && (
                 <div className="text-center">
                   <Badge className="bg-green-100 text-green-800 border-green-300 px-4 py-2">
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -1168,19 +1163,19 @@ export default function LessonPage({
             <div className="lg:col-span-1 space-y-4">
               <LectureNavigation
                 sections={courseData?.sections || navigation?.sections || []}
-                currentLectureId={currentLecture.id}
+                currentLectureId={lectureData.id}
                 onLectureSelect={handleLectureSelect}
                 isFreeCourse={courseData?.price === 0 || courseData?.enrollmentType === "FREE"}
                 canAccessContent={isEnrolled || (courseData?.price === 0 || courseData?.enrollmentType === "FREE")}
-                progress={courseProgress ? {
-                  completedLectures: courseProgress.completedLectures,
-                  totalLectures: courseProgress.totalLectures,
-                  completionPercentage: courseProgress.completionPercentage
+                progress={progress ? {
+                  completedLectures: progress.completedLectures,
+                  totalLectures: progress.totalLectures,
+                  completionPercentage: progress.completionPercentage
                 } : undefined}
               />
               
               {/* Progress Summary Card */}
-              {courseProgress && (
+              {progress && (
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Course Progress</CardTitle>
@@ -1188,31 +1183,31 @@ export default function LessonPage({
                   <CardContent className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Overall Progress</span>
-                      <span className="font-medium">{Math.round(courseProgress.completionPercentage)}%</span>
+                      <span className="font-medium">{Math.round(progress.completionPercentage)}%</span>
                     </div>
-                    <Progress value={courseProgress.completionPercentage} className="h-2" />
+                    <Progress value={progress.completionPercentage} className="h-2" />
                     
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{courseProgress.completedLectures}</div>
+                        <div className="text-lg font-bold text-blue-600">{progress.completedLectures}</div>
                         <div className="text-xs text-gray-600">Completed</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-gray-900">{courseProgress.totalLectures}</div>
+                        <div className="text-lg font-bold text-gray-900">{progress.totalLectures}</div>
                         <div className="text-xs text-gray-600">Total</div>
                       </div>
                     </div>
                     
-                    {courseProgress.timeSpent > 0 && (
+                    {progress.timeSpent > 0 && (
                       <div className="border-t pt-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Total Time</span>
-                          <span className="font-medium">{formatDuration(courseProgress.watchTime)}</span>
+                          <span className="font-medium">{formatDuration(progress.watchTime)}</span>
                         </div>
             </div>
           )}
                     
-                    {courseProgress.certificateEarned && (
+                    {progress.certificateEarned && (
                       <div className="border-t pt-3">
                         <Badge className="w-full justify-center bg-green-500 text-white">
                           <Award className="w-3 h-3 mr-1" />

@@ -153,7 +153,25 @@ export const GET_ALL_COURSES = gql`
         enrollmentType
         isPublic
         version
-    
+        
+        # Enrollment Information
+        enrollments {
+          id
+          userId
+          courseId
+          status
+          progress
+          completedLectures
+          totalLectures
+          paymentStatus
+          totalTimeSpent
+          streakDays
+          completionPercentage
+          userId
+
+        }
+        
+        
         
       
          
@@ -207,6 +225,21 @@ export const GET_FEATURED_COURSES = gql`
         profileImage
         title
       }
+      
+      # User-specific enrollment data (if authenticated)
+      enrollments {
+        id
+        status
+        progress
+       
+       
+       
+        totalTimeSpent
+        completionPercentage
+       
+       
+
+      }
        
     }
   }
@@ -236,6 +269,21 @@ export const GET_TRENDING_COURSES = gql`
         lastName
         profileImage
         title
+      }
+      
+      # User-specific enrollment data (if authenticated)
+      enrollments {
+        id
+        status
+        progress
+       
+       
+       
+        totalTimeSpent
+        completionPercentage
+       
+       
+
       }
        
     }
@@ -527,6 +575,21 @@ export const SEARCH_COURSES = gql`
         isFeatured
         isBestseller
         isTrending
+        
+        # User-specific enrollment data (if authenticated)
+        userEnrollment {
+          id
+          status
+          progress
+          enrolledAt
+          lastAccessedAt
+          currentLessonId
+          timeSpent
+          completionPercentage
+          certificateEarned
+          streakDays
+          lastWatchedLecture
+        }
          
       }
       pagination {
@@ -568,6 +631,21 @@ export const GET_COURSES_BY_CATEGORY = gql`
         isFeatured
         isBestseller
         isTrending
+        
+        # User-specific enrollment data (if authenticated)
+        userEnrollment {
+          id
+          status
+          progress
+          enrolledAt
+          lastAccessedAt
+          currentLessonId
+          timeSpent
+          completionPercentage
+          certificateEarned
+          streakDays
+          lastWatchedLecture
+        }
          
       }
       pagination {
@@ -609,6 +687,21 @@ export const GET_COURSES_BY_INSTRUCTOR = gql`
         isFeatured
         isBestseller
         isTrending
+        
+        # User-specific enrollment data (if authenticated)
+        userEnrollment {
+          id
+          status
+          progress
+          enrolledAt
+          lastAccessedAt
+          currentLessonId
+          timeSpent
+          completionPercentage
+          certificateEarned
+          streakDays
+          lastWatchedLecture
+        }
          
       }
       pagination {
@@ -1161,6 +1254,181 @@ export const GENERATE_COURSE_QR_CODE = gql`
         qrCode
       }
       errors
+    }
+  }
+`; 
+
+export const GET_MY_ENROLLMENTS = gql`
+  query GetMyEnrollments {
+    myEnrollments {
+      id
+      userId
+      courseId
+      status
+      progress
+      completedLectures
+      totalLectures
+      paymentStatus
+      totalTimeSpent
+      streakDays
+      completionPercentage
+      certificateEarned
+      lastWatchedLecture
+      currentLessonId
+      enrolledAt
+      
+      
+      course {
+        # Basic Course Info
+        id
+        title
+        description
+        shortDescription
+        thumbnail
+        trailer
+        galleryImages
+        
+        # Categorization
+        category
+        subcategory
+        level
+        status
+        
+        # Pricing
+        price
+        originalPrice
+        currency
+        discountPercent
+        discountValidUntil
+        
+        # Analytics & Performance
+        views
+        uniqueViews
+        completionRate
+        avgRating
+        totalRatings
+        
+        # Content Counts
+        totalSections
+        totalLectures
+        totalQuizzes
+        totalAssignments
+        totalContentItems
+        totalDiscussions
+        totalAnnouncements
+        
+        # Course Settings & Features
+        isFeatured
+        isBestseller
+        isTrending
+        
+        # Instructor
+        instructor {
+          id
+          firstName
+          lastName
+          email
+          profileImage
+          title
+          bio
+          expertise
+          rating
+          totalStudents
+          totalCourses
+        }
+        instructorId
+        
+        # Content Structure
+        sections {
+          id
+          title
+          description
+          order
+          lectures {
+            id
+            title
+            description
+            type
+            duration
+            order
+            isPreview
+          }
+        }
+        
+        # Requirements & Outcomes
+        requirements
+        whatYouLearn
+        objectives
+        prerequisites
+        
+        # Course Details
+        language
+        subtitleLanguages
+        
+        # Advanced Features
+        hasLiveSessions
+        hasRecordings
+        hasDiscussions
+        hasAssignments
+        hasQuizzes
+        downloadableResources
+        offlineAccess
+        mobileOptimized
+        
+        # Scheduling
+        enrollmentStartDate
+        enrollmentEndDate
+        courseStartDate
+        courseEndDate
+        
+        # Capacity
+        maxStudents
+        currentEnrollments
+        waitlistEnabled
+        
+        # Reviews
+        reviews {
+          id
+          rating
+          comment
+          user {
+            id
+            username
+            lastName
+          }
+        }
+        
+        # SEO & Marketing
+        seoTitle
+        seoDescription
+        seoTags
+        marketingTags
+        targetAudience
+        
+        # Duration & Difficulty
+        estimatedHours
+        estimatedMinutes
+        difficulty
+        intensityLevel
+        
+        # Certificates & Completion
+        certificate
+        certificateTemplate
+        passingGrade
+        allowRetakes
+        maxAttempts
+        
+        # Course Settings
+        enrollmentType
+        isPublic
+        version
+        
+        # Timestamps
+        createdAt
+        updatedAt
+        publishedAt
+        archivedAt
+      }
     }
   }
 `; 

@@ -98,14 +98,10 @@ export default function CourseLearnPage({
     error,
     isEnrolled,
     isAuthenticated,
+    isFreeCourse,
+    canAccessContent,
     handleMarkLectureComplete,
   } = useCoursePreview({ courseId });
-
-  // Determine if course is free
-  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
-  
-  // Determine if user can access content (enrolled OR free course)
-  const canAccessContent = isEnrolled || isFreeCourse;
 
   // Update store when course data changes
   useEffect(() => {
@@ -325,17 +321,17 @@ export default function CourseLearnPage({
           <CardContent className="text-center py-8">
             <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {isFreeCourse ? "Sign In Required" : "Enrollment Required"}
+              {isFreeCourse ? "Enrollment Required" : "Enrollment Required"}
             </h1>
             <p className="text-gray-600 mb-6">
               {isFreeCourse 
-                ? "Please sign in to access this free course content."
+                ? "Please enroll in this free course to access the learning content and track your progress."
                 : "Please enroll in this course to access the learning content."
               }
             </p>
             <Link href={`/courses/${courseId}`}>
               <Button className="w-full">
-                {isFreeCourse ? "Sign In & Access" : "View Course Details"}
+                {isFreeCourse ? "Enroll for Free" : "View Course Details"}
               </Button>
             </Link>
           </CardContent>

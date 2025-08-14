@@ -25,6 +25,7 @@ import {
   BookOpenCheck,
   UserCheck,
   PieChart,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ import {
   SignUpButton,
 } from "@clerk/nextjs";
 import { useAuthStore, useAuthSelectors, UserRole } from "@/stores/auth.store";
+import { useCheckoutItemCount } from "@/stores/payment.store";
 
 interface NavigationItem {
   label: string;
@@ -89,6 +91,9 @@ const Navbar = ({
     isStudent,
     isParent,
   } = useAuthSelectors();
+  
+  // Get cart item count
+  const cartItemCount = useCheckoutItemCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -149,7 +154,7 @@ const Navbar = ({
           },
           {
             label: "My Courses",
-            href: "/student/courses",
+            href: "/student/my-courses",
             icon: BookOpenCheck,
             description: "Track your progress",
           },
@@ -421,6 +426,8 @@ const Navbar = ({
             )}
           </motion.div>
 
+          {/* Search Bar - Desktop */}
+
           {/* Right Side Actions */}
           <motion.div
             className="flex items-center gap-3"
@@ -458,6 +465,20 @@ const Navbar = ({
                   </span>
                 )}
               </Button>
+            )}
+
+            {/* Store/Cart Icon */}
+            {isAuthenticated && isStudent && (
+              <Link href="/student/store">
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+                      {cartItemCount > 9 ? "9+" : cartItemCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
             )}
 
             {/* User Profile or Auth Buttons */}

@@ -9,7 +9,11 @@ import { useCourses } from "../hooks/useCourses";
 import { Pagination } from "@/components/shared/Pagination";
 import CourseSearchAndFilters from "./CourseSearchAndFilters";
 import { useCoursesStore } from "@/stores/courses.store";
+import { usePaymentStore } from "@/stores/payment.store";
+import { useQuickPayment } from "@/features/payments/hooks/usePayment";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -41,6 +45,18 @@ const loadingVariants = {
 };
 
 const CoursesGrid = () => {
+  const router = useRouter();
+  const { user } = useAuth();
+  
+  // Payment store and hooks
+  const { checkoutItems, addToCheckout, removeFromCheckout } = usePaymentStore();
+  const { 
+    handleAddToCart, 
+    handleRemoveFromCart, 
+    handleBuyNow, 
+    handleEnrollFree 
+  } = useQuickPayment();
+  
   const {
     // Data
     courses,
@@ -143,6 +159,111 @@ const CoursesGrid = () => {
     } catch (error) {
       console.error(`Failed to handle course action ${action}:`, error);
     }
+  };
+
+  // Handle enrollment using payment session API
+  const handleEnroll = async (courseId: string) => {
+    const course = getCourseById(courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+
+    try {
+      // Check if course is free
+      const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+      
+      if (isFree) {
+        // Use payment session API for free courses
+        await handleEnrollFree(course);
+      } else {
+        // For paid courses, add to cart and redirect to checkout
+        handleAddToCart(course);
+      }
+    } catch (error) {
+      console.error("Failed to enroll in course:", error);
+      toast.error("Failed to enroll in course");
+    }
+  };
+
+  // Handle add to cart (including free courses)
+  const handleAddToCartAction = async (courseId: string) => {
+    const course = getCourseById(courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+
+    try {
+      // Allow adding both free and paid courses to cart
+      handleAddToCart(course);
+      toast.success(`Added "${course.title}" to cart`);
+    } catch (error) {
+      console.error("Failed to add course to cart:", error);
+      toast.error("Failed to add course to cart");
+    }
+  };
+
+  // Handle remove from cart
+  const handleRemoveFromCartAction = async (courseId: string) => {
+    try {
+      handleRemoveFromCart(courseId);
+    } catch (error) {
+      console.error("Failed to remove course from cart:", error);
+      toast.error("Failed to remove course from cart");
+    }
+  };
+
+  // Handle buy now
+  const handleBuyNowAction = async (courseId: string) => {
+    const course = getCourseById(courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+
+    try {
+      handleBuyNow(course);
+    } catch (error) {
+      console.error("Failed to proceed to checkout:", error);
+      toast.error("Failed to proceed to checkout");
+    }
+  };
+
+  // Handle continue learning
+  const handleContinueLearning = (courseId: string) => {
+    router.push(`/courses/${courseId}/learn`);
+  };
+
+  // Handle preview
+  const handlePreview = (courseId: string) => {
+    router.push(`/courses/${courseId}?preview=true`);
+  };
+
+  // Check if user is enrolled in a course
+  const isUserEnrolled = (course: any) => {
+    return course.enrollments.some((enrollment: any) => enrollment.userId === user?.id);
+  };
+
+  // Get enrollment progress data
+  const getEnrollmentData = (course: any) => {
+    if (!course.enrollments) return null;
+    
+    // Find the specific enrollment for the current user
+    const userEnrollment = course.enrollments.find((enrollment: any) => enrollment.userId === user?.id);
+    
+    if (!userEnrollment) return null;
+    
+    return {
+      progress: userEnrollment.progress || 0,
+      timeSpent: userEnrollment.totalTimeSpent || 0,
+      streakDays: userEnrollment.streakDays || 0,
+      certificateEarned: userEnrollment.certificateEarned || false,
+      lastWatchedLecture: userEnrollment.lastWatchedLecture,
+      nextLessonId: userEnrollment.currentLessonId,
+      completedLectures: userEnrollment.completedLectures || 0,
+      totalLectures: userEnrollment.totalLectures || 0,
+    };
   };
 
   // Show error toast if there's an error
@@ -466,22 +587,44 @@ const CoursesGrid = () => {
               }
             >
               {currentCourses.length > 0 ? (
-                currentCourses.map((course) => (
-                  <motion.div
-                    key={course.id}
-                    variants={cardVariants}
-                    layout
-                    className={viewMode === "list" ? "w-full" : undefined}
-                  >
-                    <CourseCard
-                      course={course}
-                      isSaved={isCourseSaved(course.id)}
-                      onToggleSave={(id) => handleCourseAction(id, "bookmark")}
-                      className={`${viewMode === "list" ? "w-full" : "h-full"}`}
-                      viewMode={viewMode}
-                    />
-                  </motion.div>
-                ))
+                currentCourses.map((course) => {
+                  const isEnrolled = isUserEnrolled(course);
+                  const enrollmentData = getEnrollmentData(course);
+                  
+                  return (
+                    <motion.div
+                      key={course.id}
+                      variants={cardVariants}
+                      layout
+                      className={viewMode === "list" ? "w-full" : undefined}
+                    >
+                      <CourseCard
+                        course={course}
+                        isSaved={isCourseSaved(course.id)}
+                        onToggleSave={(id) => handleCourseAction(id, "bookmark")}
+                        className={`${viewMode === "list" ? "w-full" : "h-full"}`}
+                        viewMode={viewMode}
+                        isEnrolled={isEnrolled}
+                        progress={enrollmentData?.progress || 0}
+                        timeSpent={enrollmentData?.timeSpent || 0}
+                        streakDays={enrollmentData?.streakDays || 0}
+                        certificateEarned={enrollmentData?.certificateEarned || false}
+                        lastWatchedLecture={enrollmentData?.lastWatchedLecture}
+                        nextLessonId={enrollmentData?.nextLessonId}
+                        completedLectures={enrollmentData?.completedLectures || 0}
+                        totalLectures={enrollmentData?.totalLectures || 0}
+                        onEnroll={handleEnroll}
+                        onContinueLearning={handleContinueLearning}
+                        onPreview={handlePreview}
+                        onTrackView={(id) => handleCourseAction(id, "view")}
+                        onAddToCart={handleAddToCartAction}
+                        onRemoveFromCart={handleRemoveFromCartAction}
+                        onBuyNow={handleBuyNowAction}
+                        isInCart={checkoutItems.some(item => item.courseId === course.id)}
+                      />
+                    </motion.div>
+                  );
+                })
               ) : (
                 <EmptyState />
               )}

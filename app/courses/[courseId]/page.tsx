@@ -3,8 +3,9 @@
 import { useEffect, useCallback } from "react";
 import { use } from "react";
 import { toast } from "sonner";
-import { AlertCircle, ArrowLeft, BookOpen, Clock, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, BookOpen, Clock, Users, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { CourseContent } from "@/features/courses/components/courseDetails/CourseContent";
 import { CourseDescription } from "@/features/courses/components/courseDetails/CourseDescription";
@@ -20,6 +21,8 @@ import { useCoursePreviewStore } from "@/stores/coursePreview.store";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuickPayment } from "@/features/payments/hooks/usePayment";
 
 // Loading skeleton component
 const CourseDetailsSkeleton = () => (
@@ -135,43 +138,141 @@ const MobilePriceBanner = ({
 }: { 
   course: any; 
   isEnrolled: boolean;
-}) => (
-  <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-3 z-30">
-    <div className="w-[90%] mx-auto flex items-center justify-between">
-      <div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold">${course.price || 0}</span>
-          {course.originalPrice && course.originalPrice > course.price && (
-            <span className="text-xs text-gray-500 line-through">
-              ${course.originalPrice}
-            </span>
+}) => {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const { handleAddToCart, handleRemoveFromCart, handleBuyNow, handleEnrollFree } = useQuickPayment();
+  const { cartItems } = useCoursePreviewStore();
+  
+  const isInCart = course ? cartItems.has(course.id) : false;
+  const isFree = course?.price === 0 || course?.settings?.enrollmentType === "FREE";
+  const isDiscounted = !isFree && course?.originalPrice && course?.price && course.originalPrice > course.price;
+  const discountPercentage = isDiscounted && course?.originalPrice && course?.price 
+    ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
+    : 0;
+
+  const handleEnroll = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to enroll in courses");
+      router.push("/sign-in");
+      return;
+    }
+
+    try {
+      if (isFree) {
+        await handleEnrollFree(course);
+      } else {
+        handleAddToCart(course);
+      }
+    } catch (error) {
+      console.error("Failed to enroll in course:", error);
+      toast.error("Failed to enroll in course");
+    }
+  };
+
+  const handleCartAction = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to manage your cart");
+      router.push("/sign-in");
+      return;
+    }
+
+    try {
+      if (isInCart) {
+        handleRemoveFromCart(course.id);
+      } else {
+        handleAddToCart(course);
+      }
+    } catch (error) {
+      console.error("Failed to update cart:", error);
+      toast.error("Failed to update cart");
+    }
+  };
+
+  const handleBuyNowAction = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to purchase courses");
+      router.push("/sign-in");
+      return;
+    }
+
+    try {
+      await handleBuyNow(course);
+    } catch (error) {
+      console.error("Failed to purchase course:", error);
+      toast.error("Failed to purchase course");
+    }
+  };
+
+  return (
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-3 z-30">
+      <div className="w-[90%] mx-auto flex items-center justify-between">
+        <div>
+          {isEnrolled ? (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-lg font-bold text-green-700">Enrolled</span>
+            </div>
+          ) : isFree ? (
+            <div>
+              <div className="text-2xl font-bold text-green-600">FREE</div>
+              <div className="text-xs text-green-700">No cost to enroll</div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900">
+                  ${course.price?.toFixed(2) || '0.00'}
+                </span>
+                {isDiscounted && (
+                  <span className="text-sm text-gray-500 line-through">
+                    ${course.originalPrice?.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              {isDiscounted && (
+                <div className="text-xs text-red-600 font-medium">
+                  {discountPercentage}% OFF
+                </div>
+              )}
+            </div>
           )}
         </div>
-        {course.originalPrice && course.originalPrice > course.price && (
-          <div className="text-xs text-red-600 font-medium">
-            {Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}% OFF
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        {isEnrolled ? (
-          <Button size="sm" disabled className="text-xs">
-            Enrolled
-          </Button>
-        ) : (
-          <>
-            <Button variant="outline" size="sm" className="text-xs">
-              Cart
+        <div className="flex gap-2">
+          {isEnrolled ? (
+            <Button 
+              size="sm" 
+              className="text-xs bg-green-600 hover:bg-green-700"
+              onClick={() => router.push(`/courses/${course.id}/learn`)}
+            >
+              Continue Learning
             </Button>
-            <Button size="sm" className="text-xs">
-              Buy Now
-            </Button>
-          </>
-        )}
+          ) : (
+            <>
+              {!isFree && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs"
+                  onClick={handleCartAction}
+                >
+                  {isInCart ? "Remove" : "Add to Cart"}
+                </Button>
+              )}
+              <Button 
+                size="sm" 
+                className="text-xs bg-blue-600 hover:bg-blue-700"
+                onClick={isFree ? handleEnroll : handleBuyNowAction}
+              >
+                {isFree ? "Enroll for Free" : "Buy Now"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function CourseDetailsPage({
   params,
@@ -198,6 +299,8 @@ export default function CourseDetailsPage({
     courseError,
     isEnrolled,
     isAuthenticated,
+    isFreeCourse,
+    canAccessContent,
     refetchCourse,
     refetchProgress,
   } = useCoursePreview({ 
@@ -205,12 +308,6 @@ export default function CourseDetailsPage({
     autoTrackView: true,
     autoTrackProgress: true,
   });
-
-  // Determine if course is free
-  const isFreeCourse = courseData?.price === 0 || courseData?.enrollmentType === "FREE";
-  
-  // Determine if user can access content (enrolled OR free course)
-  const canAccessContent = isEnrolled || isFreeCourse;
 
   // Update store when data changes
   useEffect(() => {

@@ -25,6 +25,12 @@ import {
   BrowseButtonWrapper,
 } from "../animations/courseAnimations";
 import { Course, CourseCategory } from "@/types/courseTypes";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuickPayment } from "@/features/payments/hooks/usePayment";
+import { usePaymentStore } from "@/stores/payment.store";
+
+import { toast } from "sonner";
 
 interface CoursesSectionClientProps {
   categories: CourseCategory[];
@@ -129,6 +135,12 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   initialSelectedCategory,
   isLoading = false,
 }) => {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const { handleEnrollFree, handleAddToCart, handleRemoveFromCart, handleBuyNow } = useQuickPayment();
+  const { addToCheckout, removeFromCheckout, checkoutItems } = usePaymentStore();
+
+
   const [savedCourses, setSavedCourses] = useState<string[]>([]);
   const [showFeatured, setShowFeatured] = useState(initialShowFeatured);
   const [showTrending, setShowTrending] = useState(false);
@@ -142,6 +154,95 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
+
+  // Action handlers for CourseCard
+  const handleEnroll = async (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+
+    try {
+      const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+      if (isFree) {
+        await handleEnrollFree(course);
+      } else {
+        handleAddToCartAction(courseId);
+      }
+    } catch (error) {
+      console.error("Failed to enroll in course:", error);
+      toast.error("Failed to enroll in course");
+    }
+  };
+
+  const handleAddToCartAction = async (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+    try {
+      handleAddToCart(course);
+    } catch (error) {
+      console.error("Failed to add course to cart:", error);
+      toast.error("Failed to add course to cart");
+    }
+  };
+
+  const handleRemoveFromCartAction = async (courseId: string) => {
+    try {
+      handleRemoveFromCart(courseId);
+    } catch (error) {
+      console.error("Failed to remove course from cart:", error);
+      toast.error("Failed to remove course from cart");
+    }
+  };
+
+  const handleBuyNowAction = async (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+    try {
+      await handleBuyNow(course);
+    } catch (error) {
+      console.error("Failed to purchase course:", error);
+      toast.error("Failed to purchase course");
+    }
+  };
+
+  const handlePreview = (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      toast.error("Course not found");
+      return;
+    }
+    router.push(`/courses/${courseId}`);
+  };
+
+  const handleContinueLearning = (courseId: string) => {
+    router.push(`/courses/${courseId}/learn`);
+  };
+
+  const handleShare = (course: Course) => {
+    if (navigator.share) {
+      navigator.share({
+        title: course.title,
+        text: course.description,
+        url: `${window.location.origin}/courses/${course.id}`,
+      });
+    } else {
+      navigator.clipboard.writeText(`${window.location.origin}/courses/${course.id}`);
+      toast.success("Course link copied to clipboard!");
+    }
+  };
+
+  const handleTrackView = (courseId: string) => {
+    // Track course view analytics here
+    console.log("Course viewed:", courseId);
+  };
 
   React.useEffect(() => {
     // Component is considered loaded when not in loading state
@@ -761,16 +862,29 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         {isLoading ? (
           <LoadingSkeleton />
         ) : (
-          filteredCourses.map((course) => (
-            <CourseCardWrapper key={course.id} course={course}>
-              <CourseCard
-                course={course}
-                isSaved={savedCourses.includes(course.id)}
-                onToggleSave={toggleSavedCourse}
-                viewMode="grid"
-              />
-            </CourseCardWrapper>
-          ))
+          filteredCourses.map((course) => {
+            const isInCart = checkoutItems.some(item => item.courseId === course.id);
+            
+            return (
+              <CourseCardWrapper key={course.id} course={course}>
+                <CourseCard
+                  course={course}
+                  isSaved={savedCourses.includes(course.id)}
+                  onToggleSave={toggleSavedCourse}
+                  viewMode="grid"
+                  onEnroll={handleEnroll}
+                  onAddToCart={handleAddToCartAction}
+                  onRemoveFromCart={handleRemoveFromCartAction}
+                  onBuyNow={handleBuyNowAction}
+                  onPreview={handlePreview}
+                  onContinueLearning={handleContinueLearning}
+                  onShare={handleShare}
+                  onTrackView={handleTrackView}
+                  isInCart={isInCart}
+                />
+              </CourseCardWrapper>
+            );
+          })
         )}
       </CourseContainer>
 

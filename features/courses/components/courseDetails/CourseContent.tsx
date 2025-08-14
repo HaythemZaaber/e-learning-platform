@@ -57,19 +57,13 @@ export function CourseContent({
 
   // Determine if a lecture should be locked for the current user
   const isLectureLocked = (lecture: any) => {
-    // If user can access content (enrolled OR free course), nothing is locked
+    // If user can access content (enrolled), nothing is locked
     if (canAccessContent) {
       return false;
     }
     
-    // For non-enrolled users in paid courses, respect the server's isLocked property
-    // If the server says it's locked, it's locked
-    if (lecture.isLocked) {
-      return true;
-    }
-    
-    // For non-enrolled users in paid courses, all lectures should be locked
-    return !isFreeCourse;
+    // For non-enrolled users, ALL lectures are locked (both free and paid courses)
+    return true;
   };
 
   // Determine if a section should be locked (if any lecture in it is locked)
@@ -79,7 +73,7 @@ export function CourseContent({
     }
     
     // Check if any lecture in the section is locked
-    return section.lectures?.some((lecture: any) => isLectureLocked(lecture)) || !isFreeCourse;
+    return section.lectures?.some((lecture: any) => isLectureLocked(lecture)) || true;
   };
 
   const getLectureIcon = (lecture: any) => {
@@ -329,11 +323,11 @@ export function CourseContent({
             <Lock className="w-5 h-5 text-amber-600" />
             <div>
               <h4 className="font-semibold text-amber-800">
-                {isFreeCourse ? "Sign in to access content" : "Enroll to access content"}
+                {isFreeCourse ? "Enroll for Free to Access Content" : "Enroll to Access Content"}
               </h4>
               <p className="text-sm text-amber-700">
                 {isFreeCourse 
-                  ? "This is a free course. Sign in to start learning."
+                  ? "This is a free course. Enroll now to start learning and track your progress."
                   : "Enroll in this course to access all lectures and track your progress."
                 }
               </p>
@@ -410,7 +404,7 @@ export function CourseContent({
                       {sectionLocked && (
                         <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
                           <Lock className="w-3 h-3 mr-1" />
-                          {isFreeCourse ? "Sign in required" : "Locked"}
+                          {isFreeCourse ? "Enroll for Free" : "Enroll to Access"}
                         </Badge>
                       )}
                     </div>
@@ -528,7 +522,7 @@ export function CourseContent({
                             {!isAccessible && (
                               <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
                                 <Lock className="w-3 h-3 mr-1" />
-                                {isFreeCourse ? "Sign in required" : "Locked"}
+                                {isFreeCourse ? "Enroll for Free" : "Enroll to Access"}
                               </Badge>
                             )}
                             

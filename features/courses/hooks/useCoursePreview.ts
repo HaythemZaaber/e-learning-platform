@@ -817,6 +817,18 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     return hasEnrollment;
   }, [courseData?.getCoursePreview?.enrollment, isAuthenticated]);
 
+  // Determine if course is free
+  const isFreeCourse = useMemo(() => {
+    return courseData?.getCoursePreview?.price === 0 || 
+           courseData?.getCoursePreview?.settings?.enrollmentType === "FREE";
+  }, [courseData?.getCoursePreview?.price, courseData?.getCoursePreview?.settings?.enrollmentType]);
+
+  // Determine if user can access content (must be enrolled, regardless of free/paid)
+  const canAccessContent = useMemo(() => {
+    // For the new strategy: ALL courses (free and paid) require enrollment to access content
+    return isEnrolled;
+  }, [isEnrolled]);
+
   return {
     // Data
     course: courseData?.getCoursePreview,
@@ -841,6 +853,8 @@ export const useCoursePreview = (options: UseCoursePreviewOptions) => {
     // Enrollment status
     isEnrolled,
     isAuthenticated,
+    isFreeCourse,
+    canAccessContent,
     
     // Refetch functions
     refetchCourse,

@@ -32,6 +32,22 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
+// Utility function to calculate actual course duration from sections
+const getActualCourseDuration = (course: Course | null) => {
+  if (!course?.sections) return { hours: 0, minutes: 0 };
+  
+  const totalSeconds = course.sections.reduce((total: number, section: any) => {
+    const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
+      lectureTotal + (lecture.duration || 0), 0) || 0;
+    return total + sectionDuration;
+  }, 0);
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  
+  return { hours, minutes };
+};
+
 interface PriceCardProps {
   course: Course | null;
   isEnrolled?: boolean;
@@ -257,7 +273,18 @@ export function PriceCard({
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-green-700">
-                    {course.estimatedHours || 0}h {course.estimatedMinutes || 0}m
+                    {(() => {
+                      const duration = getActualCourseDuration(course);
+                      if (duration.hours > 0 && duration.minutes > 0) {
+                        return `${duration.hours}h ${duration.minutes}m`;
+                      } else if (duration.hours > 0) {
+                        return `${duration.hours}h`;
+                      } else if (duration.minutes > 0) {
+                        return `${duration.minutes}m`;
+                      } else {
+                        return "0m";
+                      }
+                    })()}
                   </div>
                   <div className="text-green-600">Course Duration</div>
                 </div>

@@ -4,8 +4,23 @@ import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { 
+  Search, 
+  BookOpen, 
+  Users, 
+  Star, 
+  Clock, 
+  TrendingUp,
+  Play,
+  Award,
+  Globe,
+  Zap,
+  CheckCircle,
+  ArrowRight
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import banner from "@/public/images/banner.png";
 import { useSearchStore } from "@/stores/search.store";
 import {
@@ -15,6 +30,7 @@ import {
 } from "../animations/AnimatedWrapper";
 import { HeroImage } from "./HeroImage";
 import { HeroSearch } from "./HeroSearch";
+import { useRouter } from "next/navigation";
 
 import { gql, useQuery } from "@apollo/client";
 
@@ -30,12 +46,12 @@ const ME_QUERY = gql`
 `;
 
 const HeroSection: React.FC = () => {
-  // const { loading, error, data } = useQuery(ME_QUERY);
   const [isLoaded, setIsLoaded] = useState(false);
   const setShowNavbarSearch = useSearchStore(
     (state) => state.setShowNavbarSearch
   );
   const observerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -54,16 +70,9 @@ const HeroSection: React.FC = () => {
     return () => observer.disconnect();
   }, [setShowNavbarSearch]);
 
-  // Handle loading and error states
-  // if (loading) return <p>Loading...</p>;
-  // if (error) return <p>Error: {error.message}</p>;
-
-  // const user = data.me;
-  // console.log(user);
-
   return (
-    <section className="w-full bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
-      <div className="container w-[90vw]">
+    <section className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 " ref={observerRef}>
+      <div className="container w-[90vw] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}
           <AnimatedWrapper
@@ -72,28 +81,48 @@ const HeroSection: React.FC = () => {
           >
             <AnimatedWrapper
               animation={fadeIn}
-              className="inline-flex items-center px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium w-fit"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full text-white text-sm font-medium w-fit shadow-lg"
             >
-              <span className="animate-pulse mr-2 h-2 w-2 rounded-full bg-accent"></span>
+              <Zap className="h-4 w-4 mr-2 animate-pulse" />
               Now offering 2000+ new courses!
             </AnimatedWrapper>
 
             <AnimatedWrapper animation={fadeIn}>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
                 Find Expert Teachers Worldwide for{" "}
-                <span className="text-accent">Every Passion</span> and School
-                Subject
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Every Passion
+                </span> and School Subject
               </h1>
             </AnimatedWrapper>
 
             <AnimatedWrapper animation={fadeIn}>
               <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
                 From academic excellence to creative mastery, our AI helps match
-                you with the right mentor—live or on your schedule.
+                you with the right mentor—live or on your schedule. Join thousands of students learning from world-class instructors.
               </p>
             </AnimatedWrapper>
 
             <HeroSearch />
+
+            {/* Course Statistics */}
+            <AnimatedWrapper
+              animation={fadeIn}
+              className="grid grid-cols-3 gap-4 mt-6 "
+            >
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">2000+</div>
+                <div className="text-sm text-gray-600">Courses Available</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">500+</div>
+                <div className="text-sm text-gray-600">Expert Instructors</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">50K+</div>
+                <div className="text-sm text-gray-600">Happy Students</div>
+              </div>
+            </AnimatedWrapper>
 
             <AnimatedWrapper
               animation={fadeIn}
@@ -103,9 +132,7 @@ const HeroSection: React.FC = () => {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className={`w-8 h-8 rounded-full border-2 border-white bg-gray-${
-                      i * 100
-                    }`}
+                    className={`w-8 h-8 rounded-full border-2 border-white bg-gradient-to-r from-blue-${i * 100} to-purple-${i * 100}`}
                   />
                 ))}
               </div>

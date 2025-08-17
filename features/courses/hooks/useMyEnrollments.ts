@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface UseMyEnrollmentsReturn {
@@ -35,13 +35,14 @@ export const useMyEnrollments = (): UseMyEnrollmentsReturn => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<any>(null);
+  const isFetchingRef = useRef(false);
 
   const fetchEnrollments = async () => {
-    if (!isAuthenticated || !user) {
-      setEnrollments([]);
+    if (!isAuthenticated || !user || isFetchingRef.current) {
       return;
     }
 
+    isFetchingRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -70,13 +71,20 @@ export const useMyEnrollments = (): UseMyEnrollmentsReturn => {
       setEnrollments([]);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
   // Fetch enrollments when authentication state changes
   useEffect(() => {
-    fetchEnrollments();
-  }, [isAuthenticated, user]);
+    // Only fetch if authenticated and user exists
+    if (isAuthenticated && user) {
+      fetchEnrollments();
+    } else {
+      // Clear enrollments if not authenticated
+      setEnrollments([]);
+    }
+  }, [isAuthenticated, user?.id]); // Use user.id instead of user object to prevent unnecessary re-renders
 
   const courses = useMemo(() => {
     return enrollments.map(enrollment => enrollment.course).filter(Boolean);
@@ -133,12 +141,18 @@ export const useMyEnrollments = (): UseMyEnrollmentsReturn => {
     return enrollments.filter(e => e.certificateEarned).length;
   };
 
+  const refetch = useCallback(() => {
+    if (!isFetchingRef.current) {
+      fetchEnrollments();
+    }
+  }, []);
+
   return {
     enrollments,
     courses,
     isLoading,
     error,
-    refetch: fetchEnrollments,
+    refetch,
     
     // Computed values
     totalEnrollments,

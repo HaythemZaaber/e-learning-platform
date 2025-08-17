@@ -23,14 +23,7 @@ export function Footer() {
 
           <p className="text-gray-400">Trusted by educators worldwide</p>
 
-          <div className="border-t border-gray-800 pt-6">
-            <p className="text-sm text-gray-500">
-              © 2024 EduPlatform. All rights reserved. |
-              <span className="ml-2">
-                Support: help@eduplatform.com | 1-800-EDU-HELP
-              </span>
-            </p>
-          </div>
+         
         </div>
       </Container>
     </footer>

@@ -40,8 +40,8 @@ export class UploadApiService {
     metadata: {
       title: string;
       description?: string;
-      sectionId: string;
-      lectureId: string;
+      sectionId?: string;
+      lectureId?: string;
     },
     authToken?: string
   ): Promise<UploadedFile> {
@@ -49,8 +49,12 @@ export class UploadApiService {
     formData.append('file', file);
     formData.append('title', metadata.title);
     formData.append('contentType', contentType);
-    formData.append('sectionId', metadata.sectionId);
-    formData.append('lectureId', metadata.lectureId);
+    if (metadata.sectionId) {
+      formData.append('sectionId', metadata.sectionId);
+    }
+    if (metadata.lectureId) {
+      formData.append('lectureId', metadata.lectureId);
+    }
     
     if (metadata.description) {
       formData.append('description', metadata.description);
@@ -79,6 +83,8 @@ export class UploadApiService {
         formData.append('contentType', contentType);
     }
 
+
+
     const headers: Record<string, string> = {};
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
@@ -106,8 +112,8 @@ export class UploadApiService {
       title: metadata.title,
       description: metadata.description,
       contentType: contentType,
-      sectionId: metadata.sectionId,
-      lectureId: metadata.lectureId,
+      sectionId: metadata.sectionId || '',
+      lectureId: metadata.lectureId || '',
       uploadedAt: new Date(result.fileInfo?.uploadedAt || Date.now()),
       status: 'uploaded',
     };
@@ -445,8 +451,7 @@ export class UploadApiService {
         error: `File too large. Maximum size is ${Math.round(sizeLimit / (1024 * 1024))}MB`,
       };
     }
-
-    const allowedFormats = allowedTypes[contentType];
+    const allowedFormats = allowedTypes[contentType] as string[];
     if (!allowedFormats?.includes(file.type)) {
       return {
         isValid: false,

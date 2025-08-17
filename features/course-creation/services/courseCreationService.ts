@@ -1,4 +1,4 @@
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import { ApolloClient } from "@apollo/client";
 import {
   SAVE_COURSE_DRAFT,
   CREATE_COURSE,

@@ -10,7 +10,8 @@ import {
   List,
   CheckCircle,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -141,7 +142,6 @@ export default function MyCoursesPage() {
 
   const handleRemoveFromCart = async (courseId: string) => {
     removeFromCheckout(courseId);
-    toast.success("Course removed from cart");
   };
 
   const handleBuyNow = async (courseId: string) => {
@@ -158,7 +158,36 @@ export default function MyCoursesPage() {
   };
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserCheck className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-blue-800 mb-2">Sign In Required</h2>
+            <p className="text-blue-600 mb-6">
+              You need to be signed in to access your courses and track your progress.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={() => router.push("/sign-in")}
+              >
+                Sign In to Continue
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => router.push("/courses")}
+              >
+                Browse Courses
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

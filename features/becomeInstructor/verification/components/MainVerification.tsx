@@ -1,607 +1,717 @@
 "use client";
 
-import React from "react";
-import { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Shield,
-  CheckCircle,
+import React, { useState, useEffect } from 'react';
+import { useInstructorApplicationStore } from '@/stores/verification.store';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/auth.store';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { showToast } from '@/utils/toast';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  CheckCircle, 
+  AlertCircle, 
   Clock,
-  AlertTriangle,
-  FileCheck,
-  Brain,
   User,
-  Award,
-  AlertCircle,
-  RefreshCw,
+  GraduationCap,
+  BookOpen,
+  FileText,
   Eye,
-  Download,
-  MessageSquare,
-  Bell,
-} from "lucide-react";
-import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { IdentityVerification } from "./stages/IdentityVerification";
-import { ProfessionalBackground } from "./stages/ProfessionalBackground";
-import { SkillsAssessment } from "./stages/SkillsAssessment";
-import { BackgroundCheck } from "./stages/BackgroundCheck";
+  Save,
+  Send,
+  Loader2,
+  Info,
+  AlertTriangle,
+  CheckSquare,
+  XCircle
+} from 'lucide-react';
 
-// Type definitions
-interface VerificationStage {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  estimatedTime: string;
-  aiVerification: boolean;
-  requirements: string[];
-  weight: number;
-}
+// Import step components
+import { PersonalInformationStep } from './steps/PersonalInformationStep';
+import { ProfessionalBackgroundStep } from './steps/ProfessionalBackgroundStep';
+import { TeachingInformationStep } from './steps/TeachingInformationStep';
+import { DocumentsStep } from './steps/DocumentsStep';
+import { ReviewStep } from './steps/ReviewStep';
 
-interface VerificationData {
-  identity: {
-    personalInfo: Record<string, any>;
-    documents: any[];
-    verificationStatus: string;
-    aiVerificationScore: number;
-    lastUpdated: string | null;
-  };
-  professional: {
-    education: any[];
-    experience: any[];
-    references: any[];
-    verificationStatus: string;
-    aiVerificationScore: number;
-    lastUpdated: string | null;
-  };
-  skills: {
-    categories: any[];
-    assessments: any[];
-    demonstrations: any[];
-    verificationStatus: string;
-    aiVerificationScore: number;
-    lastUpdated: string | null;
-  };
-  background: {
-    checks: any[];
-    agreements: any[];
-    verificationStatus: string;
-    aiVerificationScore: number;
-    lastUpdated: string | null;
-  };
-}
-
-interface StageComponentProps {
-  data: any;
-  updateData: (data: any) => void;
-}
-
-interface VerificationStatusProps {
-  data: VerificationData;
-  currentStage: number;
-}
-
-// Enhanced verification stages with AI verification indicators
-const verificationStages = [
+const steps = [
   {
-    id: "identity",
-    title: "Identity Verification",
-    description:
-      "AI-powered identity verification with government-issued documents",
-    icon: Shield,
-    estimatedTime: "5-10 minutes",
-    aiVerification: true,
-    requirements: ["Government ID", "Selfie Photo", "Address Proof"],
-    weight: 25,
+    id: 'personal-information',
+    title: 'Personal Information',
+    description: 'Basic personal details and contact information',
+    icon: User,
+    component: PersonalInformationStep
   },
   {
-    id: "professional",
-    title: "Professional Credentials",
-    description: "Educational background and professional certifications",
-    icon: Award,
-    estimatedTime: "15-20 minutes",
-    aiVerification: true,
-    requirements: [
-      "Degree Certificates",
-      "Professional Licenses",
-      "References",
-    ],
-    weight: 30,
+    id: 'professional-background',
+    title: 'Professional Background',
+    description: 'Education, work experience, and references',
+    icon: GraduationCap,
+    component: ProfessionalBackgroundStep
   },
   {
-    id: "skills",
-    title: "Skills Assessment",
-    description: "AI-proctored skills evaluation and teaching demonstration",
-    icon: Brain,
-    estimatedTime: "45-60 minutes",
-    aiVerification: true,
-    requirements: ["Subject Test", "Teaching Demo", "Portfolio Review"],
-    weight: 35,
+    id: 'teaching-information',
+    title: 'Teaching Information',
+    description: 'Subjects, philosophy, and teaching preferences',
+    icon: BookOpen,
+    component: TeachingInformationStep
   },
   {
-    id: "background",
-    title: "Background & Compliance",
-    description: "Background check and platform policy agreements",
-    icon: FileCheck,
-    estimatedTime: "5-10 minutes",
-    aiVerification: false,
-    requirements: ["Background Check", "Policy Agreement", "Code of Conduct"],
-    weight: 10,
+    id: 'documents',
+    title: 'Documents & Verification',
+    description: 'Upload required documents and credentials',
+    icon: FileText,
+    component: DocumentsStep
   },
+  {
+    id: 'review',
+    title: 'Review & Submit',
+    description: 'Review your application and submit',
+    icon: Eye,
+    component: ReviewStep
+  }
 ];
 
-
-const VerificationStatus: React.FC<VerificationStatusProps> = ({
-  data,
-  currentStage,
-}) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Bell className="h-5 w-5" />
-        Verification Status
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="space-y-3">
-        {verificationStages.map((stage, index) => (
-          <div key={stage.id} className="flex items-center justify-between">
-            <span className="text-sm font-medium">{stage.title}</span>
-            <Badge
-              variant={
-                index < currentStage
-                  ? "default"
-                  : index === currentStage
-                  ? "secondary"
-                  : "secondary"
-              }
-            >
-              {index < currentStage
-                ? "Complete"
-                : index === currentStage
-                ? "In Progress"
-                : "Pending"}
-            </Badge>
-          </div>
-        ))}
-      </div>
-      <div className="pt-4 border-t">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <RefreshCw className="h-4 w-4" />
-          Last updated: 2 minutes ago
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const SecurityBadges = () => (
-  <div className="flex items-center justify-center gap-4 mb-6">
-    <div className="flex items-center gap-2 text-sm text-gray-600">
-      <Shield className="h-4 w-4 text-green-600" />
-      256-bit SSL Encryption
-    </div>
-    <div className="flex items-center gap-2 text-sm text-gray-600">
-      <Brain className="h-4 w-4 text-blue-600" />
-      AI-Powered Verification
-    </div>
-    <div className="flex items-center gap-2 text-sm text-gray-600">
-      <FileCheck className="h-4 w-4 text-purple-600" />
-      GDPR Compliant
-    </div>
-  </div>
-);
-
 export function MainVerification() {
-  const [currentStage, setCurrentStage] = useState(0);
-  const [verificationData, setVerificationData] = useState<VerificationData>({
-    identity: {
-      personalInfo: {},
-      documents: [],
-      verificationStatus: "pending",
-      aiVerificationScore: 0,
-      lastUpdated: null,
-    },
-    professional: {
-      education: [],
-      experience: [],
-      references: [],
-      verificationStatus: "pending",
-      aiVerificationScore: 0,
-      lastUpdated: null,
-    },
-    skills: {
-      categories: [],
-      assessments: [],
-      demonstrations: [],
-      verificationStatus: "pending",
-      aiVerificationScore: 0,
-      lastUpdated: null,
-    },
-    background: {
-      checks: [],
-      agreements: [],
-      verificationStatus: "pending",
-      aiVerificationScore: 0,
-      lastUpdated: null,
-    },
-  });
-  const [overallProgress, setOverallProgress] = useState(0);
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] =
-    useState("45-75 minutes");
-  const [showPreview, setShowPreview] = useState(false);
+  const store = useInstructorApplicationStore();
+  const { user, getToken, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user: authUser } = useAuthStore();
 
-  // Calculate weighted progress
-  const updateProgress = () => {
-    let totalProgress = 0;
-    verificationStages.forEach((stage) => {
-      const stageData =
-        verificationData[stage.id as keyof typeof verificationData];
-      if (stageData?.verificationStatus === "completed") {
-        totalProgress += stage.weight;
-      } else if (stageData?.verificationStatus === "in-progress") {
-        totalProgress += stage.weight * 0.5;
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [loadAttempted, setLoadAttempted] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+
+
+  // Monitor storage size and handle quota errors
+  useEffect(() => {
+    const checkStorage = () => {
+      try {
+        const storageSize = store.getStorageSize();
+        const sizeInKB = parseFloat(storageSize.replace(' KB', ''));
+        
+        if (sizeInKB > 4000) { // Warning at 4MB
+          setStorageError(`Storage usage is high (${storageSize}). Consider cleaning up.`);
+        } else if (sizeInKB > 5000) { // Critical at 5MB
+          setStorageError(`Storage usage is critical (${storageSize}). Cleaning up automatically.`);
+          store.handleStorageError();
+        } else {
+          setStorageError(null);
+        }
+      } catch (error) {
+        console.error('Storage check failed:', error);
+        setStorageError('Storage monitoring failed');
       }
-    });
-    setOverallProgress(totalProgress);
+    };
 
-    // Update estimated time
-    const remainingStages = verificationStages.slice(currentStage);
-    const totalMinutes = remainingStages.reduce((total, stage) => {
-      const [min, max] = stage.estimatedTime.split("-").map((t) => parseInt(t));
-      return total + (min + max) / 2;
-    }, 0);
-    setEstimatedTimeRemaining(`${Math.round(totalMinutes)} minutes`);
+    // Check storage every 30 seconds
+    const interval = setInterval(checkStorage, 30000);
+    checkStorage(); // Initial check
+
+    return () => clearInterval(interval);
+  }, []); // Remove store dependency
+
+  console.log("personalInfo", store.personalInfo);
+  console.log("professionalBackground", store.professionalBackground);
+  console.log("teachingInformation", store.teachingInformation);
+  console.log("documents", store.documents);
+  console.log("verificationStatus", store.verificationStatus);
+  console.log("consents", store.consents);
+  console.log("steps", store.steps);
+  // Get the authenticated user ID
+  const getCurrentUserId = (): string | null => {
+    return user?.id || authUser?.id || null;
   };
 
+  // Get authentication token
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      return await getToken();
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  };
+
+
+
+  // Load application data on component mount
   useEffect(() => {
-    updateProgress();
-  }, [verificationData, currentStage]);
+    if (loadAttempted || authLoading) return;
+    
+    const loadApplication = async () => {
+      setIsLoading(true);
+      setLoadAttempted(true);
+      
+      try {
+        const userId = user?.id || authUser?.id;
+        const token = await getToken();
+        
+        if (!userId || !token) {
+          setAuthError('Please sign in to access the instructor application.');
+          return;
+        }
+
+        await store.loadApplication(userId, token);
+        
+        showToast('success', "Application Loaded", "Your application has been loaded successfully.");
+
+      } catch (error) {
+        console.error('Error loading application:', error);
+        setAuthError(error instanceof Error ? error.message : 'Failed to load application');
+        
+        showToast('error', "Load Failed", error instanceof Error ? error.message : 'Failed to load application');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Only load if we have user data
+    if (user?.id || authUser?.id) {
+      loadApplication();
+    } else {
+      setAuthError('Please sign in to access the instructor application.');
+      setLoadAttempted(true);
+    }
+  }, [user?.id, authUser?.id, authLoading, loadAttempted]);
 
   const handleNext = () => {
-    if (currentStage < verificationStages.length - 1) {
-      // Mark current stage as completed
-      updateVerificationData(
-        verificationStages[currentStage].id as keyof VerificationData,
-        {
-          verificationStatus: "completed",
-          lastUpdated: new Date().toISOString(),
-        }
-      );
-      setCurrentStage(currentStage + 1);
+    if (store.currentStep < steps.length - 1) {
+      store.setCurrentStep(store.currentStep + 1);
+      showToast('info', "Moving to Next Step", "You can always come back to complete this step later.");
     }
   };
 
   const handlePrevious = () => {
-    if (currentStage > 0) {
-      setCurrentStage(currentStage - 1);
+    if (store.currentStep > 0) {
+      store.setCurrentStep(store.currentStep - 1);
     }
   };
 
-  const updateVerificationData = (
-    stage: keyof VerificationData,
-    data: Partial<VerificationData[keyof VerificationData]>
-  ) => {
-    setVerificationData((prev) => {
-      const validStages = [
-        "identity",
-        "professional",
-        "skills",
-        "background",
-      ] as const;
+  const handleStepClick = (stepIndex: number) => {
+    // Allow free navigation between all steps
+    store.setCurrentStep(stepIndex);
+  };
 
-      if (!validStages.includes(stage as (typeof validStages)[number])) {
-        return prev;
+  const handleSaveDraft = async () => {
+    if (!isAuthenticated || !getCurrentUserId()) {
+      setAuthError('Please sign in to save your application.');
+      return;
+    }
+
+    setSaveStatus('saving');
+    try {
+      const userId = getCurrentUserId();
+      const token = await getAuthToken();
+      
+      if (!userId || !token) {
+        throw new Error('Authentication token not available');
       }
 
-      return {
-        ...prev,
-        [stage]: { ...prev[stage], ...data },
-      };
-    });
+      await store.saveDraft(userId, token);
+      setSaveStatus('saved');
+      
+      showToast('success', "Draft Saved", "Your application draft has been saved successfully.");
+      
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      setSaveStatus('error');
+      setAuthError(error instanceof Error ? error.message : 'Failed to save draft');
+      
+      showToast('error', "Save Failed", error instanceof Error ? error.message : 'Failed to save draft');
+      
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   };
 
-  const handleSubmitVerification = () => {
-    // Mark final stage as completed
-    updateVerificationData(
-      verificationStages[currentStage].id as keyof VerificationData,
-      {
-        verificationStatus: "completed",
-        lastUpdated: new Date().toISOString(),
+  const handleSubmitApplication = async () => {
+    if (!isAuthenticated || !getCurrentUserId()) {
+      setAuthError('Please sign in to submit your application.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const userId = getCurrentUserId();
+      const token = await getAuthToken();
+      
+      if (!userId || !token) {
+        throw new Error('Authentication token not available');
       }
+
+      // Final validation before submission
+      const allStepsValid = store.validateAllSteps();
+      if (!allStepsValid) {
+        throw new Error('Please complete all required steps before submitting');
+      }
+
+      const success = await store.submitApplication(userId, token);
+      
+      if (success) {
+        showToast('success', "Application Submitted", "Your application has been submitted successfully and is under review.");
+        
+        // Show success state
+        setAuthError(null);
+      } else {
+        throw new Error('Failed to submit application. Please try again.');
+      }
+    } catch (error) {
+      console.error('Application submission failed:', error);
+      setAuthError(error instanceof Error ? error.message : 'Submission failed');
+      
+      showToast('error', "Submission Failed", error instanceof Error ? error.message : 'Failed to submit application');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStepStatus = (stepIndex: number) => {
+    const step = store.steps[stepIndex];
+    if (!step) return 'pending';
+    return step.isValid ? 'completed' : 'incomplete';
+  };
+
+  const getStepIcon = (status: string, Icon: React.ComponentType<{ className?: string }>) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'incomplete':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'pending':
+      default:
+        return <Icon className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const getStepBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="default" className="text-xs">Complete</Badge>;
+      case 'incomplete':
+        return <Badge variant="destructive" className="text-xs">Incomplete</Badge>;
+      case 'pending':
+      default:
+        return <Badge variant="secondary" className="text-xs">Pending</Badge>;
+    }
+  };
+
+  const CurrentStepComponent = steps[store.currentStep].component;
+
+  // Show authentication error if user is not authenticated
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-red-600 flex items-center justify-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Authentication Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+              <div className="mt-4 text-center">
+                <Button onClick={() => window.location.href = '/sign-in'}>
+                  Sign In
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
+  }
 
-    // Show success message
-    alert(
-      "Verification Submitted! You'll receive an update within 24-48 hours via email and dashboard notifications."
+  // Show loading state for auth only if we don't have user data
+  if (authLoading && !getCurrentUserId()) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
     );
-  };
+  }
 
-  const getStageStatus = (
-    stageIndex: number
-  ): "completed" | "current" | "pending" => {
-    if (stageIndex < currentStage) return "completed";
-    if (stageIndex === currentStage) return "current";
-    return "pending";
-  };
+  // Show loading state
+  if (isLoading && !store.verificationId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your application...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const canProceed = () => {
-    const currentStageData =
-      verificationData[
-        verificationStages[currentStage].id as keyof VerificationData
-      ];
-    // Add logic to check if current stage requirements are met
-    return true; // Simplified for demo
-  };
+  // Show application under review state
+  if (store.verificationId && !store.personalInfo.firstName) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-blue-600 flex items-center justify-center gap-2">
+                <Clock className="h-5 w-5" />
+                Application Under Review
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Your instructor application is currently under review by our team. 
+                  You cannot modify the application during this time. 
+                  We will notify you once the review is complete.
+                </AlertDescription>
+              </Alert>
+              <div className="mt-4 text-center">
+                <Button onClick={() => window.location.href = '/dashboard'}>
+                  Go to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="sm:w-[90vw] mx-auto px-4">
-        {/* Enhanced Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-3 text-gray-900">
-            Instructor Verification
-          </h1>
-          <p className="text-lg text-gray-600 mb-4 max-w-2xl mx-auto">
-            Complete our AI-powered verification process to join our platform as
-            a certified instructor
-          </p>
-          <SecurityBadges />
-
-          {/* Time Estimate */}
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
-            <Clock className="h-4 w-4" />
-            Estimated time remaining: {estimatedTimeRemaining}
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex justify-between items-center">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Become an Instructor</h1>
+              <p className="text-gray-600 mt-2">
+                Complete your application to start teaching on our platform
+              </p>
+            </div>
+          </div>
+          
+          {/* Storage Warning */}
+          {storageError && (
+            <Alert className="mt-4" variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <span>{storageError}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => store.cleanupStorage()}
+                    >
+                      Clean Up
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStorageError(null)}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSaveDraft}
+              variant="outline"
+              disabled={saveStatus === 'saving'}
+              className='bg-blue-500 hover:bg-blue-600 text-white hover:text-white'
+            >
+              {saveStatus === 'saving' ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {saveStatus === 'saving' && 'Saving...'}
+              {saveStatus === 'saved' && 'Saved!'}
+              {saveStatus === 'error' && 'Error'}
+              {saveStatus === 'idle' && 'Save Draft'}
+            </Button>
           </div>
         </div>
 
-        {/* Enhanced Progress Overview */}
-        <Card className="mb-8 border-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-                Verification Progress
-              </CardTitle>
-              <div className="flex items-center gap-3">
-                <Badge
-                  variant={overallProgress === 100 ? "default" : "secondary"}
-                  className="text-base px-3 py-1"
-                >
-                  {Math.round(overallProgress)}% Complete
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  {showPreview ? "Hide" : "Preview"}
-                </Button>
-              </div>
+          {/* Progress Bar */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Application Progress
+              </span>
+              <span className="text-sm text-gray-500">
+                {Math.round(store.getOverallProgress())}% Complete
+              </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Progress value={overallProgress} className="mb-6 h-3" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {verificationStages.map((stage, index) => {
-                const status = getStageStatus(index);
-                const Icon = stage.icon;
-
-                return (
-                  <div
-                    key={stage.id}
-                    className={`p-5 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
-                      status === "current"
-                        ? "border-blue-500 bg-blue-50 shadow-sm"
-                        : status === "completed"
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className={`p-2 rounded-full ${
-                          status === "current"
-                            ? "bg-blue-100"
-                            : status === "completed"
-                            ? "bg-green-100"
-                            : "bg-gray-100"
-                        }`}
-                      >
-                        <Icon
-                          className={`h-5 w-5 ${
-                            status === "current"
-                              ? "text-blue-600"
-                              : status === "completed"
-                              ? "text-green-600"
-                              : "text-gray-500"
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <span className="font-semibold text-sm block">
-                          {stage.title}
-                        </span>
-                        {stage.aiVerification && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Brain className="h-3 w-3 text-blue-500" />
-                            <span className="text-xs text-blue-600">
-                              AI Verified
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-600 mb-2 leading-relaxed">
-                      {stage.description}
-                    </p>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">
-                        {stage.estimatedTime}
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {stage.weight}% weight
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Requirements Preview */}
-            {showPreview && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-3">
-                  Current Stage Requirements:
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {verificationStages[currentStage].requirements.map(
-                    (req, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        {req}
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <Progress value={store.getOverallProgress()} className="h-2" />
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Enhanced Main Content */}
-          <div className="lg:col-span-3">
-            <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  {React.createElement(verificationStages[currentStage].icon, {
-                    className: "h-7 w-7 text-blue-600",
-                  })}
-                  <div>
-                    <div>{verificationStages[currentStage].title}</div>
-                    <p className="text-sm font-normal text-gray-600 mt-1">
-                      Step {currentStage + 1} of {verificationStages.length}
-                    </p>
-                  </div>
-                </CardTitle>
-                <p className="text-gray-700 mt-2">
-                  {verificationStages[currentStage].description}
-                </p>
-              </CardHeader>
-              <CardContent className="py-8">
-                {currentStage === 0 && (
-                  <IdentityVerification
-                    data={verificationData.identity}
-                    updateData={(data) =>
-                      updateVerificationData("identity", data)
-                    }
-                  />
-                )}
-                {currentStage === 1 && (
-                  <ProfessionalBackground
-                    data={verificationData.professional}
-                    updateData={(data) =>
-                      updateVerificationData("professional", data)
-                    }
-                  />
-                )}
-                {currentStage === 2 && (
-                  <SkillsAssessment
-                    data={verificationData.skills}
-                    updateData={(data) =>
-                      updateVerificationData("skills", data)
-                    }
-                  />
-                )}
-                {currentStage === 3 && (
-                  <BackgroundCheck
-                    data={verificationData.background}
-                    updateData={(data) =>
-                      updateVerificationData("background", data)
-                    }
-                  />
-                )}
-              </CardContent>
-
-              {/* Enhanced Navigation */}
-              <div className="flex justify-between items-center p-6 border-t bg-gray-50">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStage === 0}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Previous Step
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">
-                    {currentStage + 1} of {verificationStages.length}
-                  </span>
-
-                  {currentStage === verificationStages.length - 1 ? (
-                    <Button
-                      onClick={handleSubmitVerification}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                      disabled={!canProceed()}
-                    >
-                      Submit for Review
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      disabled={!canProceed()}
-                      className="flex items-center gap-2"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Enhanced Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <VerificationStatus
-              data={verificationData}
-              currentStage={currentStage}
-            />
-
-            {/* Help Card */}
+          {/* Sidebar - Step Navigation */}
+          <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Need Help?
-                </CardTitle>
+                <CardTitle className="text-lg">Application Steps</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Live Chat Support
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Guide
-                </Button>
+              <CardContent>
+                <div className="space-y-3">
+                  {steps.map((step, index) => {
+                    const status = getStepStatus(index);
+                    const Icon = step.icon;
+                    const isActive = index === store.currentStep;
+                    
+                    return (
+                      <button
+                        key={step.id}
+                        onClick={() => handleStepClick(index)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          isActive 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {getStepIcon(status, Icon)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className={`font-medium text-sm ${
+                                isActive ? 'text-blue-700' : 'text-gray-700'
+                              }`}>
+                                {step.title}
+                              </p>
+                              {getStepBadge(status)}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 truncate">
+                              {step.description}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
+
+            {/* Application Status */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Application Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Status</span>
+                    <Badge variant="secondary">In Progress</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Started</span>
+                    <span className="text-sm font-medium">
+                      {new Date().toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Last Updated</span>
+                    <span className="text-sm font-medium">
+                      {new Date().toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Estimated Time</span>
+                    <span className="text-sm font-medium">20-30 minutes</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Validation Summary */}
+            {Object.keys(store.ui.errors).length > 0 && (
+              <Card className="mt-6 border-red-200">
+                <CardHeader>
+                  <CardTitle className="text-lg text-red-600 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Issues Found
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {Object.entries(store.ui.errors).map(([field, errors]) => (
+                      <div key={field} className="text-sm">
+                        <span className="font-medium text-red-600">{field}:</span>
+                        <ul className="list-disc list-inside mt-1 text-red-500">
+                          {errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {/* Step Header */}
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {React.createElement(steps[store.currentStep].icon, {
+                      className: "h-6 w-6 text-blue-600"
+                    })}
+                    <div>
+                      <CardTitle className="text-xl">
+                        {steps[store.currentStep].title}
+                      </CardTitle>
+                      <p className="text-gray-600 mt-1">
+                        {steps[store.currentStep].description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Step {store.currentStep + 1} of {steps.length}</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      {Math.round(store.getOverallProgress())}% Complete
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Step Content */}
+            <Card>
+              <CardContent className="p-6">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-3" />
+                    <span className="text-gray-600">Loading...</span>
+                  </div>
+                ) : (
+                  <CurrentStepComponent />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Navigation Footer */}
+            <div className="flex items-center justify-between mt-6">
+              <Button
+                onClick={handlePrevious}
+                variant="outline"
+                disabled={store.currentStep === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleSaveDraft}
+                  variant="outline"
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Draft
+                </Button>
+
+                {store.currentStep < steps.length - 1 ? (
+                  <Button
+                    onClick={handleNext}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmitApplication}
+                    disabled={!store.steps[store.currentStep]?.isValid || isLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoading ? 'Submitting...' : 'Submit Application'}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {Object.keys(store.ui.errors).length > 0 && (
+              <Alert variant="destructive" className="mt-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-2">Please fix the following errors:</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(store.ui.errors).map(([field, errors]) =>
+                      errors.map((error: string, index: number) => (
+                        <li key={`${field}-${index}`}>{error}</li>
+                      ))
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success Messages */}
+            {store.ui.successMessages.length > 0 && (
+              <Alert className="mt-6">
+                <CheckSquare className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-2">Success:</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {store.ui.successMessages.map((message: string, index: number) => (
+                      <li key={index}>{message}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Warnings */}
+            {Object.keys(store.ui.warnings).length > 0 && (
+              <Alert className="mt-6">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-2">Recommendations:</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(store.ui.warnings).map(([field, warnings]) =>
+                      warnings.map((warning: string, index: number) => (
+                        <li key={`${field}-${index}`}>{warning}</li>
+                      ))
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
       </div>
-    </div>
   );
 }

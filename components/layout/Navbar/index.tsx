@@ -45,10 +45,13 @@ import {
   useUser,
   useAuth,
   SignInButton,
-  SignUpButton,
+  SignUpButton, 
 } from "@clerk/nextjs";
 import { useAuthStore, useAuthSelectors, UserRole } from "@/stores/auth.store";
 import { useCheckoutItemCount } from "@/stores/payment.store";
+import StoreModal from "@/components/shared/StoreModal";
+import SearchModal from "@/components/shared/SearchModal";
+// import SearchModal from "@/components/shared/SearchModal";
 
 interface NavigationItem {
   label: string;
@@ -72,8 +75,9 @@ const Navbar = ({
   isDashboard = false,
 }: NavbarProps) => {
   const [isSticky, setIsSticky] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const { isSignedIn: isClerkSignedIn, isLoaded } = useUser();
   const { signOut } = useAuth();
@@ -136,7 +140,6 @@ const Navbar = ({
           label: "Become an Instructor",
           href: "/become-instructor",
           icon: GraduationCap,
-          badge: "New",
           description: "Start teaching today",
         },
       ];
@@ -169,6 +172,12 @@ const Navbar = ({
             href: "/instructors",
             icon: Users,
             description: "Discover new teachers",
+          },
+          {
+            label: "Become an Instructor",
+            href: "/become-instructor",
+            icon: GraduationCap,   
+            description: "Start teaching today",
           },
         ];
 
@@ -328,23 +337,6 @@ const Navbar = ({
     </DropdownMenu>
   );
 
-  const SearchBar = () => (
-    <div
-      className={cn(
-        "relative transition-all duration-300",
-        isSearchExpanded ? "w-96" : "w-64"
-      )}
-    >
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        placeholder="Search courses, instructors..."
-        className="pl-9 pr-4"
-        onFocus={() => setIsSearchExpanded(true)}
-        onBlur={() => setIsSearchExpanded(false)}
-      />
-    </div>
-  );
-
   return (
     <motion.nav
       className={cn(
@@ -392,6 +384,11 @@ const Navbar = ({
                           <span className="relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground cursor-pointer ">
                             {item.icon && <item.icon className="h-4 w-4" />}
                             {item.label}
+                            {item.badge && (
+                              <Badge variant="secondary" className="ml-1 text-xs bg-yellow-400 text-yellow-900">
+                                {item.badge}
+                              </Badge>
+                            )}
                           </span>
                         </motion.button>
                       </Link>
@@ -426,8 +423,6 @@ const Navbar = ({
             )}
           </motion.div>
 
-          {/* Search Bar - Desktop */}
-
           {/* Right Side Actions */}
           <motion.div
             className="flex items-center gap-3"
@@ -435,18 +430,23 @@ const Navbar = ({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {/* Search Bar - Desktop */}
+            {/* Search Icon - Desktop */}
             {!isDashboard && isAuthenticated && (
-              <div className="hidden md:block">
-                <SearchBar />
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:text-black hover:bg-primary/10"
+                onClick={() => setIsSearchModalOpen(true)}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
             )}
 
             {/* AI Assistant */}
             <Button
               variant="ghost"
               size="icon"
-              className="relative"
+              className="relative hover:text-black hover:bg-primary/10"
               onClick={onAiAssistantToggle}
             >
               <MessageSquareText className="h-5 w-5" />
@@ -457,7 +457,7 @@ const Navbar = ({
 
             {/* Notifications */}
             {isAuthenticated && (
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative hover:text-black hover:bg-primary/10">
                 <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
@@ -469,16 +469,19 @@ const Navbar = ({
 
             {/* Store/Cart Icon */}
             {isAuthenticated && isStudent && (
-              <Link href="/student/store">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
-                      {cartItemCount > 9 ? "9+" : cartItemCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative hover:text-black hover:bg-primary/10"
+                onClick={() => setIsStoreModalOpen(true)}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+                    {cartItemCount > 9 ? "9+" : cartItemCount}
+                  </span>
+                )}
+              </Button>
             )}
 
             {/* User Profile or Auth Buttons */}
@@ -527,7 +530,17 @@ const Navbar = ({
                 {/* Mobile Search */}
                 {isAuthenticated && (
                   <div className="mb-4">
-                    <SearchBar />
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsSearchModalOpen(true);
+                      }}
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Search courses, instructors...
+                    </Button>
                   </div>
                 )}
 
@@ -559,6 +572,11 @@ const Navbar = ({
                           <span className="w-full justify-center relative px-3 py-2 transition-all ease-in duration-75 bg-background rounded-md group-hover:bg-opacity-0 flex items-center gap-2 text-foreground">
                             {item.icon && <item.icon className="h-4 w-4" />}
                             {item.label}
+                            {item.badge && (
+                              <Badge variant="secondary" className="ml-1 text-xs bg-yellow-400 text-yellow-900">
+                                {item.badge}
+                              </Badge>
+                            )}
                           </span>
                         </motion.button>
                       </Link>
@@ -616,6 +634,18 @@ const Navbar = ({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Store Modal */}
+      <StoreModal 
+        isOpen={isStoreModalOpen} 
+        onClose={() => setIsStoreModalOpen(false)} 
+      />
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+      />
     </motion.nav>
   );
 };

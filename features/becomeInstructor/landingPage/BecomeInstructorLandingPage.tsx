@@ -30,7 +30,7 @@ export default function BecomeInstructorLandingPage() {
         <CTASection />
       </main>
       <Footer />
-      <FloatingCTA />
+      {/* <FloatingCTA /> */}
     </div>
   );
 }

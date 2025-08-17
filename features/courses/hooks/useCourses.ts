@@ -529,12 +529,20 @@ export const useCourses = (options: UseCoursesOptions = {}) => {
 
       setCourses(processedCourses);
 
-      // Apply client-side filtering
-      const filteredResults = applyClientSideFilters(
-        processedCourses, 
-        storeFilters, 
-        searchQuery || ""
-      );
+      // Apply client-side filtering only for non-search queries
+      // If we have a search query, the server has already filtered the results
+      let filteredResults;
+      if (searchQuery && searchQuery.trim().length > 0) {
+        // For search queries, use the server-filtered results directly
+        filteredResults = processedCourses;
+      } else {
+        // For non-search queries, apply client-side filtering
+        filteredResults = applyClientSideFilters(
+          processedCourses, 
+          storeFilters, 
+          ""
+        );
+      }
 
       setFilteredCourses(filteredResults);
 

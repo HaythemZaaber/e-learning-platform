@@ -11,6 +11,7 @@ interface VerificationStatusProps {
 
 export function VerificationStatus({ data }: VerificationStatusProps) {
   const getOverallProgress = () => {
+    if (!data) return 0;
     const stages = Object.values(data);
     const completedStages = stages.filter(
       (stage: any) => stage.verificationStatus === "completed"
@@ -43,6 +44,24 @@ export function VerificationStatus({ data }: VerificationStatusProps) {
         return <Badge variant="outline">Pending</Badge>;
     }
   };
+
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Verification Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">No verification data available</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

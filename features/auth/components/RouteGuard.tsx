@@ -21,12 +21,11 @@ export const ROUTE_PERMISSIONS: RouteConfig[] = [
   { path: "/how-it-works", allowedRoles: [], requireAuth: false },
   { path: "/become-instructor", allowedRoles: [], requireAuth: false },
 
-  // Student routes
+  // Student routes - Note: Individual pages handle their own auth UI
   {
     path: "/student",
     allowedRoles: [UserRole.STUDENT, UserRole.ADMIN],
-    requireAuth: true,
-    redirectTo: "/sign-in",
+    requireAuth: false, // Let individual pages handle auth display
   },
 
   // Instructor routes

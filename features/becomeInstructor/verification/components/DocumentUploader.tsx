@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DocumentUploaderProps {
   documentType: string;
-  onUpload: (file: File) => void;
+  onUpload: (file: File, thumbnailUrl?: string) => void;
   status: "pending" | "uploading" | "verified" | "rejected";
   requirements: string[];
   maxFileSize?: number; // in MB
@@ -219,15 +219,69 @@ export function DocumentUploader({
       setIsProcessing(true);
       setUploadProgress(0);
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      // Create preview URL with proper error handling
+      try {
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
         }
-        setPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+        
+        // Create object URL for preview
+        const newPreviewUrl = URL.createObjectURL(file);
+        setPreviewUrl(newPreviewUrl);
+        
+        // For images, create both object URL and data URL for better compatibility
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (e.target?.result) {
+              // Store data URL as fallback
+              const dataUrl = e.target.result as string;
+              // Use data URL as primary for better image display
+              setPreviewUrl(dataUrl);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        
+        // For videos, create thumbnail
+        if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = newPreviewUrl;
+          video.muted = true;
+          video.currentTime = 1;
+          
+          // Wait for video to load and create thumbnail
+          await new Promise<void>((resolve, reject) => {
+            video.onloadeddata = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  ctx.drawImage(video, 0, 0, 200, 200);
+                  const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                  // Store thumbnail URL for video preview
+                  setPreviewUrl(thumbnailUrl);
+                  // Store thumbnail URL for later use
+                  (file as any).thumbnailUrl = thumbnailUrl;
+                  console.log('Generated video thumbnail:', thumbnailUrl.substring(0, 50) + '...');
+                }
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            };
+            video.onerror = reject;
+            // Set a timeout in case video loading takes too long
+            setTimeout(() => reject(new Error('Video loading timeout')), 10000);
+          });
+        }
+      } catch (error) {
+        console.error('Error creating preview:', error);
+        handleError('Failed to create document preview');
+        return;
+      }
 
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -241,8 +295,10 @@ export function DocumentUploader({
       }, 200);
 
       try {
-        // Call the upload callback
-        onUpload(file);
+        // Call the upload callback with thumbnail URL if available
+        const thumbnailUrl = (file as any).thumbnailUrl;
+        console.log('Calling onUpload with thumbnail:', !!thumbnailUrl);
+        onUpload(file, thumbnailUrl);
 
         // Simulate AI analysis
         const analysis = await simulateAIAnalysis(file);
@@ -554,7 +610,26 @@ export function DocumentUploader({
                     src={previewUrl}
                     alt="Document preview"
                     className="w-full max-w-md mx-auto rounded-lg border"
+                    onError={(e) => {
+                      // Try fallback data URL if available
+                      const target = e.target as HTMLImageElement;
+                      const fallback = target.getAttribute('data-fallback');
+                      if (fallback) {
+                        target.src = fallback;
+                      } else {
+                        // Show error state
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }
+                    }}
                   />
+                  {/* Fallback for failed image loads */}
+                  <div className="hidden w-full max-w-md mx-auto h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
+                    <div className="text-center">
+                      <Image className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Preview not available</p>
+                    </div>
+                  </div>
                   <div className="absolute top-2 right-2 flex gap-1">
                     <Button
                       variant="secondary"

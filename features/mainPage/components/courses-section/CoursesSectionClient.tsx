@@ -155,6 +155,33 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
 
+  // Check if user is enrolled in a course
+  const isUserEnrolled = (course: any) => {
+    if (!course.enrollments || !user?.id) return false;
+    return course.enrollments.some((enrollment: any) => enrollment.userId === user.id);
+  };
+
+  // Get enrollment progress data
+  const getEnrollmentData = (course: any) => {
+    if (!course.enrollments || !user?.id) return null;
+    
+    // Find the specific enrollment for the current user
+    const userEnrollment = course.enrollments.find((enrollment: any) => enrollment.userId === user.id);
+    
+    if (!userEnrollment) return null;
+    
+    return {
+      progress: userEnrollment.progress || 0,
+      timeSpent: userEnrollment.totalTimeSpent || 0,
+      streakDays: userEnrollment.streakDays || 0,
+      certificateEarned: userEnrollment.certificateEarned || false,
+      lastWatchedLecture: userEnrollment.lastWatchedLecture,
+      nextLessonId: userEnrollment.currentLessonId,
+      completedLectures: userEnrollment.completedLectures || 0,
+      totalLectures: userEnrollment.totalLectures || 0,
+    };
+  };
+
   // Action handlers for CourseCard
   const handleEnroll = async (courseId: string) => {
     const course = courses.find(c => c.id === courseId);
@@ -864,6 +891,8 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         ) : (
           filteredCourses.map((course) => {
             const isInCart = checkoutItems.some(item => item.courseId === course.id);
+            const isEnrolled = isUserEnrolled(course);
+            const enrollmentData = getEnrollmentData(course);
             
             return (
               <CourseCardWrapper key={course.id} course={course}>
@@ -872,6 +901,15 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                   isSaved={savedCourses.includes(course.id)}
                   onToggleSave={toggleSavedCourse}
                   viewMode="grid"
+                  isEnrolled={isEnrolled}
+                  progress={enrollmentData?.progress || 0}
+                  timeSpent={enrollmentData?.timeSpent || 0}
+                  streakDays={enrollmentData?.streakDays || 0}
+                  certificateEarned={enrollmentData?.certificateEarned || false}
+                  lastWatchedLecture={enrollmentData?.lastWatchedLecture}
+                  nextLessonId={enrollmentData?.nextLessonId}
+                  completedLectures={enrollmentData?.completedLectures || 0}
+                  totalLectures={enrollmentData?.totalLectures || 0}
                   onEnroll={handleEnroll}
                   onAddToCart={handleAddToCartAction}
                   onRemoveFromCart={handleRemoveFromCartAction}

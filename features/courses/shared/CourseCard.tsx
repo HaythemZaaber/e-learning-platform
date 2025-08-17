@@ -60,6 +60,22 @@ import { useRouter } from "next/navigation";
 import { Course, CourseLevel, CourseIntensity } from "@/types/courseTypes";
 import courseThumbnail from "@/public/images/courses/courseThumbnail.jpg";
 
+// Utility function to calculate actual course duration from sections
+const getActualCourseDuration = (course: Course) => {
+  if (!course?.sections) return { hours: 0, minutes: 0 };
+  
+  const totalSeconds = course.sections.reduce((total: number, section: any) => {
+    const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
+      lectureTotal + (lecture.duration || 0), 0) || 0;
+    return total + sectionDuration;
+  }, 0);
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  
+  return { hours, minutes };
+};
+
 interface CourseCardProps {
   course: Course;
   isSaved: boolean;
@@ -681,7 +697,20 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             
             <Badge className="bg-black/70 backdrop-blur-md text-white border-0 text-xs flex items-center gap-1 shadow-lg">
               <Clock className="h-3 w-3" />
-              <span className="text-xs font-semibold">{course.estimatedHours ? course.estimatedHours + "h" : ""} {course.estimatedMinutes ? course.estimatedMinutes + "min" : ""}</span>
+              <span className="text-xs font-semibold">
+                {(() => {
+                  const duration = getActualCourseDuration(course);
+                  if (duration.hours > 0 && duration.minutes > 0) {
+                    return `${duration.hours}h ${duration.minutes}m`;
+                  } else if (duration.hours > 0) {
+                    return `${duration.hours}h`;
+                  } else if (duration.minutes > 0) {
+                    return `${duration.minutes}m`;
+                  } else {
+                    return "0m";
+                  }
+                })()}
+              </span>
             </Badge>
           </div>
         </div>
@@ -1155,7 +1184,18 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </Badge>
               <Badge variant="outline" className="text-sm border-2 hover:bg-gray-50">
                 <Clock className="h-4 w-4 mr-1" />
-                {course.totalDuration}
+                {(() => {
+                  const duration = getActualCourseDuration(course);
+                  if (duration.hours > 0 && duration.minutes > 0) {
+                    return `${duration.hours}h ${duration.minutes}m`;
+                  } else if (duration.hours > 0) {
+                    return `${duration.hours}h`;
+                  } else if (duration.minutes > 0) {
+                    return `${duration.minutes}m`;
+                  } else {
+                    return "0m";
+                  }
+                })()}
               </Badge>
               {course.intensityLevel && (
                 <Badge className="bg-gray-100 text-gray-700 text-sm flex items-center gap-1 font-medium">

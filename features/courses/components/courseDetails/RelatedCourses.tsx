@@ -113,7 +113,7 @@ export function RelatedCourses({ course, userRole }: RelatedCoursesProps) {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2  gap-6">
         {relatedCourses.slice(0, 2).map((relatedCourse) => (
           <CourseCard
             key={relatedCourse.id}
@@ -128,7 +128,7 @@ export function RelatedCourses({ course, userRole }: RelatedCoursesProps) {
       <div className="mt-12">
         <h2 className="text-xl font-bold mb-4">Related Courses</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {relatedCourses.map((relatedCourse) => (
             <CourseCard
               key={relatedCourse.id}

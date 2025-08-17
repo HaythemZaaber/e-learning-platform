@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, Clock, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = 12;
+
+interface CoursesGridProps {
+  initialSearch?: string;
+  initialCategory?: string;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,9 +49,13 @@ const loadingVariants = {
   exit: { opacity: 0 },
 };
 
-const CoursesGrid = () => {
+const CoursesGrid: React.FC<CoursesGridProps> = ({ 
+  initialSearch = "", 
+  initialCategory = "" 
+}) => {
   const router = useRouter();
   const { user } = useAuth();
+  const hasAppliedInitialFilters = useRef(false);
   
   // Payment store and hooks
   const { checkoutItems, addToCheckout, removeFromCheckout } = usePaymentStore();
@@ -116,12 +125,44 @@ const CoursesGrid = () => {
 
   // Local state for UI
   const [showFilters, setShowFilters] = useState(false);
-  const [quickSearch, setQuickSearch] = useState("");
+  const [quickSearch, setQuickSearch] = useState(initialSearch);
+
+  // Apply initial search and category filters when component mounts
+  useEffect(() => {
+    if (!hasAppliedInitialFilters.current && (initialSearch || initialCategory)) {
+      const initialFilters: any = {};
+      
+      if (initialSearch) {
+        initialFilters.search = initialSearch;
+        setQuickSearch(initialSearch);
+        handleSearch(initialSearch);
+      }
+      
+      if (initialCategory) {
+        initialFilters.categories = [initialCategory];
+      }
+      
+      if (Object.keys(initialFilters).length > 0) {
+        applyFilters(initialFilters);
+      }
+      
+      hasAppliedInitialFilters.current = true;
+    }
+  }, [initialSearch, initialCategory]); // Removed applyFilters and handleSearch from dependencies
 
   // Handle quick search
   const handleQuickSearch = (query: string) => {
     setQuickSearch(query);
+    // Update the search query in the store
     handleSearch(query);
+    // Also update the filters to include the search
+    if (query.trim()) {
+      handleFilterChange({ ...filters, search: query });
+    } else {
+      // If search is empty, remove search from filters
+      const { search, ...otherFilters } = filters;
+      handleFilterChange(otherFilters);
+    }
   };
 
   // Handle filter changes

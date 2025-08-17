@@ -4,20 +4,27 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   ShoppingCart, 
-  BookOpen, 
-  DollarSign, 
   Trash2, 
   ArrowRight,
   CreditCard,
   CheckCircle,
   Clock,
   Users,
-  Star
+  Star,
+  UserCheck,
+  X,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { usePaymentStore } from "@/stores/payment.store";
 import { useQuickPayment } from "@/features/payments/hooks/usePayment";
 import { toast } from "sonner";
@@ -26,24 +33,22 @@ import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
 import courseThumbnail from "@/public/images/courses/courseThumbnail.jpg";
 
-export default function StorePage() {
+interface StoreModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function StoreModal({ isOpen, onClose }: StoreModalProps) {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { checkoutItems, clearCheckout, getCheckoutSubtotal, getCheckoutTotal, getCheckoutItemCount } = usePaymentStore();
-  const { handleRemoveFromCart, handleBuyNow } = useQuickPayment();
+  const { handleRemoveFromCart } = useQuickPayment();
   
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    router.push("/sign-in?redirect=/store");
-    return null;
-  }
 
   const handleRemoveItem = async (courseId: string) => {
     try {
       handleRemoveFromCart(courseId);
-      toast.success("Course removed from cart");
     } catch (error) {
       toast.error("Failed to remove course from cart");
     }
@@ -57,6 +62,7 @@ export default function StorePage() {
 
     setIsProcessing(true);
     try {
+      onClose();
       router.push("/checkout");
     } catch (error) {
       toast.error("Failed to proceed to checkout");
@@ -74,34 +80,76 @@ export default function StorePage() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(price / 100); // Convert from cents
+    }).format(price / 100);
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Store</h1>
-              <p className="text-gray-600 mt-1">Manage your cart and purchases</p>
+  if (!isAuthenticated) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose} >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="w-5 h-5" />
+              Sign In Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserCheck className="w-8 h-8 text-white" />
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className="text-lg px-4 py-2">
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {getCheckoutItemCount()} items
-              </Badge>
+            <h3 className="text-lg font-semibold text-blue-800 mb-2">Sign In Required</h3>
+            <p className="text-blue-600 mb-6">
+              You need to be signed in to access the store and manage your cart.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={() => {
+                  onClose();
+                  router.push("/sign-in");
+                }}
+              >
+                Sign In to Continue
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  onClose();
+                  router.push("/courses");
+                }}
+              >
+                Browse Courses
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Shopping Cart ({getCheckoutItemCount()} items)
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 hover:bg-primary/10 hover:text-black"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Cart Section */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -128,7 +176,10 @@ export default function StorePage() {
                     <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
                     <p className="text-gray-600 mb-6">Add some courses to get started with your learning journey!</p>
-                    <Button onClick={() => router.push("/courses")}>
+                    <Button onClick={() => {
+                      onClose();
+                      router.push("/courses");
+                    }}>
                       Browse Courses
                     </Button>
                   </div>
@@ -142,7 +193,6 @@ export default function StorePage() {
                         exit={{ opacity: 0, y: -20 }}
                         className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        {/* Course Image */}
                         <div className="relative w-20 h-16 rounded-lg overflow-hidden flex-shrink-0">
                           <Image
                             src={item.course.thumbnail || courseThumbnail}
@@ -152,7 +202,6 @@ export default function StorePage() {
                           />
                         </div>
 
-                        {/* Course Details */}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-gray-900 truncate">
                             {item.course.title}
@@ -177,7 +226,6 @@ export default function StorePage() {
                           </div>
                         </div>
 
-                        {/* Price */}
                         <div className="text-right">
                           <div className="font-semibold text-gray-900">
                             {formatPrice(item.price)}
@@ -189,7 +237,6 @@ export default function StorePage() {
                           )}
                         </div>
 
-                        {/* Remove Button */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -205,7 +252,6 @@ export default function StorePage() {
               </CardContent>
             </Card>
 
-            {/* Purchase History */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -223,9 +269,7 @@ export default function StorePage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Order Summary */}
             <Card>
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
@@ -263,7 +307,6 @@ export default function StorePage() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -272,7 +315,10 @@ export default function StorePage() {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => router.push("/courses")}
+                  onClick={() => {
+                    onClose();
+                    router.push("/courses");
+                  }}
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Browse Courses
@@ -280,7 +326,10 @@ export default function StorePage() {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => router.push("/my-courses")}
+                  onClick={() => {
+                    onClose();
+                    router.push("/student/my-courses");
+                  }}
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   My Enrolled Courses
@@ -289,7 +338,7 @@ export default function StorePage() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

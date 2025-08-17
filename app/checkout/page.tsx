@@ -25,7 +25,8 @@ import {
   Zap,
   Trash2,
   Plus,
-  Minus
+  Minus,
+  UserCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/types/paymentTypes";
@@ -58,13 +59,8 @@ export default function CheckoutPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [currentStep, setCurrentStep] = useState<"cart" | "payment" | "success">("cart");
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/sign-in?redirect=/checkout");
-      return;
-    }
-  }, [isAuthenticated, router]);
+  // Note: Authentication check is now handled in the render method
+  // No automatic redirect - user will see a sign-in prompt instead
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -159,14 +155,33 @@ export default function CheckoutPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please sign in to continue</h2>
-          <p className="text-gray-600 mb-4">You need to be signed in to access the checkout</p>
-          <Button onClick={() => router.push("/sign-in")}>
-            Sign In
-          </Button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserCheck className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-blue-800 mb-2">Sign In Required</h2>
+            <p className="text-blue-600 mb-6">
+              You need to be signed in to access the checkout and complete your purchase.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={() => router.push("/sign-in")}
+              >
+                Sign In to Continue
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleContinueShopping}
+              >
+                Continue Shopping
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

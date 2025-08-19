@@ -25,6 +25,7 @@ import {
   Globe,
   PieChart,
   Clock,
+  User,
 } from "lucide-react";
 
 import {
@@ -83,6 +84,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         href: "/instructor/messages",
         icon: MessageSquare,
         badge: "3",
+      },
+      {
+        name: "Profile",
+        href: "/instructor/profile",
+        icon: User,
+        badge: null,
       },
     ],
     quick: [

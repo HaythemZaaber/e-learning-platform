@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useInstructorApplicationStore } from '@/stores/verification.store';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/auth.store';
+import { useApolloClient } from '@apollo/client';
+import { GET_INSTRUCTOR_VERIFICATION } from '@/features/becomeInstructor/verification/graphql/instructor-application';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +30,9 @@ import {
   Info,
   AlertTriangle,
   CheckSquare,
-  XCircle
+  XCircle,
+  Activity,
+  Shield
 } from 'lucide-react';
 
 // Import step components
@@ -80,6 +84,7 @@ export function MainVerification() {
   const store = useInstructorApplicationStore();
   const { user, getToken, isAuthenticated, isLoading: authLoading } = useAuth();
   const { user: authUser } = useAuthStore();
+  const client = useApolloClient();
 
   
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +92,7 @@ export function MainVerification() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [loadAttempted, setLoadAttempted] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [applicationStatus, setApplicationStatus] = useState<any>(null);
 
 
   // Monitor storage size and handle quota errors
@@ -159,6 +165,21 @@ export function MainVerification() {
         }
 
         await store.loadApplication(userId, token);
+        
+        // Also fetch the current application status for display
+        try {
+          const { data } = await client.query({
+            query: GET_INSTRUCTOR_VERIFICATION,
+            variables: { userId },
+            fetchPolicy: 'network-only',
+          });
+
+          if (data?.getInstructorVerification?.success && data?.getInstructorVerification?.data) {
+            setApplicationStatus(data.getInstructorVerification.data);
+          }
+        } catch (statusError) {
+          console.error('Error fetching application status:', statusError);
+        }
         
         showToast('success', "Application Loaded", "Your application has been loaded successfully.");
 
@@ -451,19 +472,126 @@ export function MainVerification() {
           </div>
         </div>
 
-          {/* Progress Bar */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                Application Progress
-              </span>
-              <span className="text-sm text-gray-500">
-                {Math.round(store.getOverallProgress())}% Complete
-              </span>
-            </div>
-            <Progress value={store.getOverallProgress()} className="h-2" />
+        {/* Application Status Card */}
+        {applicationStatus && applicationStatus.status !== 'DRAFT' && applicationStatus.status !== 'SUBMITTED'  && (
+          <div className="mb-6">
+            <Card className="border-slate-200 bg-white shadow-sm">
+             
+              <CardContent className="space-y-4">
+            
+
+                {/* Manual Review Information */}
+                {applicationStatus.manualReview && (
+                  <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center mb-3">
+                      <Shield className="w-4 h-4 text-slate-600 mr-2" />
+                      <h4 className="font-medium text-slate-900">Review Information</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700">Decision:</span>
+                        <Badge className={`${
+                          applicationStatus.manualReview.decision === 'APPROVE' 
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                            : applicationStatus.manualReview.decision === 'REJECT'
+                            ? 'bg-red-100 text-red-700 border-red-200'
+                            : 'bg-orange-100 text-orange-700 border-orange-200'
+                        }`}>
+                          {applicationStatus.manualReview.decision}
+                        </Badge>
+                      </div>
+
+                      {applicationStatus.manualReview.decisionReason && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-700">Reason:</span>
+                          <p className="text-sm text-slate-600 mt-1">{applicationStatus.manualReview.decisionReason}</p>
+                        </div>
+                      )}
+
+                      {applicationStatus.manualReview.conditionalRequirements && applicationStatus.manualReview.conditionalRequirements.length > 0 && applicationStatus.status === 'REQUIRES_MORE_INFO' && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-700">Required Information:</span>
+                          <div className="mt-2 space-y-2">
+                            {applicationStatus.manualReview.conditionalRequirements.map((requirement: string, index: number) => (
+                              <div key={index} className="flex items-start p-2 bg-white rounded border border-slate-200">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 mt-2 flex-shrink-0" />
+                                <span className="text-sm text-slate-700">{requirement}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {applicationStatus.manualReview.reviewedAt && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700">Reviewed:</span>
+                          <span className="text-sm text-slate-600">
+                            {new Date(applicationStatus.manualReview.reviewedAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status-specific Actions */}
+                {applicationStatus.status === 'REQUIRES_MORE_INFO' && (
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800 font-medium mb-2">
+                      Next Steps:
+                    </p>
+                    <p className="text-sm text-orange-700">
+                      Please address the requirements above and update your application. Once you've made the necessary changes, you can resubmit your application for review.
+                    </p>
+                  </div>
+                )}
+
+                {applicationStatus.status === 'APPROVED' && (
+                  <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <p className="text-sm text-emerald-800 font-medium mb-2">
+                      Congratulations! 🎉
+                    </p>
+                    <p className="text-sm text-emerald-700">
+                      Your application has been approved. You can now start creating courses and teaching on our platform.
+                    </p>
+                  </div>
+                )}
+
+                {applicationStatus.status === 'REJECTED' && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 font-medium mb-2">
+                      Application Status:
+                    </p>
+                    <p className="text-sm text-red-700">
+                      Your application has been rejected. Please review the feedback and consider applying again in the future.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
+        )}
+
+        {/* Progress Bar */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">
+              Application Progress
+            </span>
+            <span className="text-sm text-gray-500">
+              {Math.round(store.getOverallProgress())}% Complete
+            </span>
+          </div>
+          <Progress value={store.getOverallProgress()} className="h-2" />
         </div>
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar - Step Navigation */}
@@ -513,35 +641,196 @@ export function MainVerification() {
             </Card>
 
             {/* Application Status */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Application Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+            {applicationStatus && (
+              <Card className="mt-6">
+                <CardHeader>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <Badge variant="secondary">In Progress</Badge>
+                    <CardTitle className="text-lg">Application Status</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      {applicationStatus.status === 'DRAFT' && (
+                        <Badge variant="secondary" className="flex items-center">
+                          <Activity className="w-3 h-3 mr-1" />
+                          Draft
+                        </Badge>
+                      )}
+                      {applicationStatus.status === 'SUBMITTED' && (
+                        <Badge variant="default" className="flex items-center bg-blue-100 text-blue-800">
+                          <Activity className="w-3 h-3 mr-1" />
+                          Submitted
+                        </Badge>
+                      )}
+                      {applicationStatus.status === 'UNDER_REVIEW' && (
+                        <Badge variant="default" className="flex items-center bg-yellow-100 text-yellow-800">
+                          <Activity className="w-3 h-3 mr-1" />
+                          Under Review
+                        </Badge>
+                      )}
+                      {applicationStatus.status === 'REQUIRES_MORE_INFO' && (
+                        <Badge variant="destructive" className="flex items-center">
+                          <Shield className="w-3 h-3 mr-1" />
+                          Requires Updates
+                        </Badge>
+                      )}
+                      {applicationStatus.status === 'APPROVED' && (
+                        <Badge variant="default" className="flex items-center bg-green-100 text-green-800">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Approved
+                        </Badge>
+                      )}
+                      {applicationStatus.status === 'REJECTED' && (
+                        <Badge variant="destructive" className="flex items-center">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Rejected
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Started</span>
-                    <span className="text-sm font-medium">
-                      {new Date().toLocaleDateString()}
-                    </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Application Details */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Submitted:</span>
+                        <p className="font-medium text-gray-900">
+                          {applicationStatus.submittedAt 
+                            ? new Date(applicationStatus.submittedAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : 'Not submitted yet'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                       
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Last Updated:</span>
+                        <p className="font-medium text-gray-900">
+                          {new Date(applicationStatus.updatedAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Days in Review:</span>
+                        <p className="font-medium text-gray-900">
+                          {applicationStatus.submittedAt 
+                            ? Math.ceil((new Date().getTime() - new Date(applicationStatus.submittedAt).getTime()) / (1000 * 60 * 60 * 24))
+                            : 0
+                          } days
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Manual Review Information */}
+                    {applicationStatus.manualReview && applicationStatus.status === 'REQUIRES_MORE_INFO' && (
+                      <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <h4 className="font-semibold text-orange-900 mb-2 flex items-center">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Manual Review Information
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-orange-700 font-medium">Decision:</span>
+                            <p className="text-orange-800">{applicationStatus.manualReview.decision}</p>
+                          </div>
+                          <div>
+                            <span className="text-orange-700 font-medium">Reason:</span>
+                            <p className="text-orange-800">{applicationStatus.manualReview.decisionReason}</p>
+                          </div>
+                          {applicationStatus.manualReview.conditionalRequirements && applicationStatus.manualReview.conditionalRequirements.length > 0 && (
+                            <div>
+                              <span className="text-orange-700 font-medium">Required Information:</span>
+                              <ul className="list-disc list-inside text-orange-800 mt-1">
+                                {applicationStatus.manualReview.conditionalRequirements.map((req: string, index: number) => (
+                                  <li key={index}>{req}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-orange-700 font-medium">Reviewed At:</span>
+                            <p className="text-orange-800">
+                              {new Date(applicationStatus.manualReview.reviewedAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status-specific messages */}
+                    {applicationStatus.status === 'REQUIRES_MORE_INFO' && (
+                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-red-900">Action Required</h4>
+                            <p className="text-red-800 text-sm mt-1">
+                              Your application requires updates based on our review. Please address the requirements above and resubmit your application.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {applicationStatus.status === 'APPROVED' && (
+                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-green-900">Congratulations!</h4>
+                            <p className="text-green-800 text-sm mt-1">
+                              Your application has been approved. You can now start creating courses and teaching on our platform.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {applicationStatus.status === 'REJECTED' && (
+                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-red-900">Application Not Approved</h4>
+                            <p className="text-red-800 text-sm mt-1">
+                              Unfortunately, your application was not approved at this time. You may reapply in the future.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {applicationStatus.status === 'UNDER_REVIEW' && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <Activity className="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-blue-900">Under Review</h4>
+                            <p className="text-blue-800 text-sm mt-1">
+                              Your application is currently being reviewed by our team. This process typically takes 3-5 business days.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Last Updated</span>
-                    <span className="text-sm font-medium">
-                      {new Date().toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Estimated Time</span>
-                    <span className="text-sm font-medium">20-30 minutes</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Validation Summary */}
             {Object.keys(store.ui.errors).length > 0 && (

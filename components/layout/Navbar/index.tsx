@@ -309,6 +309,16 @@ const Navbar = ({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link
+        
+        href={`/${userRole?.toLowerCase()}/dashboard`}
+        className="flex items-center"
+      >
+        <User className="mr-2 h-4 w-4" />
+        Dashboard
+      </Link>
+    </DropdownMenuItem>
+    <DropdownMenuItem asChild>
+      <Link
             href={`/${userRole?.toLowerCase()}/profile`}
             className="flex items-center"
           >

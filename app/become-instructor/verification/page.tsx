@@ -4,7 +4,7 @@ import { MainVerification } from '@/features/becomeInstructor/verification/compo
 export default function InstructorVerificationPage() {
   return (
     <div className="min-h-screen bg-gray-50 ">
-      <div className="container mx-auto py-10 sm:w-[90%] ">
+      <div className=" mx-auto py-10 px-4 sm:px-6  ">
        
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

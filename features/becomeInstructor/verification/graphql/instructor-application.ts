@@ -144,6 +144,12 @@ export const GET_INSTRUCTOR_VERIFICATION = gql`
         lastSavedAt
         createdAt
         updatedAt
+        manualReview {
+          decision
+          decisionReason
+          reviewedAt
+          conditionalRequirements
+        }
       }
       errors
     }

@@ -24,6 +24,7 @@ import {
   Shield,
   Globe,
   PieChart,
+  Clock,
 } from "lucide-react";
 
 import {
@@ -33,7 +34,7 @@ import {
 } from "../types/dashboard.types";
 
 export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
-  teacher: {
+  [UserRole.INSTRUCTOR]: {
     main: [
       {
         name: "Overview",
@@ -121,7 +122,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
     ],
   },
 
-  student: {
+  [UserRole.STUDENT]: {
     main: [
       {
         name: "Dashboard",
@@ -131,9 +132,15 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
       },
       {
         name: "My Courses",
-        href: "/student/courses",
+        href: "/student/my-courses",
         icon: BookOpen,
         badge: "5",
+      },
+      {
+        name: "Application Status",
+        href: "/student/application-status",
+        icon: GraduationCap,
+        badge: "New",
       },
       {
         name: "Schedule",
@@ -203,7 +210,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
     ],
   },
 
-  parent: {
+  [UserRole.PARENT]: {
     main: [
       {
         name: "Dashboard",
@@ -284,33 +291,108 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
     ],
   },
 
-  admin: {
-    main: [],
-    quick: [],
-    tools: [],
+  [UserRole.ADMIN]: {
+    main: [
+      {
+        name: "Dashboard",
+        href: "/admin/dashboard",
+        icon: LayoutDashboard,
+        badge: null,
+      },
+      {
+        name: "Applications",
+        href: "/admin/applications",
+        icon: FileText,
+        badge: "12",
+      },
+      {
+        name: "Users",
+        href: "/admin/users",
+        icon: Users,
+        badge: null,
+      },
+      {
+        name: "Courses",
+        href: "/admin/courses",
+        icon: BookOpen,
+        badge: null,
+      },
+      {
+        name: "Analytics",
+        href: "/admin/analytics",
+        icon: TrendingUp,
+        badge: null,
+      },
+      {
+        name: "Reports",
+        href: "/admin/reports",
+        icon: BarChart3,
+        badge: null,
+      },
+      {
+        name: "Settings",
+        href: "/admin/settings",
+        icon: Settings,
+        badge: null,
+      },
+    ],
+    quick: [
+      {
+        name: "Pending Reviews",
+        href: "/admin/applications?status=SUBMITTED",
+        icon: Clock,
+      },
+      {
+        name: "Recent Activity",
+        href: "/admin/activity",
+        icon: Bell,
+      },
+      {
+        name: "System Health",
+        href: "/admin/health",
+        icon: Shield,
+      },
+    ],
+    tools: [
+      {
+        name: "User Management",
+        href: "/admin/users",
+        icon: Users,
+      },
+      {
+        name: "Content Moderation",
+        href: "/admin/moderation",
+        icon: Shield,
+      },
+      {
+        name: "System Logs",
+        href: "/admin/logs",
+        icon: FileText,
+      },
+    ],
   },
 };
 
 export const ROLE_INFO: Record<UserRole, RoleInfo> = {
-  teacher: {
+  [UserRole.INSTRUCTOR]: {
     title: "Instructor Portal",
     subtitle: "Teaching Dashboard",
     icon: GraduationCap,
     color: "bg-blue-600",
   },
-  student: {
+  [UserRole.STUDENT]: {
     title: "Student Portal",
     subtitle: "Learning Dashboard",
     icon: BookOpen,
     color: "bg-green-600",
   },
-  parent: {
+  [UserRole.PARENT]: {
     title: "Parent Portal",
     subtitle: "Family Dashboard",
     icon: Heart,
     color: "bg-purple-600",
   },
-  admin: {
+  [UserRole.ADMIN]: {
     title: "Admin Portal",
     subtitle: "Management Dashboard",
     icon: LayoutDashboard,

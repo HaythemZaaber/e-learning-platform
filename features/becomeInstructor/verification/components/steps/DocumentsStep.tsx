@@ -26,12 +26,11 @@ import {
   Shield,
   Loader2,
   Info,
-  X,
-  RefreshCw,
-  Play
+  RefreshCw
 } from 'lucide-react';
 import { DocumentUploader } from '../DocumentUploader';
 import { BiometricCapture } from '../BiometricCapture';
+import { DocumentPreview } from '../DocumentPreview';
 import { useAuth } from '@clerk/nextjs';
 
 interface UploadProgress {
@@ -42,15 +41,7 @@ interface UploadProgress {
   };
 }
 
-interface PreviewFile {
-  file: any;
-  type: string;
-}
 
-interface PreviewFile {
-  file: any;
-  type: string;
-}
 
 export function DocumentsStep() {
   const store = useInstructorApplicationStore();
@@ -60,7 +51,7 @@ export function DocumentsStep() {
   const [isValidating, setIsValidating] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
-  const [previewFile, setPreviewFile] = useState<PreviewFile | null>(null);
+
 
 
 
@@ -258,142 +249,7 @@ export function DocumentsStep() {
     }
   };
 
-  const handlePreviewFile = (document: any, type: string) => {
-    setPreviewFile({ file: document, type });
-  };
 
-  const closePreview = () => {
-    setPreviewFile(null);
-  };
-
-  const getDocumentPreview = (document: any) => {
-    if (!document) return null;
-    
-    // Handle different document data structures
-    const documentUrl = document.url || document.previewUrl || document.thumbnailUrl || document.dataUrl;
-    const documentType = document.type || document.mimeType || 'application/octet-stream';
-    const documentName = document.name || document.fileName || 'Document';
-    
-    console.log('getDocumentPreview:', { 
-      documentType, 
-      hasThumbnail: !!document.thumbnailUrl, 
-      hasUrl: !!documentUrl,
-      documentName 
-    });
-    
-    if (documentType.startsWith('image/')) {
-      return (
-        <div className="relative group">
-          <img 
-            src={documentUrl} 
-            alt={documentName}
-            className="w-20 h-20 object-cover rounded-lg border"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              const fallbackUrl = target.getAttribute('data-fallback');
-              if (fallbackUrl && fallbackUrl !== target.src) {
-                target.src = fallbackUrl;
-                target.removeAttribute('data-fallback');
-              } else {
-                // Show fallback icon
-                target.style.display = 'none';
-                target.nextElementSibling?.classList.remove('hidden');
-              }
-            }}
-            data-fallback={document.fallbackUrl || document.dataUrl}
-          />
-          {/* Fallback for failed image loads */}
-          <div className="hidden w-20 h-20 bg-gray-100 rounded-lg border flex items-center justify-center">
-            <Image className="h-8 w-8 text-gray-400" />
-          </div>
-          <div className="absolute inset-0 hover:bg-white/10 hover:backdrop-blur-sm bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 hover:text-black   hover:bg-white/50 hover:backdrop-blur-sm"
-              onClick={() => handlePreviewFile(document, 'image')}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      );
-    }
-    
-    if (documentType.startsWith('video/')) {
-      console.log('Rendering video preview:', { 
-        hasThumbnail: !!document.thumbnailUrl, 
-        documentUrl,
-        documentName 
-      });
-      
-      return (
-        <div className="relative group">
-          {document.thumbnailUrl ? (
-            <img 
-              src={document.thumbnailUrl}
-              alt={documentName}
-              className="w-20 h-20 object-cover rounded-lg border"
-              onError={(e) => {
-                console.log('Video thumbnail failed to load');
-                // Show video icon fallback
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-          ) : (
-            <video 
-              src={documentUrl}
-              className="w-20 h-20 object-cover rounded-lg border"
-              muted
-              preload="metadata"
-              onError={() => {
-                console.log('Video element failed to load');
-                // Show fallback icon
-                const videoElement = document.querySelector(`video[src="${documentUrl}"]`) as HTMLVideoElement;
-                if (videoElement) {
-                  videoElement.style.display = 'none';
-                  videoElement.nextElementSibling?.classList.remove('hidden');
-                }
-              }}
-            />
-          )}
-          {/* Fallback for failed video loads */}
-          <div className="hidden w-20 h-20 bg-gray-100 rounded-lg border flex items-center justify-center">
-            <Video className="h-8 w-8 text-gray-400" />
-          </div>
-          <div className="absolute inset-0 hover:bg-white/10 hover:backdrop-blur-sm bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 text-white"
-              onClick={() => handlePreviewFile(document, 'video')}
-            >
-              <Play className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      );
-    }
-    
-    // Default fallback for other file types
-    return (
-      <div className="relative group w-20 h-20 bg-gray-100 rounded-lg border flex items-center justify-center">
-        <FileText className="h-8 w-8 text-gray-400" />
-        <div className="absolute inset-0 hover:bg-white/10 hover:backdrop-blur-sm bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="opacity-0 group-hover:opacity-100 text-white"
-            onClick={() => handlePreviewFile(document, 'document')}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
 
   const getUploadProgress = (uploadKey: string) => {
     return uploadProgress[uploadKey] || { progress: 0, status: 'pending' as const };
@@ -476,34 +332,11 @@ export function DocumentsStep() {
               </p>
               
               {store.documents.identityDocument && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {getDocumentPreview(store.documents.identityDocument)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(store.documents.identityDocument.verificationStatus)}
-                          <span className="font-medium">Identity Document</span>
-                          {getStatusBadge(store.documents.identityDocument.verificationStatus)}
-                        </div>
-                        <p className="text-sm text-green-700 mt-1">
-                          {store.documents.identityDocument.name}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          Uploaded: {new Date(store.documents.identityDocument.uploadDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocument('identityDocument')}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <DocumentPreview
+                  document={store.documents.identityDocument}
+                  onRemove={() => removeDocument('identityDocument')}
+                  size="md"
+                />
               )}
 
               {!store.documents.identityDocument && (
@@ -557,34 +390,11 @@ export function DocumentsStep() {
               </p>
               
               {store.documents.profilePhoto && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {getDocumentPreview(store.documents.profilePhoto)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(store.documents.profilePhoto.verificationStatus)}
-                          <span className="font-medium">Profile Photo</span>
-                          {getStatusBadge(store.documents.profilePhoto.verificationStatus)}
-                        </div>
-                        <p className="text-sm text-blue-700 mt-1">
-                          {store.documents.profilePhoto.name}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          Uploaded: {new Date(store.documents.profilePhoto.uploadDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocument('profilePhoto')}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <DocumentPreview
+                  document={store.documents.profilePhoto}
+                  onRemove={() => removeDocument('profilePhoto')}
+                  size="md"
+                />
               )}
 
               {!store.documents.profilePhoto && (
@@ -661,34 +471,12 @@ export function DocumentsStep() {
               {(store.documents.educationCertificates || []).length > 0 && (
                 <div className="space-y-3">
                   {(store.documents.educationCertificates || []).map((cert, index) => (
-                    <div key={cert.id} className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          {getDocumentPreview(cert)}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(cert.verificationStatus)}
-                              <span className="font-medium">Education Certificate {index + 1}</span>
-                              {getStatusBadge(cert.verificationStatus)}
-                            </div>
-                            <p className="text-sm text-purple-700 mt-1">
-                              {cert.name}
-                            </p>
-                            <p className="text-xs text-purple-600 mt-1">
-                              Uploaded: {new Date(cert.uploadDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeDocument('educationCertificates', cert.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <DocumentPreview
+                      key={cert.id}
+                      document={cert}
+                      onRemove={() => removeDocument('educationCertificates', cert.id)}
+                      size="md"
+                    />
                   ))}
                 </div>
               )}
@@ -732,34 +520,12 @@ export function DocumentsStep() {
               {(store.documents.professionalCertifications || []).length > 0 && (
                 <div className="space-y-3">
                   {(store.documents.professionalCertifications || []).map((cert, index) => (
-                    <div key={cert.id} className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          {getDocumentPreview(cert)}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(cert.verificationStatus)}
-                              <span className="font-medium">Professional Certification {index + 1}</span>
-                              {getStatusBadge(cert.verificationStatus)}
-                            </div>
-                            <p className="text-sm text-orange-700 mt-1">
-                              {cert.name}
-                            </p>
-                            <p className="text-xs text-orange-600 mt-1">
-                              Uploaded: {new Date(cert.uploadDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeDocument('professionalCertifications', cert.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <DocumentPreview
+                      key={cert.id}
+                      document={cert}
+                      onRemove={() => removeDocument('professionalCertifications', cert.id)}
+                      size="md"
+                    />
                   ))}
                 </div>
               )}
@@ -803,34 +569,12 @@ export function DocumentsStep() {
               {(store.documents.employmentVerification || []).length > 0 && (
                 <div className="space-y-3">
                   {(store.documents.employmentVerification || []).map((doc, index) => (
-                    <div key={doc.id} className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          {getDocumentPreview(doc)}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(doc.verificationStatus)}
-                              <span className="font-medium">Employment Document {index + 1}</span>
-                              {getStatusBadge(doc.verificationStatus)}
-                            </div>
-                            <p className="text-sm text-teal-700 mt-1">
-                              {doc.name}
-                            </p>
-                            <p className="text-xs text-teal-600 mt-1">
-                              Uploaded: {new Date(doc.uploadDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeDocument('employmentVerification', doc.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <DocumentPreview
+                      key={doc.id}
+                      document={doc}
+                      onRemove={() => removeDocument('employmentVerification', doc.id)}
+                      size="md"
+                    />
                   ))}
                 </div>
               )}
@@ -872,34 +616,11 @@ export function DocumentsStep() {
               </p>
               
               {store.documents.resume && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {getDocumentPreview(store.documents.resume)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(store.documents.resume.verificationStatus)}
-                          <span className="font-medium">Resume</span>
-                          {getStatusBadge(store.documents.resume.verificationStatus)}
-                        </div>
-                        <p className="text-sm text-blue-700 mt-1">
-                          {store.documents.resume.name}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          Uploaded: {new Date(store.documents.resume.uploadDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocument('resume')}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <DocumentPreview
+                  document={store.documents.resume}
+                  onRemove={() => removeDocument('resume')}
+                  size="md"
+                />
               )}
 
               {!store.documents.resume && (
@@ -942,34 +663,11 @@ export function DocumentsStep() {
               </p>
               
               {store.documents.videoIntroduction ? (
-                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {getDocumentPreview(store.documents.videoIntroduction)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(store.documents.videoIntroduction.verificationStatus)}
-                          <span className="font-medium">Introduction Video</span>
-                          {getStatusBadge(store.documents.videoIntroduction.verificationStatus)}
-                        </div>
-                        <p className="text-sm text-indigo-700 mt-1">
-                          {store.documents.videoIntroduction.name}
-                        </p>
-                        <p className="text-xs text-indigo-600 mt-1">
-                          Uploaded: {new Date(store.documents.videoIntroduction.uploadDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocument('videoIntroduction')}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <DocumentPreview
+                  document={store.documents.videoIntroduction}
+                  onRemove={() => removeDocument('videoIntroduction')}
+                  size="md"
+                />
               ) : (
                 <DocumentUploader
                   documentType="Introduction Video"
@@ -1021,70 +719,7 @@ export function DocumentsStep() {
         </CardContent>
       </Card>
 
-      {/* File Preview Modal */}
-      {previewFile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Preview: {previewFile.file.title || previewFile.file.name}
-              </h3>
-              <button
-                onClick={closePreview}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-4 max-h-[calc(90vh-120px)] overflow-auto">
-              {previewFile.type === 'video' && (
-                <video
-                  src={previewFile.file.url}
-                  controls
-                  className="w-full max-h-[70vh] object-contain"
-                  autoPlay
-                  preload="metadata"
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    console.error("Video preview error:", e);
-                    showToast('error', "Video Preview Error", "Failed to load video preview. The video file may be corrupted or in an unsupported format.");
-                  }}
-                >
-                  <source src={previewFile.file.url} type={previewFile.file.type || 'video/mp4'} />
-                  Your browser does not support the video tag.
-                </video>
-              )}
-              
-              {previewFile.type === 'image' && (
-                <img
-                  src={previewFile.file.url}
-                  alt={previewFile.file.title || previewFile.file.name}
-                  className="w-full max-h-[70vh] object-contain"
-                />
-              )}
-              
-              {previewFile.type === 'document' && (
-                <div className="text-center py-12">
-                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Document preview not available
-                  </p>
-                  <a
-                    href={previewFile.file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Document
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

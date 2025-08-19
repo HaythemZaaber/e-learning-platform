@@ -194,7 +194,7 @@ export default function MyCoursesPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
+        <div className=" mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">My Courses</h1>
@@ -213,7 +213,7 @@ export default function MyCoursesPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className=" mx-auto px-4 py-8">
         {/* Stats Overview */}
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

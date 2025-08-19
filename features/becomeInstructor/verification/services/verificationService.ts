@@ -1,4 +1,4 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, useApolloClient } from '@apollo/client';
 import {
   CREATE_INSTRUCTOR_VERIFICATION,
   UPDATE_INSTRUCTOR_VERIFICATION,
@@ -74,6 +74,16 @@ export class VerificationService {
         cache: new InMemoryCache(),
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
+        },
+        defaultOptions: {
+          watchQuery: {
+            fetchPolicy: 'network-only',
+            errorPolicy: 'all',
+          },
+          query: {
+            fetchPolicy: 'network-only',
+            errorPolicy: 'all',
+          },
         },
       });
     }
@@ -335,6 +345,257 @@ export class VerificationService {
         },
       };
     }
+  }
+
+  /**
+   * Get instructor verification data for application status page
+   */
+  static async getInstructorVerificationData(userId: string, token: string): Promise<VerificationResponse> {
+    const startTime = Date.now();
+    
+    try {
+      const client = this.getClient(token);
+      
+      if (!userId) {
+        return {
+          success: false,
+          message: 'User not authenticated',
+          errors: ['User must be authenticated to access verification data'],
+        };
+      }
+
+      // Get verification data
+      const { data: getData } = await client.query({
+        query: GET_INSTRUCTOR_VERIFICATION,
+        variables: { userId },
+        context: {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        },
+        fetchPolicy: 'network-only', // Always fetch fresh data
+      });
+
+      if (getData.getInstructorVerification.success && getData.getInstructorVerification.data) {
+        const verificationData = getData.getInstructorVerification.data;
+        
+        // Transform the data to match the application status page format
+        const transformedData = this.transformVerificationDataForStatus(verificationData);
+        
+        return {
+          success: true,
+          message: 'Verification data loaded successfully',
+          data: transformedData,
+          metadata: {
+            processingTime: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+            version: '1.0',
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: getData.getInstructorVerification.message || 'Failed to load verification data',
+          errors: getData.getInstructorVerification.errors || ['Unknown error occurred'],
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching instructor verification data:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch verification data',
+        errors: [error instanceof Error ? error.message : 'Unknown error occurred'],
+      };
+    }
+  }
+
+  /**
+   * Transform verification data to match application status page format
+   */
+  private static transformVerificationDataForStatus(verificationData: any) {
+    const personalInfo = verificationData.personalInfo || {};
+    const professionalBackground = verificationData.professionalBackground || {};
+    const teachingInformation = verificationData.teachingInformation || {};
+    const documents = verificationData.documents || {};
+    const consents = verificationData.consents || {};
+    
+    // Calculate overall progress
+    const steps = [
+      { id: 'personal-information', completed: !!personalInfo.firstName, weight: 20 },
+      { id: 'professional-background', completed: !!(professionalBackground.education?.length > 0), weight: 25 },
+      { id: 'teaching-information', completed: !!(teachingInformation.subjectsToTeach?.length > 0), weight: 25 },
+      { id: 'documents', completed: !!(documents.identityDocument && documents.profilePhoto), weight: 20 },
+      { id: 'review', completed: !!(consents.backgroundCheck && consents.termOfService && consents.privacyPolicy), weight: 10 },
+    ];
+    
+    const overallProgress = steps.reduce((total, step) => {
+      return total + (step.completed ? step.weight : 0);
+    }, 0);
+
+    // Transform steps for timeline
+    const transformedSteps = [
+      {
+        id: 'personal-information',
+        title: 'Personal Information',
+        status: personalInfo.firstName ? 'completed' : 'pending',
+        completionPercentage: personalInfo.firstName ? 100 : 0,
+        lastUpdated: personalInfo.lastUpdated || verificationData.updatedAt,
+      },
+      {
+        id: 'professional-background',
+        title: 'Professional Background',
+        status: professionalBackground.education?.length > 0 ? 'completed' : 'pending',
+        completionPercentage: professionalBackground.education?.length > 0 ? 100 : 0,
+        lastUpdated: professionalBackground.lastUpdated || verificationData.updatedAt,
+      },
+      {
+        id: 'teaching-information',
+        title: 'Teaching Information',
+        status: teachingInformation.subjectsToTeach?.length > 0 ? 'completed' : 'pending',
+        completionPercentage: teachingInformation.subjectsToTeach?.length > 0 ? 100 : 0,
+        lastUpdated: teachingInformation.lastUpdated || verificationData.updatedAt,
+      },
+      {
+        id: 'documents',
+        title: 'Documents & Verification',
+        status: (documents.identityDocument && documents.profilePhoto) ? 'completed' : 'pending',
+        completionPercentage: (documents.identityDocument && documents.profilePhoto) ? 100 : 0,
+        lastUpdated: documents.lastUpdated || verificationData.updatedAt,
+      },
+      {
+        id: 'review',
+        title: 'Review & Approval',
+        status: verificationData.status === 'UNDER_REVIEW' ? 'in_progress' : 
+               verificationData.status === 'APPROVED' ? 'completed' : 'pending',
+        completionPercentage: verificationData.status === 'UNDER_REVIEW' ? 60 : 
+                             verificationData.status === 'APPROVED' ? 100 : 0,
+        lastUpdated: verificationData.submittedAt || verificationData.updatedAt,
+        notes: verificationData.status === 'UNDER_REVIEW' ? 'Under team review' : undefined,
+      },
+    ];
+
+    // Get status info
+    const getStatusInfo = (status: string) => {
+      switch (status) {
+        case 'DRAFT':
+          return {
+            title: 'Draft',
+            description: 'Your application is saved as a draft',
+            actionText: 'Continue Application'
+          };
+        case 'SUBMITTED':
+          return {
+            title: 'Submitted',
+            description: 'Your application has been submitted and is queued for review',
+            actionText: 'View Application'
+          };
+        case 'UNDER_REVIEW':
+          return {
+            title: 'Under Review',
+            description: 'Our team is carefully reviewing your application',
+            actionText: 'Track Progress'
+          };
+        case 'APPROVED':
+          return {
+            title: 'Approved',
+            description: 'Congratulations! You\'re now an approved instructor',
+            actionText: 'Start Teaching'
+          };
+        case 'REJECTED':
+          return {
+            title: 'Needs Attention',
+            description: 'Your application requires some updates',
+            actionText: 'Review Feedback'
+          };
+        default:
+          return {
+            title: 'Unknown',
+            description: 'Application status unknown',
+            actionText: 'View Details'
+          };
+      }
+    };
+
+    const statusInfo = getStatusInfo(verificationData.status);
+
+    return {
+      id: verificationData.id,
+      status: verificationData.status,
+      submittedAt: verificationData.submittedAt,
+      reviewedAt: verificationData.reviewedAt,
+      estimatedReviewTime: '3-5 business days',
+      overallProgress,
+      reviewerNotes: verificationData.adminReview?.comments || 'Your application is progressing well through our review process. Our team is currently verifying your professional credentials and teaching qualifications.',
+      nextSteps: verificationData.status === 'UNDER_REVIEW' ? [
+        'Background check in progress',
+        'Credential verification ongoing', 
+        'Teaching demo evaluation',
+        'Final interview scheduling'
+      ] : [],
+      personalInfo: {
+        firstName: personalInfo.firstName || '',
+        lastName: personalInfo.lastName || '',
+        email: personalInfo.email || '',
+        phoneNumber: personalInfo.phoneNumber || '',
+        dateOfBirth: personalInfo.dateOfBirth || '',
+        nationality: personalInfo.nationality || '',
+        streetAddress: personalInfo.streetAddress || '',
+        city: personalInfo.city || '',
+        state: personalInfo.state || '',
+        postalCode: personalInfo.postalCode || '',
+        country: personalInfo.country || '',
+        timezone: personalInfo.timezone || 'UTC',
+        primaryLanguage: personalInfo.primaryLanguage || 'en',
+        languagesSpoken: personalInfo.languagesSpoken || [],
+        emergencyContact: personalInfo.emergencyContact || {
+          name: '',
+          relationship: '',
+          phoneNumber: '',
+          email: '',
+        },
+      },
+      professionalBackground: {
+        currentJobTitle: professionalBackground.currentJobTitle || '',
+        currentEmployer: professionalBackground.currentEmployer || '',
+        employmentType: professionalBackground.employmentType || 'full_time',
+        workLocation: professionalBackground.workLocation || '',
+        yearsOfExperience: professionalBackground.yearsOfExperience || 0,
+        education: professionalBackground.education || [],
+        experience: professionalBackground.experience || [],
+        references: professionalBackground.references || [],
+      },
+      teachingInformation: {
+        subjectsToTeach: teachingInformation.subjectsToTeach || [],
+        hasTeachingExperience: teachingInformation.hasTeachingExperience || false,
+        teachingExperience: teachingInformation.teachingExperience || [],
+        teachingMotivation: teachingInformation.teachingMotivation || '',
+        teachingPhilosophy: teachingInformation.teachingPhilosophy || '',
+        targetAudience: teachingInformation.targetAudience || [],
+        teachingStyle: teachingInformation.teachingStyle || '',
+        teachingMethodology: teachingInformation.teachingMethodology || '',
+        preferredFormats: teachingInformation.preferredFormats || [],
+        preferredClassSize: teachingInformation.preferredClassSize || 'any',
+      },
+      documents: {
+        identityDocument: documents.identityDocument || null,
+        profilePhoto: documents.profilePhoto || null,
+        resume: documents.resume || null,
+        videoIntroduction: documents.videoIntroduction || null,
+        teachingDemo: documents.teachingDemo || null,
+        educationCertificates: documents.educationCertificates || [],
+        professionalCertifications: documents.professionalCertifications || [],
+      },
+      consents: {
+        backgroundCheck: consents.backgroundCheck || false,
+        dataProcessing: consents.dataProcessing || false,
+        termOfService: consents.termOfService || false,
+        privacyPolicy: consents.privacyPolicy || false,
+        contentGuidelines: consents.contentGuidelines || false,
+        codeOfConduct: consents.codeOfConduct || false,
+      },
+      steps: transformedSteps,
+      statusInfo,
+    };
   }
 
   // ============================================================================
@@ -848,6 +1109,7 @@ export const useVerificationService = () => {
     saveDraft: VerificationService.saveDraft,
     submitVerification: VerificationService.submitVerification,
     getVerificationStatus: VerificationService.getVerificationStatus,
+    getInstructorVerificationData: VerificationService.getInstructorVerificationData,
     
     // Validation
     validateVerificationData: VerificationService.validateVerificationData,

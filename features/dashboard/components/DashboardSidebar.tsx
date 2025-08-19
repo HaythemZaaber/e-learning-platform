@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/collapsible";
 
 import { SidebarProps, useNavigation } from "../";
+import { UserRole } from "@/stores/auth.store";
 
 export function DashboardSidebar({
-  userRole = "teacher",
+  userRole,
   className,
   isOpen = true,
 }: SidebarProps) {
@@ -26,7 +27,9 @@ export function DashboardSidebar({
   const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(true);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
-  const { navigation, roleInfo } = useNavigation(userRole);
+  // Use a fallback role if userRole is not provided
+  const effectiveUserRole = userRole || UserRole.STUDENT;
+  const { navigation, roleInfo } = useNavigation(effectiveUserRole);
 
   return (
     <div
@@ -44,7 +47,7 @@ export function DashboardSidebar({
         )}
       >
         <Link
-          href={`/${userRole}/dashboard/overview`}
+          href={`/${effectiveUserRole.toLowerCase()}/dashboard/overview`}
           className="flex items-center gap-3 font-semibold group"
         >
           <div
@@ -214,14 +217,16 @@ export function DashboardSidebar({
         </div>
 
         <div className="space-y-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start h-8"
-          >
-            <Settings className="mr-2 h-3 w-3" />
-            Settings
-          </Button>
+          <Link href={`/${userRole}/settings`}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-8"
+            >
+              <Settings className="mr-2 h-3 w-3" />
+              Settings
+            </Button>
+          </Link>
           <Button
             variant="ghost"
             size="sm"

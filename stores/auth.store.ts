@@ -4,6 +4,12 @@ import { persist, devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 // Types
+export enum UserRole {
+  ADMIN = "ADMIN",
+  INSTRUCTOR = "INSTRUCTOR",
+  STUDENT = "STUDENT",
+  PARENT = "PARENT",
+}
 export interface User {
   id: string;
   clerkId: string;
@@ -16,18 +22,12 @@ export interface User {
   updatedAt: string;
 }
 
-export enum UserRole {
-  ADMIN = "ADMIN",
-  INSTRUCTOR = "INSTRUCTOR",
-  STUDENT = "STUDENT",
-  PARENT = "PARENT",
-}
-
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  isHydrated: boolean; // Track if the store has been hydrated from storage
 }
 
 interface AuthActions {
@@ -35,8 +35,10 @@ interface AuthActions {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateUser: (updates: Partial<User>) => void;
+  setUserRole: (role: UserRole) => void; // Add function to set user role
   clearAuth: () => void;
   logout: () => void;
+  setHydrated: (hydrated: boolean) => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -58,9 +60,10 @@ export const useAuthStore = create<AuthStore>()(
       immer((set, get) => ({
         // Initial State
         user: null,
-        isLoading: false,
+        isLoading: true, // Start with loading true
         isAuthenticated: false,
         error: null,
+        isHydrated: false, // Track hydration state
 
         // Actions
         setUser: (user) =>
@@ -68,6 +71,7 @@ export const useAuthStore = create<AuthStore>()(
             state.user = user;
             state.isAuthenticated = !!user;
             state.error = null;
+            state.isLoading = false; // Set loading to false when user is set
           }),
 
         setLoading: (loading) =>
@@ -88,6 +92,13 @@ export const useAuthStore = create<AuthStore>()(
             }
           }),
 
+        setUserRole: (role) =>
+          set((state) => {
+            if (state.user) {
+              state.user.role = role;
+            }
+          }),
+
         clearAuth: () =>
           set((state) => {
             state.user = null;
@@ -101,6 +112,15 @@ export const useAuthStore = create<AuthStore>()(
           clearAuth();
           // Additional logout logic can be added here
         },
+
+        setHydrated: (hydrated) =>
+          set((state) => {
+            state.isHydrated = hydrated;
+            // If we're hydrated and have no user, set loading to false
+            if (hydrated && !state.user) {
+              state.isLoading = false;
+            }
+          }),
       })),
       {
         name: "auth-storage",
@@ -108,6 +128,12 @@ export const useAuthStore = create<AuthStore>()(
           user: state.user,
           isAuthenticated: state.isAuthenticated,
         }),
+        onRehydrateStorage: () => (state) => {
+          // When rehydration is complete, mark as hydrated
+          if (state) {
+            state.setHydrated(true);
+          }
+        },
       }
     ),
     { name: "auth-store" }

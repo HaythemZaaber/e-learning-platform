@@ -7,10 +7,10 @@ import Footer from "@/features/mainPage/components/Footer";
 import { Toaster } from "sonner";
 import { AiAssistant } from "@/components/shared/AiAssistant";
 import Navbar from "@/components/layout/navbar";
-import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore, useAuthSelectors } from "@/stores/auth.store";
 import { AuthWrapper } from "@/features/auth/components/AuthWrapper";
 import { RouteGuard } from "@/features/auth/components/RouteGuard";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Loader2 } from "lucide-react";
 
@@ -23,8 +23,8 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Get auth data from your custom auth system
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  // Get auth data from the integrated auth hook
+  const { user, isAuthenticated, isLoading: authLoading, isHydrated } = useAuth();
   const { userInitials, userFullName, userRole } = useAuthSelectors();
 
   // Determine layout type based on pathname
@@ -49,18 +49,29 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   // Handle loading state
   useEffect(() => {
-    if (!authLoading) {
+    // Only set loading to false when both auth loading is complete and store is hydrated
+    if (!authLoading && isHydrated) {
+      console.log('ClientLayout: Auth state ready', {
+        isAuthenticated,
+        userRole: user?.role,
+        isHydrated,
+        authLoading
+      });
       setIsLoading(false);
     }
-  }, [authLoading]);
+  }, [authLoading, isHydrated, isAuthenticated, user?.role]);
+
+ 
 
   // Show loading spinner while auth is being determined
-  if (isLoading) {
+  if (isLoading || !isHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">
+            {!isHydrated ? "Loading..." : "Checking authentication..."}
+          </p>
         </div>
       </div>
     );

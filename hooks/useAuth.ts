@@ -1,112 +1,88 @@
 // hooks/useAuth.ts
-import { useEffect } from "react";
-import { useQuery } from "@apollo/client";
-import { useAuth as useClerkAuth } from "@clerk/nextjs";
-import { useAuthStore } from "@/stores/auth.store";
-import { GET_CURRENT_USER } from "@/graphql/queries/user";
-import { User } from "@/types/userTypes";
+import { useEffect } from 'react';
+import { useAuthStore, UserRole } from '@/stores/auth.store';
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs';
+import { useLazyQuery } from '@apollo/client';
+import { GET_CURRENT_USER } from '@/graphql/queries/user';
 
-interface UseAuthReturn {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean | undefined;
-  error: string | null;
-  refetchUser: () => void;
-  logout: () => Promise<void>;
-  getToken: () => Promise<string | null>;
-}
+export const useAuth = () => {
+  const { user, isAuthenticated, isLoading, isHydrated, setUser, setLoading } = useAuthStore();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { isSignedIn, getToken } = useClerkAuth();
 
-export function useAuth(): UseAuthReturn {
-  const clerkAuth = useClerkAuth();
-  const {
-    user,
-    isLoading: storeLoading,
-    isAuthenticated,
-    error,
-    setUser,
-    setLoading,
-    setError,
-    clearAuth,
-  } = useAuthStore();
+  // Use lazy query to fetch user data from GraphQL backend
+  const [fetchUserData, { loading: graphqlLoading }] = useLazyQuery(GET_CURRENT_USER, {
+    onCompleted: (data) => {
+      if (data?.me) {
+        console.log('User data fetched from GraphQL:', data.me);
+        
+        // Convert GraphQL user data to our User format
+        const userData = {
+          id: data.me.id,
+          clerkId: data.me.clerkId,
+          email: data.me.email,
+          firstName: data.me.firstName || '',
+          lastName: data.me.lastName || '',
+          profileImage: data.me.profileImage || '',
+          role: data.me.role as UserRole, // Use the actual role from backend
+          createdAt: data.me.createdAt || new Date().toISOString(),
+          updatedAt: data.me.updatedAt || new Date().toISOString(),
+        };
 
-  // GraphQL query to get current user data
-  const {
-    data,
-    loading: queryLoading,
-    error: queryError,
-    refetch,
-  } = useQuery(GET_CURRENT_USER, {
-    skip: !clerkAuth.isSignedIn,
-    errorPolicy: "all",
-    fetchPolicy: "cache-and-network",
+        console.log('Setting user in auth store with backend role:', userData);
+        setUser(userData);
+      }
+    },
+    onError: (error) => {
+      console.error('Failed to fetch user data from GraphQL:', error);
+      // Fallback to basic user data if GraphQL fails
+      if (clerkUser) {
+        const fallbackUserData = {
+          id: clerkUser.id,
+          clerkId: clerkUser.id,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          firstName: clerkUser.firstName || '',
+          lastName: clerkUser.lastName || '',
+          profileImage: clerkUser.imageUrl || '',
+          role: UserRole.STUDENT, // Default to STUDENT if GraphQL fails
+          createdAt: clerkUser.createdAt ? new Date(clerkUser.createdAt).toISOString() : new Date().toISOString(),
+          updatedAt: clerkUser.updatedAt ? new Date(clerkUser.updatedAt).toISOString() : new Date().toISOString(),
+        };
+        console.log('Using fallback user data:', fallbackUserData);
+        setUser(fallbackUserData);
+      }
+    },
   });
 
-  // Update store when Clerk auth state changes
   useEffect(() => {
-    if (!clerkAuth.isSignedIn) {
-      clearAuth();
+    // Wait for Clerk to load
+    if (!isClerkLoaded) {
+      setLoading(true);
       return;
     }
 
-    // Set loading state
-    setLoading(queryLoading);
-
-    // Handle GraphQL query results
-    if (data?.me) {
-      setUser(data.me);
+    // If Clerk user is signed in, fetch user data from GraphQL backend
+    if (isSignedIn && clerkUser) {
+      console.log('Clerk user authenticated, fetching user data from backend:', clerkUser);
+      fetchUserData();
+    } else if (!isSignedIn) {
+      // User is not signed in, clear auth store
+      console.log('Clerk user not authenticated, clearing auth store');
+      setUser(null);
     }
 
-    // Handle GraphQL errors
-    if (queryError) {
-      setError(queryError.message);
+    // Set loading to false once Clerk is loaded and GraphQL query is complete
+    if (!graphqlLoading) {
+      setLoading(false);
     }
-  }, [
-    clerkAuth.isSignedIn,
-    data,
-    queryLoading,
-    queryError,
-    setUser,
-    setLoading,
-    setError,
-    clearAuth,
-  ]);
-
-  // Logout function
-  const logout = async () => {
-    try {
-      await clerkAuth.signOut();
-      clearAuth();
-    } catch (error) {
-      console.error("Logout error:", error);
-      setError("Failed to logout");
-    }
-  };
-
-  // Refetch user data
-  const refetchUser = () => {
-    refetch();
-  };
-
-  // Get authentication token
-  const getToken = async (): Promise<string | null> => {
-    try {
-      return await clerkAuth.getToken();
-    } catch (error) {
-      console.error("Error getting token:", error);
-      return null;
-    }
-  };
-
-  const isLoading =
-    storeLoading || queryLoading || clerkAuth.isLoaded === false;
+  }, [isClerkLoaded, isSignedIn, clerkUser, fetchUserData, graphqlLoading, setUser, setLoading]);
 
   return {
     user,
-    isLoading,
-    isAuthenticated: clerkAuth.isSignedIn && isAuthenticated ,
-    error,
-    refetchUser,
-    logout,
-    getToken,
+    isAuthenticated,
+    isLoading: isLoading || !isHydrated || !isClerkLoaded || graphqlLoading,
+    isHydrated,
+    error: null,
+    getToken, // Expose Clerk's getToken function
   };
-}
+};

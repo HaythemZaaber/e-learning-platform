@@ -1,8 +1,9 @@
 // features/dashboard/types/dashboard.types.ts
 
 import { LucideIcon } from "lucide-react";
+import { UserRole } from "@/stores/auth.store";
 
-export type UserRole = "student" | "teacher" | "parent" | "admin";
+export { UserRole };
 
 export interface NavigationItem {
   name: string;

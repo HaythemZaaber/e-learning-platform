@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuthStore, UserRole } from "@/stores/auth.store";
-
+import { UserRole } from "@/stores/auth.store";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface RouteConfig {
   path: string;
@@ -21,30 +21,31 @@ export const ROUTE_PERMISSIONS: RouteConfig[] = [
   { path: "/how-it-works", allowedRoles: [], requireAuth: false },
   { path: "/become-instructor", allowedRoles: [], requireAuth: false },
 
-  // Student routes - Note: Individual pages handle their own auth UI
+  // Student routes - Only students can access
   {
     path: "/student",
-    allowedRoles: [UserRole.STUDENT, UserRole.ADMIN],
-    requireAuth: false, // Let individual pages handle auth display
+    allowedRoles: [UserRole.STUDENT],
+    requireAuth: true,
+    redirectTo: "/sign-in",
   },
 
-  // Instructor routes
+  // Instructor routes - Only instructors can access
   {
     path: "/instructor",
-    allowedRoles: [UserRole.INSTRUCTOR, UserRole.ADMIN],
+    allowedRoles: [UserRole.INSTRUCTOR],
     requireAuth: true,
     redirectTo: "/sign-in",
   },
 
-  // Parent routes
+  // Parent routes - Only parents can access
   {
     path: "/parent",
-    allowedRoles: [UserRole.PARENT, UserRole.ADMIN],
+    allowedRoles: [UserRole.PARENT],
     requireAuth: true,
     redirectTo: "/sign-in",
   },
 
-  // Admin routes
+  // Admin routes - Only admins can access
   {
     path: "/admin",
     allowedRoles: [UserRole.ADMIN],
@@ -75,6 +76,12 @@ export const ROUTE_PERMISSIONS: RouteConfig[] = [
     requireAuth: true,
     redirectTo: "/sign-in",
   },
+
+  // Auth routes (public)
+  { path: "/sign-in", allowedRoles: [], requireAuth: false },
+  { path: "/sign-up", allowedRoles: [], requireAuth: false },
+  { path: "/sso-callback", allowedRoles: [], requireAuth: false },
+  { path: "/unauthorized", allowedRoles: [], requireAuth: false },
 ];
 
 interface RouteGuardProps {
@@ -98,12 +105,30 @@ export const getDefaultDashboardPath = (role: UserRole): string => {
 };
 
 export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isLoading, isHydrated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!pathname) return;
+    // Don't do anything until the store is hydrated and loading is complete
+    if (!isHydrated || isLoading) {
+      console.log('RouteGuard: Waiting for hydration/loading to complete', {
+        isHydrated,
+        isLoading,
+        pathname
+      });
+      return;
+    }
+
+    // Debug logging
+    console.log('RouteGuard Debug:', {
+      pathname,
+      isAuthenticated,
+      userRole: user?.role,
+      userId: user?.id,
+      isLoading,
+      isHydrated
+    });
 
     // Find matching route configuration
     const routeConfig = ROUTE_PERMISSIONS.find(
@@ -112,12 +137,26 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
     // If no specific route config found, check if it's a public route
     if (!routeConfig) {
-      // Allow access to public routes and unknown routes
+      // Check if it's a known public route or auth route
+      const isPublicRoute = pathname === "/" || 
+                           pathname.startsWith("/sign-in") || 
+                           pathname.startsWith("/sign-up") || 
+                           pathname.startsWith("/sso-callback") ||
+                           pathname === "/unauthorized" ||
+                           pathname === "/404";
+      
+      if (!isPublicRoute) {
+        // This is an unknown route - redirect to 404
+        console.warn(`Unknown route accessed: ${pathname}`);
+        router.push("/404");
+        return;
+      }
       return;
     }
 
     // Check authentication requirement
     if (routeConfig.requireAuth && !isAuthenticated) {
+      console.log(`Authentication required for ${pathname}, redirecting to ${routeConfig.redirectTo}`);
       router.push(routeConfig.redirectTo || "/sign-in");
       return;
     }
@@ -133,12 +172,29 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       user?.role &&
       !routeConfig.allowedRoles.includes(user.role)
     ) {
+      // User doesn't have permission for this route
+      console.log(`Access denied for ${pathname}. User role: ${user.role}, Required roles: ${routeConfig.allowedRoles.join(', ')}`);
+      
       // Redirect based on user role
       const redirectPath = getDefaultDashboardPath(user.role);
       router.push(redirectPath);
       return;
     }
-  }, [pathname, user, isAuthenticated, router]);
+  }, [pathname, user, isAuthenticated, isLoading, isHydrated, router]);
+
+  // Show loading while the store is being hydrated or loading
+  if (!isHydrated || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
+          <p className="text-sm text-gray-600">
+            {!isHydrated ? "Loading..." : "Checking authentication..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 };

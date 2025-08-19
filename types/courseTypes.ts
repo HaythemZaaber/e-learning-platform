@@ -1,12 +1,11 @@
 // types/courseTypes.ts
 import { StaticImageData } from "next/image";
 import { Instructor } from "@/data/instructorsData";
+import { UserRole } from "@/stores/auth.store";
 
 // ============================================================================
 // ENHANCED ENUM TYPES (Aligned with Prisma Schema)
 // ============================================================================
-
-export type UserRole = "VISITOR" | "STUDENT" | "INSTRUCTOR" | "ADMIN" | "SUPER_ADMIN";
 export type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT" | "ALL_LEVELS";
 export type CourseStatus = "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "SUSPENDED" | "COMING_SOON";
 export type CourseIntensity = "LIGHT" | "REGULAR" | "INTENSIVE" | "BOOTCAMP";

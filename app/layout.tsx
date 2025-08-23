@@ -3,6 +3,7 @@ import "./globals.css";
 import ClientLayout from "./ClientLayout";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ApolloProviderWrapper } from "@/lib/apollo-provider";
+import { ReactQueryProvider } from "@/lib/react-query-provider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className={`antialiased duration-300`}>
         <ClerkProvider  touchSession={false} >
           <ApolloProviderWrapper>
-            <ClientLayout>{children}</ClientLayout>
+            <ReactQueryProvider>
+              <ClientLayout>{children}</ClientLayout>
+            </ReactQueryProvider>
           </ApolloProviderWrapper>
         </ClerkProvider>
       </body>

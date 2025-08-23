@@ -156,6 +156,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
       {
+        name: "Sessions",
+        href: "/student/sessions",
+        icon: Video,
+        badge: null,
+      },
+      {
         name: "Progress",
         href: "/student/progress",
         icon: TrendingUp,

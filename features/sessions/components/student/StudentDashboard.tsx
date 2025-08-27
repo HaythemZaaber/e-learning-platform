@@ -1,259 +1,257 @@
 "use client";
 
-import { useState } from "react";
-import { 
-  Calendar, 
-  Clock, 
-  BookOpen, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Users, 
-  Star,
-  Bell,
-  Settings,
-  User,
-  Bookmark,
-  History,
-  TrendingUp
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Clock, Users, DollarSign, TrendingUp, Video, BookOpen, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 import { 
-  useStudentProfile, 
-  useStudentBookings, 
-  useStudentSessions,
-  useStudentStats 
-} from "@/features/sessions/hooks/useLiveSessions";
-import { 
-  StudentProfile, 
-  BookingRequest, 
-  LiveSession, 
-  SessionOffering,
-  SessionType,
-  SessionFormat,
-  SessionStatus,
-  BookingStatus
-} from "@/features/sessions/types/session.types";
-
-import { BrowseSessions } from "./BrowseSessions";
-import { MyBookings } from "./MyBookings";
-import { UpcomingSessions } from "./UpcomingSessions";
-import { LearningHistory } from "./LearningHistory";
-import { StudentStats } from "./StudentStats";
-import { NotificationCenter } from "../instructor/NotificationCenter";
+  useStudentLiveSessions, 
+  useSessionStats, 
+  useUpcomingSessions,
+  useBookingRequests,
+  useCreateBookingRequest
+} from '../../hooks/useLiveSessions';
+import { SessionStatus, LiveSessionType, SessionFormat, BookingStatus } from '../../types/session.types';
+import { StudentStats } from './StudentStats';
+import { UpcomingSessions } from './UpcomingSessions';
+import { MyBookings } from './MyBookings';
+import { LearningHistory } from './LearningHistory';
+import { BrowseSessions } from './BrowseSessions';
 
 interface StudentDashboardProps {
   user: any;
-  studentProfile?: StudentProfile;
+  studentProfile: any;
 }
 
-export function StudentDashboard({ user, studentProfile }: StudentDashboardProps) {
-  const [activeTab, setActiveTab] = useState("browse");
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+export function StudentDashboard({
+  user,
+  studentProfile
+}: StudentDashboardProps) {
+  const [selectedTab, setSelectedTab] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch student data
-  const { data: bookings = [], isLoading: bookingsLoading } = useStudentBookings(user?.id || "");
-  const { data: sessions = [], isLoading: sessionsLoading } = useStudentSessions(user?.id || "");
-  const { data: stats, isLoading: statsLoading } = useStudentStats(user?.id || "");
-
-  const upcomingSessions = sessions.filter(session => 
-    session.status === SessionStatus.SCHEDULED || session.status === SessionStatus.CONFIRMED
+  // Enhanced hooks with all backend routes
+  const { data: liveSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useStudentLiveSessions(
+    user?.id,
+    { studentId: user?.id }
   );
 
-  const completedSessions = sessions.filter(session => 
-    session.status === SessionStatus.COMPLETED
-  );
+  const { data: stats, isLoading: statsLoading } = useSessionStats(undefined, user?.id);
+  const { data: upcomingSessions, isLoading: upcomingLoading } = useUpcomingSessions(undefined, user?.id, 7);
+  const { data: bookingRequests, isLoading: bookingsLoading } = useBookingRequests({ studentId: user?.id });
 
-  const pendingBookings = bookings.filter(booking => 
-    booking.status === BookingStatus.PENDING
-  );
+  // Booking management
+  const createBookingMutation = useCreateBookingRequest();
 
-  const isLoading = bookingsLoading || sessionsLoading || statsLoading;
+  // Filter sessions by status
+  const scheduledSessions = liveSessions?.filter((s: any) => s.status === SessionStatus.SCHEDULED) || [];
+  const inProgressSessions = liveSessions?.filter((s: any) => s.status === SessionStatus.IN_PROGRESS) || [];
+  const completedSessions = liveSessions?.filter((s: any) => s.status === SessionStatus.COMPLETED) || [];
+  const cancelledSessions = liveSessions?.filter((s: any) => s.status === SessionStatus.CANCELLED) || [];
 
-  if (isLoading) {
+  // Filter sessions by search query
+  const filteredSessions = liveSessions?.filter((session: any) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
+      session.title?.toLowerCase().includes(query) ||
+      session.description?.toLowerCase().includes(query) ||
+      session.instructor?.firstName?.toLowerCase().includes(query) ||
+      session.instructor?.lastName?.toLowerCase().includes(query) ||
+      session.topic?.toLowerCase().includes(query)
     );
-  }
+  }) || [];
+
+  const handleBookSession = async (offeringId: string, customRequirements?: string, studentMessage?: string) => {
+    try {
+      await createBookingMutation.mutateAsync({
+        offeringId,
+        studentId: user?.id,
+        bookingMode: "REQUEST" as any,
+        customRequirements,
+        studentMessage: studentMessage || customRequirements,
+        status: BookingStatus.PENDING,
+        priority: 1,
+        rescheduleCount: 0,
+        offeredPrice: 0,
+        currency: "USD",
+        paymentStatus: "PENDING" as any,
+        alternativeDates: [],
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      });
+      refetchSessions();
+      toast.success('Session booking request sent successfully');
+    } catch (error) {
+      toast.error('Failed to book session');
+    }
+  };
+
+  const handleJoinSession = (session: any) => {
+    if (session.meetingLink) {
+      window.open(session.meetingLink, '_blank');
+    } else {
+      toast.error('No meeting link available for this session');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">Live Sessions</h1>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Student Dashboard
-              </Badge>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {/* Quick Stats */}
-              <div className="hidden md:flex items-center space-x-6 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{upcomingSessions.length} Upcoming</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{pendingBookings.length} Pending</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{completedSessions.length} Completed</span>
-                </div>
-              </div>
-
-              {/* Notification Bell */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsNotificationOpen(true)}
-                className="relative"
-              >
-                <Bell className="h-5 w-5" />
-                {stats?.unreadNotifications > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    {stats.unreadNotifications}
-                  </Badge>
-                )}
-              </Button>
-
-              {/* User Menu */}
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback>
-                    {user?.name?.charAt(0) || "S"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">Student</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">My Live Sessions</h1>
+          <p className="text-muted-foreground">
+            View and manage your live learning sessions
+          </p>
         </div>
+        <Button onClick={() => window.location.href = '/sessions/browse'} className="flex items-center gap-2">
+          <Search className="w-4 h-4" />
+          Browse Sessions
+        </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Student Stats Card */}
-              <StudentStats stats={stats} />
-
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab("browse")}
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    Browse Sessions
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab("bookings")}
-                  >
-                    <Bookmark className="h-4 w-4 mr-2" />
-                    My Bookings
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab("upcoming")}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Upcoming Sessions
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab("history")}
-                  >
-                    <History className="h-4 w-4 mr-2" />
-                    Learning History
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="lg:col-span-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="browse" className="flex items-center space-x-2">
-                  <Search className="h-4 w-4" />
-                  <span className="hidden sm:inline">Browse</span>
-                </TabsTrigger>
-                <TabsTrigger value="bookings" className="flex items-center space-x-2">
-                  <Bookmark className="h-4 w-4" />
-                  <span className="hidden sm:inline">Bookings</span>
-                </TabsTrigger>
-                <TabsTrigger value="upcoming" className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="hidden sm:inline">Upcoming</span>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center space-x-2">
-                  <History className="h-4 w-4" />
-                  <span className="hidden sm:inline">History</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="browse" className="space-y-6">
-                <BrowseSessions user={user} />
-              </TabsContent>
-
-              <TabsContent value="bookings" className="space-y-6">
-                <MyBookings user={user} bookings={bookings} />
-              </TabsContent>
-
-              <TabsContent value="upcoming" className="space-y-6">
-                <UpcomingSessions user={user} sessions={upcomingSessions} />
-              </TabsContent>
-
-              <TabsContent value="history" className="space-y-6">
-                <LearningHistory user={user} sessions={completedSessions} />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Search sessions by title, instructor, or topic..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+        />
       </div>
 
-      {/* Notification Center */}
-      <NotificationCenter
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-        notifications={[]} // TODO: Fetch student notifications
-        onMarkAllAsRead={() => {}}
-      />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+            <Video className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalSessions || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.completedSessions || 0} completed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${stats?.totalEarnings || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              ${stats?.pendingPayouts || 0} pending
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.completionRate || 0}%</div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.cancelledSessions || 0} cancelled
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.averageRating || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Based on {stats?.totalSessions || 0} sessions
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+          <TabsTrigger value="bookings">Bookings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Student Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Learning Statistics</CardTitle>
+                <CardDescription>Your learning progress overview</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StudentStats stats={{
+                  totalSessions: stats?.totalSessions || 0,
+                  completedSessions: stats?.completedSessions || 0,
+                  totalHours: 0, // Will be calculated from session duration
+                  averageRating: stats?.averageRating || 0,
+                  totalSpent: 0, // Will be calculated from session prices
+                  learningStreak: 0, // Will be calculated from attendance
+                  favoriteInstructor: undefined,
+                  topSubject: undefined,
+                  unreadNotifications: 0
+                }} />
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Sessions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Sessions</CardTitle>
+                <CardDescription>Next 7 days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UpcomingSessions 
+                  user={user}
+                  sessions={upcomingSessions || []} 
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="scheduled" className="space-y-4">
+          <UpcomingSessions user={user} sessions={scheduledSessions} />
+        </TabsContent>
+
+        <TabsContent value="in-progress" className="space-y-4">
+          <UpcomingSessions user={user} sessions={inProgressSessions} />
+        </TabsContent>
+
+        <TabsContent value="completed" className="space-y-4">
+          <LearningHistory user={user} sessions={completedSessions} />
+        </TabsContent>
+
+        <TabsContent value="upcoming" className="space-y-4">
+          <UpcomingSessions user={user} sessions={upcomingSessions || []} />
+        </TabsContent>
+
+        <TabsContent value="bookings" className="space-y-4">
+          <MyBookings user={user} bookings={bookingRequests || []} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

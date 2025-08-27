@@ -9,14 +9,21 @@ import {
   MapPin,
   Globe,
   ArrowRight,
+  Award,
+  GraduationCap,
+  Calendar,
+  DollarSign,
+  MessageCircle,
+  CheckCircle,
+  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Instructor } from "@/data/instructorsData";
+import { TransformedInstructor } from "@/types/instructorGraphQLTypes";
 import Link from "next/link";
 
 interface TeacherCardProps {
-  instructor: Instructor;
+  instructor: TransformedInstructor;
   isSaved: boolean;
   onSave: (id: string) => void;
 }
@@ -38,10 +45,26 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
     languages,
     isVerified,
     coursesCount,
+    experience,
+    education,
+    skills,
+    categories,
+    responseTime,
+    completionRate,
+    priceRange,
   } = instructor;
 
+  // Calculate availability status
+  const getAvailabilityStatus = () => {
+    if (isOnline) return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
+    if (nextAvailableSlot) return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
+    return { status: "Available Soon", color: "bg-gray-500", icon: "⏰" };
+  };
+
+  const availability = getAvailabilityStatus();
+
   return (
-    <Card className="rounded-2xl pt-0 shadow-md overflow-hidden h-full border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+    <Card className="rounded-2xl pt-0 shadow-md overflow-hidden h-full border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="relative">
         <Image
           src={avatar}
@@ -64,14 +87,13 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
           </Button>
         </div>
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          {isOnline && (
-            <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-              Online
-            </Badge>
-          )}
+          <Badge className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}>
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+            {availability.status}
+          </Badge>
           {isVerified && (
             <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
               Verified
             </Badge>
           )}
@@ -83,71 +105,148 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
           )}
         </div>
       </div>
-      <CardContent className="p-6 py-0 text-left">
+      <CardContent className="p-4 py-3 text-left">
         <Link href={`/instructors/${id}`} className="hover:underline">
-          <h3 className="text-xl font-semibold text-gray-900 mb-1">{name}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">{name}</h3>
         </Link>
         <p className="text-sm text-indigo-600 mb-2">{title}</p>
 
-        <div className="flex items-center mb-3">
-          {[...Array(5)].map((_, idx) => (
-            <Star
-              key={idx}
-              size={16}
-              className={`${
-                idx < Math.round(rating)
-                  ? "text-yellow-400 fill-yellow-400"
-                  : "text-gray-300"
-              } mr-1`}
-            />
-          ))}
-          <span className="ml-2 text-sm text-gray-600">
-            {rating.toFixed(1)} ({reviewsCount.toLocaleString()})
-          </span>
+        {/* Rating and Key Stats in one row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, idx) => (
+              <Star
+                key={idx}
+                size={14}
+                className={`${
+                  idx < Math.round(rating)
+                    ? "text-yellow-400 fill-yellow-400"
+                    : "text-gray-300"
+                } mr-0.5`}
+              />
+            ))}
+            <span className="ml-1 text-xs text-gray-600">
+              {rating.toFixed(1)} ({reviewsCount.toLocaleString()})
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-gray-600">
+            <div className="flex items-center">
+              <Users className="h-3 w-3 mr-1" />
+              {studentsCount.toLocaleString()}
+            </div>
+            <div className="flex items-center">
+              <GraduationCap className="h-3 w-3 mr-1" />
+              {coursesCount}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-          <div className="flex items-center">
-            <Users className="h-4 w-4 mr-1" />
-            {studentsCount.toLocaleString()} students
-          </div>
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-1" />
-            {location}
-          </div>
-        </div>
+        {/* Bio - shorter */}
+        <p className="text-xs text-gray-700 mb-3 line-clamp-2">{shortBio}</p>
 
-        <p className="text-sm text-gray-700 mb-4 line-clamp-3">{shortBio}</p>
+        {/* Expertise - compact */}
+        {skills && skills.length > 0 && (
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {skills.slice(0, 2).map((skill, index) => (
+                <Badge
+                  key={`${skill.name}-${index}`}
+                  variant="outline"
+                  className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
+                >
+                  {skill.name}
+                </Badge>
+              ))}
+              {skills.length > 2 && (
+                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  +{skills.length - 2}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
 
-        {liveSessionsEnabled && nextAvailableSlot && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between">
+        {/* Session Pricing - compact */}
+        {liveSessionsEnabled && (
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-2 mb-3">
+            <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 text-purple-700">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm">Next: {nextAvailableSlot.time}</span>
+                <DollarSign className="h-3 w-3" />
+                <span className="font-medium">Session Rates</span>
               </div>
-              <span className="font-medium text-purple-700">
+              <div className="text-purple-600">
+                ${priceRange?.min || 50} - ${priceRange?.max || 200}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Next Available Slot - compact */}
+        {liveSessionsEnabled && nextAvailableSlot && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1 text-green-700">
+                <Clock className="h-3 w-3" />
+                <span>Next: {nextAvailableSlot.time}</span>
+              </div>
+              <span className="font-medium text-green-700">
                 ${nextAvailableSlot.price}
               </span>
             </div>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {languages.map((lang) => (
-            <Badge
-              key={lang}
-              variant="outline"
-              className="text-xs"
-            >
-              {lang}
-            </Badge>
-          ))}
-        </div>
+        {/* Languages - compact */}
+        {languages && languages.length > 0 && (
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {languages.slice(0, 2).map((lang, index) => {
+                const languageText = typeof lang === 'string' ? lang : 
+                  (lang as any).language || (lang as any).name || 'Unknown';
+                return (
+                  <Badge
+                    key={`${languageText}-${index}`}
+                    variant="outline"
+                    className="text-xs bg-green-50 border-green-200 text-green-700 px-2 py-0.5"
+                  >
+                    <Globe className="h-2 w-2 mr-1" />
+                    {languageText}
+                  </Badge>
+                );
+              })}
+              {languages.length > 2 && (
+                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  +{languages.length - 2}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
 
-        <Button className="w-full bg-gray-100 text-gray-800 hover:bg-gray-200 mt-2">
-          {/* View Profile */}
-          <Link href={`/instructors/${id}`} className="flex items-center gap-3">
+        {/* Categories - compact */}
+        {categories && categories.length > 0 && (
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {categories.slice(0, 3).map((category, index) => (
+                <Badge
+                  key={`${category}-${index}`}
+                  variant="outline"
+                  className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
+                >
+                  {category}
+                </Badge>
+              ))}
+              {categories.length > 3 && (
+                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  +{categories.length - 3}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 mt-2 py-2">
+          <Link href={`/instructors/${id}`} className="flex items-center gap-3 w-full justify-center">
             View Profile <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>

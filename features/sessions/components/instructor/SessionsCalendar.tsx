@@ -17,8 +17,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { format, isSameDay, isToday, startOfWeek, endOfWeek, eachDayOfInterval, addDays, subDays, startOfMonth, endOfMonth, eachWeekOfInterval, addWeeks, subWeeks, startOfMonth as startOfMonthFn, endOfMonth as endOfMonthFn } from "date-fns";
 
-import { useLiveSessions, useCreateSession, useUpdateSession, useDeleteSession, useSessionOfferings } from "@/features/sessions/hooks/useLiveSessions";
+import { useInstructorLiveSessions, useCreateLiveSession, useUpdateLiveSession, useCancelLiveSession, useSessionOfferings, useStartLiveSession, useEndLiveSession, useRescheduleLiveSession } from "@/features/sessions/hooks/useLiveSessions";
 import { LiveSession, SessionType, SessionFormat, SessionStatus, LiveSessionType, SessionMode } from "@/features/sessions/types/session.types";
+import { CreateSessionModal } from './CreateSessionModal';
+import { SessionDetailsModal } from './SessionDetailsModal';
 
 interface SessionsCalendarProps {
   user: any;
@@ -46,15 +48,18 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Fetch sessions and offerings
-  const { data: sessions = [], isLoading } = useLiveSessions(user?.id || "");
+  const { data: sessions = [], isLoading } = useInstructorLiveSessions(user?.id || "");
   const { data: offerings = [], isLoading: offeringsLoading } = useSessionOfferings({ instructorId: user?.id });
-  const createSession = useCreateSession();
-  const updateSession = useUpdateSession();
-  const deleteSession = useDeleteSession();
+  const createSession = useCreateLiveSession();
+  const updateSession = useUpdateLiveSession();
+  const deleteSession = useCancelLiveSession();
+  const startSessionMutation = useStartLiveSession();
+  const endSessionMutation = useEndLiveSession();
+  const rescheduleSessionMutation = useRescheduleLiveSession();
 
   // Convert sessions to calendar events
   const calendarEvents = useMemo(() => {
-    return sessions.map(session => ({
+    return sessions.map((session: any) => ({
       id: session.id,
       title: session.title,
       start: session.scheduledStart ? new Date(session.scheduledStart) : new Date(),
@@ -138,15 +143,47 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // Handle session creation
-  const handleCreateSession = async (formData: any) => {
+  const handleCreateSuccess = () => {
+    setIsCreateDialogOpen(false);
+  };
+
+  // Session action handlers
+  const handleStartSession = async (sessionId: string) => {
     try {
-      await createSession.mutateAsync({
-        instructorId: user?.id || "",
-        ...formData,
-      });
-      setIsCreateDialogOpen(false);
+      await startSessionMutation.mutateAsync({ id: sessionId });
+      toast.success('Session started successfully');
     } catch (error) {
-      console.error("Session creation error:", error);
+      toast.error('Failed to start session');
+    }
+  };
+
+  const handleEndSession = async (sessionId: string) => {
+    try {
+      await endSessionMutation.mutateAsync({ id: sessionId });
+      toast.success('Session ended successfully');
+    } catch (error) {
+      toast.error('Failed to end session');
+    }
+  };
+
+  const handleCancelSession = async (sessionId: string, reason?: string) => {
+    try {
+      await deleteSession.mutateAsync({ id: sessionId, cancelData: { reason } });
+      toast.success('Session cancelled successfully');
+    } catch (error) {
+      toast.error('Failed to cancel session');
+    }
+  };
+
+  const handleRescheduleSession = async (sessionId: string, rescheduleData: any) => {
+    try {
+      await rescheduleSessionMutation.mutateAsync({ 
+        id: sessionId, 
+        rescheduleData 
+      });
+      toast.success('Session rescheduled successfully');
+    } catch (error) {
+      toast.error('Failed to reschedule session');
     }
   };
 
@@ -173,7 +210,7 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
     if (!deletingSessionId) return;
     
     try {
-      await deleteSession.mutateAsync(deletingSessionId);
+      await deleteSession.mutateAsync({ id: deletingSessionId, cancelData: { reason: "Deleted by instructor" } });
     } catch (error) {
       console.error("Session deletion error:", error);
     } finally {
@@ -237,7 +274,7 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
                   key={event.id}
                   className="p-4 border rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
                   onClick={() => {
-                    const session = sessions.find(s => s.id === event.id);
+                    const session = sessions.find((s: any) => s.id === event.id);
                     if (session) {
                       setSelectedSession(session);
                       setIsEditDialogOpen(true);
@@ -305,7 +342,7 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
                           key={event.id}
                           className="text-xs p-1 bg-blue-50 rounded cursor-pointer hover:bg-blue-100"
                           onClick={() => {
-                            const session = sessions.find(s => s.id === event.id);
+                            const session = sessions.find((s: any) => s.id === event.id);
                             if (session) {
                               setSelectedSession(session);
                               setIsEditDialogOpen(true);
@@ -442,27 +479,16 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
               <SelectItem value="day">Day</SelectItem>
             </SelectContent>
           </Select>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Session
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Session</DialogTitle>
-              </DialogHeader>
-              <div className="pr-2">
-                <CreateSessionForm 
-                  onSubmit={handleCreateSession} 
-                  offerings={offerings}
-                  offeringsLoading={offeringsLoading}
-                  isCreating={createSession.isPending}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Session
+          </Button>
+          <CreateSessionModal
+            isOpen={isCreateDialogOpen}
+            onClose={() => setIsCreateDialogOpen(false)}
+            instructorId={user?.id || ""}
+            onSuccess={handleCreateSuccess}
+          />
         </div>
       </div>
 
@@ -532,7 +558,7 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
                       key={event.id}
                       className="p-4 border rounded-lg hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
                       onClick={() => {
-                        const session = sessions.find(s => s.id === event.id);
+                        const session = sessions.find((s: any) => s.id === event.id);
                         if (session) {
                           setSelectedSession(session);
                           setIsEditDialogOpen(true);
@@ -608,26 +634,19 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
         </div>
       </div>
 
-      {/* Edit Session Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Session</DialogTitle>
-          </DialogHeader>
-          {selectedSession && (
-            <div className="pr-2">
-              <EditSessionForm
-                session={selectedSession}
-                onSubmit={(formData) => handleUpdateSession(selectedSession.id, formData)}
-                onDelete={() => handleDeleteSession(selectedSession.id)}
-                offerings={offerings}
-                offeringsLoading={offeringsLoading}
-                isUpdating={updateSession.isPending}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Session Details Modal */}
+      {selectedSession && (
+        <SessionDetailsModal
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          session={selectedSession}
+          onStart={() => handleStartSession(selectedSession.id)}
+          onEnd={() => handleEndSession(selectedSession.id)}
+          onCancel={() => handleCancelSession(selectedSession.id)}
+          onReschedule={handleRescheduleSession}
+          onUpdate={handleUpdateSession}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingSessionId} onOpenChange={(open) => !open && setDeletingSessionId(null)}>
@@ -653,743 +672,6 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
   );
 }
 
-// Create Session Form Component
-function CreateSessionForm({ 
-  onSubmit, 
-  offerings, 
-  offeringsLoading,
-  isCreating
-}: { 
-  onSubmit: (data: any) => void;
-  offerings: any[];
-  offeringsLoading: boolean;
-  isCreating: boolean;
-}) {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    sessionType: "CUSTOM" as LiveSessionType,
-    sessionFormat: "ONLINE" as SessionFormat,
-    sessionMode: "LIVE" as SessionMode,
-    startTime: "",
-    duration: 60,
-    maxParticipants: 1,
-    minParticipants: 1,
-    pricePerPerson: 0,
-    currency: "USD",
-    recordingEnabled: false,
-    materials: [] as string[],
-    location: "",
-    meetingLink: "",
-    meetingPassword: "",
-    // Course-based session fields
-    courseId: "",
-    lectureId: "",
-    // Custom session fields
-    topicId: "",
-    customTopic: "",
-    // Offering ID (required by backend)
-    offeringId: "",
-  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate that an offering is selected
-    if (!formData.offeringId && offerings.length > 0) {
-      toast.error("Please select a session offering");
-      return;
-    }
-    
-    if (offerings.length === 0) {
-      toast.error("No session offerings available. Please create an offering first.");
-      return;
-    }
-    
-    // Get the selected offering
-    const selectedOffering = offerings.find(o => o.id === formData.offeringId);
-    if (!selectedOffering) {
-      toast.error("Please select a valid session offering");
-      return;
-    }
 
-    // Transform form data to match backend DTO structure with offering as template
-    const sessionData = {
-      // Required fields
-      offeringId: formData.offeringId,
-      
-      // Override offering defaults with form data (if provided)
-      title: formData.title || selectedOffering.title,
-      description: formData.description || selectedOffering.description,
-      sessionType: formData.sessionType || selectedOffering.sessionType,
-      sessionFormat: formData.sessionFormat || selectedOffering.sessionFormat,
-      sessionMode: formData.sessionMode || "LIVE",
-      maxParticipants: formData.maxParticipants || selectedOffering.capacity,
-      minParticipants: formData.minParticipants || selectedOffering.minParticipants || 1,
-      pricePerPerson: formData.pricePerPerson || selectedOffering.basePrice,
-      currency: formData.currency || selectedOffering.currency,
-      recordingEnabled: formData.recordingEnabled !== undefined ? formData.recordingEnabled : selectedOffering.recordingEnabled,
-      materials: formData.materials || selectedOffering.materials || [],
-      
-      // Date/time handling
-      scheduledStart: new Date(formData.startTime),
-      duration: formData.duration || selectedOffering.duration,
-      
-      // Optional fields based on session type
-      courseId: formData.sessionType === "COURSE_BASED" ? formData.courseId : undefined,
-      lectureId: formData.sessionType === "COURSE_BASED" ? formData.lectureId : undefined,
-      topicId: formData.sessionType === "CUSTOM" ? formData.topicId : undefined,
-      customTopic: formData.sessionType === "CUSTOM" ? formData.customTopic : undefined,
-      
-      // Location and meeting details
-      location: formData.sessionFormat !== "ONLINE" ? formData.location : undefined,
-      meetingLink: formData.sessionFormat !== "OFFLINE" ? formData.meetingLink : undefined,
-      meetingPassword: formData.sessionFormat !== "OFFLINE" ? formData.meetingPassword : undefined,
-    };
-    
-    onSubmit(sessionData);
-  };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title" className="text-sm font-medium">
-          Session Title <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          required
-          className={!formData.title ? "border-red-300 focus:border-red-500" : ""}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description" className="text-sm font-medium">
-          Description <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className={!formData.description ? "border-red-300 focus:border-red-500" : ""}
-        />
-      </div>
-
-             <div className="grid grid-cols-2 gap-4">
-         <div>
-           <Label htmlFor="sessionType" className="text-sm font-medium">
-             Session Type <span className="text-red-500">*</span>
-           </Label>
-           <Select
-             value={formData.sessionType}
-             onValueChange={(value: LiveSessionType) => setFormData({ ...formData, sessionType: value })}
-           >
-             <SelectTrigger>
-               <SelectValue />
-             </SelectTrigger>
-             <SelectContent>
-               <SelectItem value="COURSE_BASED">Course Based</SelectItem>
-               <SelectItem value="CUSTOM">Custom</SelectItem>
-             </SelectContent>
-           </Select>
-         </div>
-
-         <div>
-           <Label htmlFor="sessionFormat" className="text-sm font-medium">
-             Format <span className="text-red-500">*</span>
-           </Label>
-           <Select
-             value={formData.sessionFormat}
-             onValueChange={(value: SessionFormat) => setFormData({ ...formData, sessionFormat: value })}
-           >
-             <SelectTrigger>
-               <SelectValue />
-             </SelectTrigger>
-             <SelectContent>
-               <SelectItem value="ONLINE">Online</SelectItem>
-               <SelectItem value="OFFLINE">Offline</SelectItem>
-               <SelectItem value="HYBRID">Hybrid</SelectItem>
-             </SelectContent>
-           </Select>
-         </div>
-       </div>
-
-       {/* Session Offering Selection */}
-       <div>
-         <Label htmlFor="offeringId" className="text-sm font-medium">
-           Session Offering <span className="text-red-500">*</span>
-         </Label>
-         {offeringsLoading ? (
-           <div className="flex items-center space-x-2 mt-2">
-             <LoadingSpinner size="sm" />
-             <span className="text-sm text-muted-foreground">Loading offerings...</span>
-           </div>
-         ) : offerings.length === 0 ? (
-           <div className="mt-2 p-3 border border-orange-200 bg-orange-50 rounded-md">
-             <p className="text-sm text-orange-800">
-               No session offerings found. Please create a session offering first.
-             </p>
-           </div>
-         ) : (
-           <Select
-             value={formData.offeringId}
-             onValueChange={(value) => setFormData({ ...formData, offeringId: value })}
-           >
-             <SelectTrigger>
-               <SelectValue placeholder="Select a session offering" />
-             </SelectTrigger>
-             <SelectContent>
-               {offerings.map((offering) => (
-                 <SelectItem key={offering.id} value={offering.id}>
-                   {offering.title} - ${offering.basePrice}
-                 </SelectItem>
-               ))}
-             </SelectContent>
-           </Select>
-         )}
-       </div>
-
-      {/* Course-based session fields */}
-      {formData.sessionType === "COURSE_BASED" && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="courseId">Course ID</Label>
-            <Input
-              id="courseId"
-              value={formData.courseId}
-              onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-              placeholder="Enter course ID"
-            />
-          </div>
-          <div>
-            <Label htmlFor="lectureId">Lecture ID</Label>
-            <Input
-              id="lectureId"
-              value={formData.lectureId}
-              onChange={(e) => setFormData({ ...formData, lectureId: e.target.value })}
-              placeholder="Enter lecture ID"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Custom session fields */}
-      {formData.sessionType === "CUSTOM" && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="topicId">Topic ID</Label>
-            <Input
-              id="topicId"
-              value={formData.topicId}
-              onChange={(e) => setFormData({ ...formData, topicId: e.target.value })}
-              placeholder="Enter topic ID"
-            />
-          </div>
-          <div>
-            <Label htmlFor="customTopic">Custom Topic</Label>
-            <Input
-              id="customTopic"
-              value={formData.customTopic}
-              onChange={(e) => setFormData({ ...formData, customTopic: e.target.value })}
-              placeholder="Enter custom topic"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="startTime" className="text-sm font-medium">
-            Start Time <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="startTime"
-            type="datetime-local"
-            value={formData.startTime}
-            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-            required
-            className={!formData.startTime ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="duration" className="text-sm font-medium">
-            Duration (minutes) <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="duration"
-            type="number"
-            value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-            min="15"
-            max="480"
-            required
-            className={!formData.duration ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="minParticipants" className="text-sm font-medium">
-            Min Participants <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="minParticipants"
-            type="number"
-            value={formData.minParticipants}
-            onChange={(e) => setFormData({ ...formData, minParticipants: parseInt(e.target.value) })}
-            min="1"
-            required
-            className={!formData.minParticipants ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-        <div>
-          <Label htmlFor="maxParticipants" className="text-sm font-medium">
-            Max Participants <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="maxParticipants"
-            type="number"
-            value={formData.maxParticipants}
-            onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) })}
-            min="1"
-            required
-            className={!formData.maxParticipants ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-        <div>
-          <Label htmlFor="pricePerPerson" className="text-sm font-medium">
-            Price per Person ($) <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="pricePerPerson"
-            type="number"
-            value={formData.pricePerPerson}
-            onChange={(e) => setFormData({ ...formData, pricePerPerson: parseFloat(e.target.value) })}
-            min="0"
-            step="0.01"
-            required
-            className={!formData.pricePerPerson && formData.pricePerPerson !== 0 ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="currency">Currency</Label>
-          <Select
-            value={formData.currency}
-            onValueChange={(value) => setFormData({ ...formData, currency: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
-              <SelectItem value="GBP">GBP</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="recordingEnabled"
-            checked={formData.recordingEnabled}
-            onChange={(e) => setFormData({ ...formData, recordingEnabled: e.target.checked })}
-          />
-          <Label htmlFor="recordingEnabled">Enable Recording</Label>
-        </div>
-      </div>
-
-      {formData.sessionFormat !== "ONLINE" && (
-        <div>
-          <Label htmlFor="location">Location</Label>
-          <Input
-            id="location"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            placeholder="Enter physical location"
-          />
-        </div>
-      )}
-
-      {formData.sessionFormat !== "OFFLINE" && (
-        <div className="space-y-2">
-          <div>
-            <Label htmlFor="meetingLink">Meeting Link</Label>
-            <Input
-              id="meetingLink"
-              value={formData.meetingLink}
-              onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-              placeholder="Enter meeting URL"
-            />
-          </div>
-          <div>
-            <Label htmlFor="meetingPassword">Meeting Password</Label>
-            <Input
-              id="meetingPassword"
-              value={formData.meetingPassword}
-              onChange={(e) => setFormData({ ...formData, meetingPassword: e.target.value })}
-              placeholder="Enter meeting password (optional)"
-            />
-          </div>
-        </div>
-      )}
-
-             <div className="flex justify-end space-x-2">
-         <Button 
-           type="submit" 
-           disabled={offeringsLoading || offerings.length === 0 || isCreating}
-         >
-           {isCreating ? (
-             <div className="flex items-center gap-2">
-               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-               Creating...
-             </div>
-           ) : offeringsLoading ? (
-             "Loading..."
-           ) : (
-             "Create Session"
-           )}
-         </Button>
-       </div>
-    </form>
-  );
-}
-
-// Edit Session Form Component
-function EditSessionForm({ 
-  session, 
-  onSubmit, 
-  onDelete,
-  offerings,
-  offeringsLoading,
-  isUpdating
-}: { 
-  session: LiveSession; 
-  onSubmit: (data: any) => void; 
-  onDelete: () => void;
-  offerings: any[];
-  offeringsLoading: boolean;
-  isUpdating: boolean;
-}) {
-  const [formData, setFormData] = useState({
-    title: session.title,
-    description: session.description || "",
-    sessionType: session.sessionType,
-    sessionFormat: session.sessionFormat,
-    sessionMode: session.sessionMode || "LIVE",
-    startTime: session.scheduledStart ? format(new Date(session.scheduledStart), "yyyy-MM-dd'T'HH:mm") : "",
-    duration: session.duration || 60,
-    maxParticipants: session.maxParticipants || 1,
-    minParticipants: session.minParticipants || 1,
-    pricePerPerson: session.pricePerPerson || 0,
-    currency: session.currency || "USD",
-    recordingEnabled: session.recordingEnabled || false,
-    materials: session.materials || [],
-    location: session.location || "",
-    meetingLink: session.meetingLink || "",
-    meetingPassword: session.meetingPassword || "",
-    courseId: session.courseId || "",
-    lectureId: session.lectureId || "",
-    topicId: session.topicId || "",
-    customTopic: session.customTopic || "",
-    offeringId: session.offeringId || "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate that an offering is selected
-    if (!formData.offeringId && offerings.length > 0) {
-      toast.error("Please select a session offering");
-      return;
-    }
-    
-    if (offerings.length === 0) {
-      toast.error("No session offerings available. Please create an offering first.");
-      return;
-    }
-    
-    // Transform form data to match backend DTO structure
-    const sessionData = {
-      // Required fields
-      title: formData.title,
-      description: formData.description,
-      sessionType: formData.sessionType,
-      sessionFormat: formData.sessionFormat,
-      sessionMode: formData.sessionMode,
-      maxParticipants: formData.maxParticipants,
-      minParticipants: formData.minParticipants,
-      pricePerPerson: formData.pricePerPerson,
-      currency: formData.currency,
-      recordingEnabled: formData.recordingEnabled,
-      materials: formData.materials,
-      
-      // Date/time handling
-      scheduledStart: new Date(formData.startTime),
-      scheduledEnd: new Date(new Date(formData.startTime).getTime() + formData.duration * 60000),
-      duration: formData.duration,
-      
-      // Optional fields based on session type
-      courseId: formData.sessionType === "COURSE_BASED" ? formData.courseId : undefined,
-      lectureId: formData.sessionType === "COURSE_BASED" ? formData.lectureId : undefined,
-      topicId: formData.sessionType === "CUSTOM" ? formData.topicId : undefined,
-      customTopic: formData.sessionType === "CUSTOM" ? formData.customTopic : undefined,
-      
-      // Location and meeting details
-      location: formData.sessionFormat !== "ONLINE" ? formData.location : undefined,
-      meetingLink: formData.sessionFormat !== "OFFLINE" ? formData.meetingLink : undefined,
-      meetingPassword: formData.sessionFormat !== "OFFLINE" ? formData.meetingPassword : undefined,
-      
-      // Required offering ID
-      offeringId: formData.offeringId,
-    };
-    
-    onSubmit(sessionData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="edit-title" className="text-sm font-medium">
-          Session Title <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="edit-title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          required
-          className={!formData.title ? "border-red-300 focus:border-red-500" : ""}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="edit-description" className="text-sm font-medium">
-          Description <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          id="edit-description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className={!formData.description ? "border-red-300 focus:border-red-500" : ""}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="edit-sessionType" className="text-sm font-medium">
-            Session Type <span className="text-red-500">*</span>
-          </Label>
-          <Select
-            value={formData.sessionType}
-            onValueChange={(value: LiveSessionType) => setFormData({ ...formData, sessionType: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="COURSE_BASED">Course Based</SelectItem>
-              <SelectItem value="CUSTOM">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="edit-sessionFormat" className="text-sm font-medium">
-            Format <span className="text-red-500">*</span>
-          </Label>
-          <Select
-            value={formData.sessionFormat}
-            onValueChange={(value: SessionFormat) => setFormData({ ...formData, sessionFormat: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ONLINE">Online</SelectItem>
-              <SelectItem value="OFFLINE">Offline</SelectItem>
-              <SelectItem value="HYBRID">Hybrid</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Session Offering Selection */}
-      <div>
-        <Label htmlFor="edit-offeringId" className="text-sm font-medium">
-          Session Offering <span className="text-red-500">*</span>
-        </Label>
-        {offeringsLoading ? (
-          <div className="flex items-center space-x-2 mt-2">
-            <LoadingSpinner size="sm" />
-            <span className="text-sm text-muted-foreground">Loading offerings...</span>
-          </div>
-        ) : offerings.length === 0 ? (
-          <div className="mt-2 p-3 border border-orange-200 bg-orange-50 rounded-md">
-            <p className="text-sm text-orange-800">
-              No session offerings found. Please create a session offering first.
-            </p>
-          </div>
-        ) : (
-          <Select
-            value={formData.offeringId}
-            onValueChange={(value) => setFormData({ ...formData, offeringId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a session offering" />
-            </SelectTrigger>
-            <SelectContent>
-              {offerings.map((offering) => (
-                <SelectItem key={offering.id} value={offering.id}>
-                  {offering.title} - ${offering.basePrice}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="edit-startTime" className="text-sm font-medium">
-            Start Time <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="edit-startTime"
-            type="datetime-local"
-            value={formData.startTime}
-            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-            required
-            className={!formData.startTime ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="edit-duration" className="text-sm font-medium">
-            Duration (minutes) <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="edit-duration"
-            type="number"
-            value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-            min="15"
-            max="480"
-            required
-            className={!formData.duration ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="edit-minParticipants" className="text-sm font-medium">
-            Min Participants <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="edit-minParticipants"
-            type="number"
-            value={formData.minParticipants}
-            onChange={(e) => setFormData({ ...formData, minParticipants: parseInt(e.target.value) })}
-            min="1"
-            required
-            className={!formData.minParticipants ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-        <div>
-          <Label htmlFor="edit-maxParticipants" className="text-sm font-medium">
-            Max Participants <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="edit-maxParticipants"
-            type="number"
-            value={formData.maxParticipants}
-            onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) })}
-            min="1"
-            required
-            className={!formData.maxParticipants ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-        <div>
-          <Label htmlFor="edit-pricePerPerson" className="text-sm font-medium">
-            Price per Person ($) <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="edit-pricePerPerson"
-            type="number"
-            value={formData.pricePerPerson}
-            onChange={(e) => setFormData({ ...formData, pricePerPerson: parseFloat(e.target.value) })}
-            min="0"
-            step="0.01"
-            required
-            className={!formData.pricePerPerson && formData.pricePerPerson !== 0 ? "border-red-300 focus:border-red-500" : ""}
-          />
-        </div>
-      </div>
-
-      {formData.sessionFormat !== "ONLINE" && (
-        <div>
-          <Label htmlFor="edit-location">Location</Label>
-          <Input
-            id="edit-location"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          />
-        </div>
-      )}
-
-      {formData.sessionFormat !== "OFFLINE" && (
-        <div>
-          <Label htmlFor="edit-meetingLink">Meeting Link</Label>
-          <Input
-            id="edit-meetingLink"
-            value={formData.meetingLink}
-            onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-          />
-        </div>
-      )}
-
-      <div className="flex justify-between">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button type="button" variant="destructive">
-              <Trash className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Session</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{session.title}"? This action cannot be undone and will remove all associated data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <div className="flex space-x-2">
-          <Button type="submit" disabled={isUpdating}>
-            {isUpdating ? (
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Updating...
-              </div>
-            ) : (
-              "Update Session"
-            )}
-          </Button>
-        </div>
-      </div>
-    </form>
-  );
-}

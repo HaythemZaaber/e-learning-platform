@@ -34,6 +34,13 @@ import {
   UpdateLiveSessionDto,
   CreateSessionOfferingDto,
   UpdateSessionOfferingDto,
+  LiveSessionType,
+  SessionMode,
+  StartLiveSessionDto,
+  EndLiveSessionDto,
+  CancelLiveSessionDto,
+  RescheduleLiveSessionDto,
+  LiveSessionFilterDto,
 } from '../../types/session.types';
 
 // =============================================================================
@@ -116,8 +123,6 @@ class HttpClient {
       );
     }
   }
-
- 
 
   async get<T>(endpoint: string, params?: Record<string, any>, token?: string): Promise<T> {
     const url = params ? `${endpoint}?${new URLSearchParams(params)}` : endpoint;
@@ -288,6 +293,18 @@ class LiveSessionsApiService {
     }, this.token);
   }
 
+  async checkAvailability(instructorId: string, date: Date, startTime: string, endTime: string): Promise<{
+    available: boolean;
+    conflicts?: any[];
+  }> {
+    return this.http.post<{ available: boolean; conflicts?: any[] }>('/instructor-availability/check-availability', {
+      instructorId,
+      date: date.toISOString(),
+      startTime,
+      endTime,
+    }, this.token);
+  }
+
   async getAvailableTimeSlots(instructorId: string, date: Date, offeringId?: string): Promise<TimeSlot[]> {
     const params: Record<string, any> = { 
       instructorId, 
@@ -295,7 +312,38 @@ class LiveSessionsApiService {
     };
     if (offeringId) params.offeringId = offeringId;
     
-    return this.http.get<TimeSlot[]>('/time-slots/available', params, this.token);
+    return this.http.get<TimeSlot[]>('/instructor-availability/time-slots/available', params, this.token);
+  }
+
+  async blockTimeSlot(slotId: string, reason?: string): Promise<TimeSlot> {
+    return this.http.patch<TimeSlot>(`/instructor-availability/time-slots/${slotId}/block`, { reason }, this.token);
+  }
+
+  async unblockTimeSlot(slotId: string): Promise<TimeSlot> {
+    return this.http.patch<TimeSlot>(`/instructor-availability/time-slots/${slotId}/unblock`, undefined, this.token);
+  }
+
+  async getUpcomingAvailability(instructorId: string, days?: number): Promise<InstructorAvailability[]> {
+    const params: Record<string, any> = {};
+    if (days) params.days = days;
+    
+    return this.http.get<InstructorAvailability[]>(`/instructor-availability/${instructorId}/upcoming`, params, this.token);
+  }
+
+  async getAvailabilityStats(instructorId: string): Promise<{
+    totalSlots: number;
+    availableSlots: number;
+    bookedSlots: number;
+    blockedSlots: number;
+    utilizationRate: number;
+  }> {
+    return this.http.get<{
+      totalSlots: number;
+      availableSlots: number;
+      bookedSlots: number;
+      blockedSlots: number;
+      utilizationRate: number;
+    }>(`/instructor-availability/${instructorId}/stats`, undefined, this.token);
   }
 
   // ============================================================================
@@ -391,19 +439,22 @@ class LiveSessionsApiService {
   }
 
   // ============================================================================
-  // LIVE SESSIONS
+  // LIVE SESSIONS - ENHANCED WITH ALL BACKEND ROUTES
   // ============================================================================
 
-  async getLiveSessions(filters?: {
-    instructorId?: string;
-    studentId?: string;
-    status?: SessionStatus;
-    startDate?: Date;
-    endDate?: Date;
-  }): Promise<LiveSession[]> {
-    const params: Record<string, any> = { ...filters };
+  async getLiveSessions(filters?: LiveSessionFilterDto): Promise<LiveSession[]> {
+    const params: Record<string, any> = {};
+    
+    if (filters?.instructorId) params.instructorId = filters.instructorId;
+    if (filters?.studentId) params.studentId = filters.studentId;
+    if (filters?.status) params.status = filters.status;
+    if (filters?.sessionType) params.sessionType = filters.sessionType;
+    if (filters?.format) params.format = filters.format;
     if (filters?.startDate) params.startDate = filters.startDate.toISOString();
     if (filters?.endDate) params.endDate = filters.endDate.toISOString();
+    if (filters?.courseId) params.courseId = filters.courseId;
+    if (filters?.topicId) params.topicId = filters.topicId;
+    if (filters?.payoutStatus) params.payoutStatus = filters.payoutStatus;
     
     return this.http.get<LiveSession[]>('/live-sessions', params, this.token);
   }
@@ -420,23 +471,95 @@ class LiveSessionsApiService {
     return this.http.patch<LiveSession>(`/live-sessions/${id}`, updates, this.token);
   }
 
-  async startLiveSession(id: string): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/start`, undefined, this.token);
+  async startLiveSession(id: string, startData?: StartLiveSessionDto): Promise<LiveSession> {
+    return this.http.patch<LiveSession>(`/live-sessions/${id}/start`, startData, this.token);
   }
 
-  async endLiveSession(id: string, notes?: string): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/end`, { notes }, this.token);
+  async endLiveSession(id: string, endData?: EndLiveSessionDto): Promise<LiveSession> {
+    return this.http.patch<LiveSession>(`/live-sessions/${id}/end`, endData, this.token);
   }
 
-  async cancelLiveSession(id: string, reason?: string): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/cancel`, { reason }, this.token);
+  async cancelLiveSession(id: string, cancelData?: CancelLiveSessionDto): Promise<LiveSession> {
+    return this.http.patch<LiveSession>(`/live-sessions/${id}/cancel`, cancelData, this.token);
   }
 
-  async rescheduleLiveSession(id: string, newStartTime: Date, newEndTime: Date): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/reschedule`, {
-      newStartTime: newStartTime.toISOString(),
-      newEndTime: newEndTime.toISOString(),
-    }, this.token);
+  async rescheduleLiveSession(id: string, rescheduleData: RescheduleLiveSessionDto): Promise<LiveSession> {
+    return this.http.patch<LiveSession>(`/live-sessions/${id}/reschedule`, rescheduleData, this.token);
+  }
+
+  // ============================================================================
+  // PARTICIPANT MANAGEMENT
+  // ============================================================================
+
+  async addParticipant(sessionId: string, participantData: { userId: string; role?: string }): Promise<any> {
+    return this.http.post<any>(`/live-sessions/${sessionId}/participants`, participantData, this.token);
+  }
+
+  async removeParticipant(sessionId: string, userId: string): Promise<any> {
+    return this.http.delete<any>(`/live-sessions/${sessionId}/participants/${userId}`, this.token);
+  }
+
+  async getSessionParticipants(sessionId: string): Promise<any[]> {
+    return this.http.get<any[]>(`/live-sessions/${sessionId}/participants`, undefined, this.token);
+  }
+
+  // ============================================================================
+  // ATTENDANCE MANAGEMENT
+  // ============================================================================
+
+  async getSessionAttendance(sessionId: string): Promise<any[]> {
+    return this.http.get<any[]>(`/live-sessions/${sessionId}/attendance`, undefined, this.token);
+  }
+
+  async updateAttendance(
+    sessionId: string, 
+    userId: string, 
+    attendanceData: {
+      joinedAt?: string;
+      leftAt?: string;
+      status?: string;
+      engagementMetrics?: {
+        cameraOnTime?: number;
+        micActiveTime?: number;
+        chatMessages?: number;
+        questionsAsked?: number;
+        pollResponses?: number;
+      };
+    }
+  ): Promise<any> {
+    return this.http.patch<any>(`/live-sessions/${sessionId}/attendance/${userId}`, attendanceData, this.token);
+  }
+
+  // ============================================================================
+  // SESSION STATISTICS
+  // ============================================================================
+
+  async getSessionStats(
+    instructorId?: string, 
+    studentId?: string, 
+    startDate?: Date, 
+    endDate?: Date
+  ): Promise<SessionStats> {
+    const params: Record<string, any> = {};
+    if (instructorId) params.instructorId = instructorId;
+    if (studentId) params.studentId = studentId;
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    
+    return this.http.get<SessionStats>('/live-sessions/stats/summary', params, this.token);
+  }
+
+  async getUpcomingSessions(
+    instructorId?: string, 
+    studentId?: string, 
+    days?: number
+  ): Promise<LiveSession[]> {
+    const params: Record<string, any> = {};
+    if (instructorId) params.instructorId = instructorId;
+    if (studentId) params.studentId = studentId;
+    if (days) params.days = days;
+    
+    return this.http.get<LiveSession[]>('/live-sessions/upcoming', params, this.token);
   }
 
   // ============================================================================
@@ -448,7 +571,33 @@ class LiveSessionsApiService {
   }
 
   async createSessionReservation(reservation: Omit<SessionReservation, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionReservation> {
-    return this.http.post<SessionReservation>('/session-reservations', reservation, this.token);
+    // TODO: Replace with actual API call
+    // For now, return mock data for testing
+    const mockReservation: SessionReservation = {
+      id: `reservation-${Date.now()}`,
+      sessionId: reservation.sessionId,
+      learnerId: reservation.learnerId,
+      status: reservation.status,
+      paymentStatus: reservation.paymentStatus,
+      paymentDue: reservation.paymentDue,
+      attendance: reservation.attendance,
+      joinedAt: reservation.joinedAt,
+      leftAt: reservation.leftAt,
+      totalTime: reservation.totalTime,
+      requestedTopic: reservation.requestedTopic,
+      learnerNotes: reservation.learnerNotes,
+      instructorNotes: reservation.instructorNotes,
+      agreedPrice: reservation.agreedPrice,
+      currency: reservation.currency,
+      reservedAt: reservation.reservedAt,
+      confirmedAt: reservation.confirmedAt,
+      cancelledAt: reservation.cancelledAt,
+      completedAt: reservation.completedAt,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    return mockReservation;
   }
 
   async updateSessionReservation(id: string, updates: Partial<SessionReservation>): Promise<SessionReservation> {
@@ -530,22 +679,6 @@ class LiveSessionsApiService {
   }
 
   // ============================================================================
-  // ATTENDANCE & PARTICIPANTS
-  // ============================================================================
-
-  async getSessionAttendance(sessionId: string): Promise<any[]> {
-    return this.http.get<any[]>(`/live-sessions/${sessionId}/attendance`, undefined, this.token);
-  }
-
-  async updateAttendance(sessionId: string, userId: string, updates: Partial<any>): Promise<any> {
-    return this.http.patch<any>(`/live-sessions/${sessionId}/attendance/${userId}`, updates, this.token);
-  }
-
-  async getSessionParticipants(sessionId: string): Promise<any[]> {
-    return this.http.get<any[]>(`/live-sessions/${sessionId}/participants`, undefined, this.token);
-  }
-
-  // ============================================================================
   // NOTIFICATIONS
   // ============================================================================
 
@@ -567,14 +700,6 @@ class LiveSessionsApiService {
   // ============================================================================
   // ANALYTICS & STATISTICS
   // ============================================================================
-
-  async getSessionStats(instructorId: string, startDate?: Date, endDate?: Date): Promise<SessionStats> {
-    const params: Record<string, any> = { instructorId };
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
-    
-    return this.http.get<SessionStats>('/instructor-profiles/session-stats', params, this.token);
-  }
 
   async getAIInsights(instructorId: string): Promise<AIInsight[]> {
     return this.http.get<AIInsight[]>(`/ai-insights?instructorId=${instructorId}`, undefined, this.token);

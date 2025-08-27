@@ -379,37 +379,37 @@ export function MainVerification() {
   }
 
   // Show application under review state
-  if (store.verificationId && !store.personalInfo.firstName) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto px-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center text-blue-600 flex items-center justify-center gap-2">
-                <Clock className="h-5 w-5" />
-                Application Under Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Your instructor application is currently under review by our team. 
-                  You cannot modify the application during this time. 
-                  We will notify you once the review is complete.
-                </AlertDescription>
-              </Alert>
-              <div className="mt-4 text-center">
-                <Button onClick={() => window.location.href = '/dashboard'}>
-                  Go to Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // if (store.verificationId && store.personalInfo.firstName !== undefined) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="max-w-md mx-auto px-4">
+  //         <Card>
+  //           <CardHeader>
+  //             <CardTitle className="text-center text-blue-600 flex items-center justify-center gap-2">
+  //               <Clock className="h-5 w-5" />
+  //               Application Under Review
+  //             </CardTitle>
+  //           </CardHeader>
+  //           <CardContent>
+  //             <Alert>
+  //               <Info className="h-4 w-4" />
+  //               <AlertDescription>
+  //                 Your instructor application is currently under review by our team. 
+  //                 You cannot modify the application during this time. 
+  //                 We will notify you once the review is complete.
+  //               </AlertDescription>
+  //             </Alert>
+  //             <div className="mt-4 text-center">
+  //               <Button onClick={() => window.location.href = '/dashboard'}>
+  //                 Go to Dashboard
+  //               </Button>
+  //             </div>
+  //           </CardContent>
+  //         </Card>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">

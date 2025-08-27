@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
-import type { Review } from "@/data/instructorsData"
+import type { Review } from "@/types/instructorTypes"
 
 interface ReviewsSectionProps {
   reviews: Review[]
@@ -37,24 +37,24 @@ export function ReviewsSection({
 
   // Calculate rating distribution
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-    const count = reviews.filter((review) => review.rating === rating).length
+    const count = reviews.filter((review) => review.overallRating === rating).length
     const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0
     return { rating, count, percentage }
   })
 
   // Filter and sort reviews
   const filteredAndSortedReviews = reviews
-    .filter((review) => filterRating === "all" || review.rating === filterRating)
+    .filter((review) => filterRating === "all" || review.overallRating === filterRating)
     .sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return new Date(b.date).getTime() - new Date(a.date).getTime()
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         case "oldest":
-          return new Date(a.date).getTime() - new Date(b.date).getTime()
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         case "highest":
-          return b.rating - a.rating
+          return b.overallRating - a.overallRating
         case "lowest":
-          return a.rating - b.rating
+          return a.overallRating - b.overallRating
         default:
           return 0
       }
@@ -255,12 +255,12 @@ function ReviewCard({ review }: { review: Review }) {
   const [isHelpful, setIsHelpful] = useState<boolean | null>(null)
   const [showFullText, setShowFullText] = useState(false)
 
-  const { name, avatar, date, rating, text, course } = review
-  const dateObj = new Date(date)
+  const { reviewer, session, overallRating, comment, createdAt } = review
+  const dateObj = new Date(createdAt)
   const timeAgo = formatDistanceToNow(dateObj, { addSuffix: true })
 
-  const isLongText = text.length > 200
-  const displayText = showFullText || !isLongText ? text : `${text.slice(0, 200)}...`
+  const isLongText = comment.length > 200
+  const displayText = showFullText || !isLongText ? comment : `${comment.slice(0, 200)}...`
 
   return (
     <Card className="overflow-hidden">
@@ -268,10 +268,10 @@ function ReviewCard({ review }: { review: Review }) {
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 rounded-full overflow-hidden">
-              <Image src={avatar || "/placeholder.svg"} alt={name} fill className="object-cover" />
+              <Image src={reviewer.profileImage || "/placeholder.svg"} alt={`${reviewer.firstName} ${reviewer.lastName}`} fill className="object-cover" />
             </div>
             <div>
-              <div className="font-medium">{name}</div>
+              <div className="font-medium">{reviewer.firstName} {reviewer.lastName}</div>
               <div className="text-sm text-muted-foreground">{timeAgo}</div>
             </div>
           </div>
@@ -280,7 +280,7 @@ function ReviewCard({ review }: { review: Review }) {
               <Star
                 key={i}
                 className={`h-4 w-4 ${
-                  i < rating ? "text-amber-500 fill-amber-500" : "text-muted stroke-muted-foreground"
+                  i < overallRating ? "text-amber-500 fill-amber-500" : "text-muted stroke-muted-foreground"
                 }`}
               />
             ))}
@@ -304,7 +304,7 @@ function ReviewCard({ review }: { review: Review }) {
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-xs">
-                Course: {course}
+                Session: {session.title}
               </Badge>
             </div>
 

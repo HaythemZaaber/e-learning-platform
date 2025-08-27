@@ -1,449 +1,578 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar, 
   Clock, 
-  BookOpen, 
-  MessageSquare, 
-  BarChart3, 
-  Settings, 
-  Bell, 
-  DollarSign, 
   Users, 
+  DollarSign, 
+  Video, 
+  Plus, 
+  Search, 
+  Filter,
+  Package,
+  Settings,
+  BarChart3,
+  BookOpen,
+  UserCheck,
   TrendingUp,
-  Plus,
-  Zap,
-  Target,
-  Award,
-  Star,
-  Play,
-  Pause,
-  AlertCircle,
-  CheckCircle,
-  XCircle
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { toast } from "sonner";
-
-// Import all the dashboard components
-import { DashboardOverview } from "./DashboardOverview";
-import { AvailabilitySetup } from "./AvailabilitySetup";
-import { SessionOfferings } from "./SessionOfferings";
-import { SessionsCalendar } from "./SessionsCalendar";
-import { BookingRequests } from "./BookingRequests";
-import { SessionAnalytics } from "./SessionAnalytics";
-import { InstructorSettings } from "./InstructorSettings";
-import { AIInsightsPanel } from "./AIInsightsPanel";
-import { NotificationCenter } from "./NotificationCenter";
-import { QuickActions } from "./QuickActions";
-
-// Import hooks
+  MessageSquare
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { 
-  useEnableLiveSessions, 
-  useNotifications,
-  useMarkAllNotificationsAsRead 
-} from "@/features/sessions/hooks/useLiveSessions";
+  useInstructorLiveSessions, 
+  useSessionStats, 
+  useUpcomingSessions,
+  useStartLiveSession,
+  useEndLiveSession,
+  useCancelLiveSession,
+  useRescheduleLiveSession,
+  useUpdateLiveSession,
+  useAddParticipant,
+  useRemoveParticipant,
+  useUpdateAttendance,
+  useSessionParticipants,
+  useSessionAttendance
+} from '../../hooks/useLiveSessions';
+import { SessionStatus, LiveSessionType, SessionFormat } from '../../types/session.types';
+import { LiveSessionCard } from './LiveSessionCard';
+import { SessionStatsOverview } from './SessionStatsOverview';
+import { UpcomingSessionsList } from './UpcomingSessionsList';
+import { CreateSessionModal } from './CreateSessionModal';
+import { SessionDetailsModal } from './SessionDetailsModal';
+import { SessionParticipantsModal } from './SessionParticipantsModal';
+import { AttendanceModal } from './AttendanceModal';
+import { SessionOfferings } from './SessionOfferings';
+import { AvailabilitySetup } from './AvailabilitySetup';
+import { SessionsCalendar } from './SessionsCalendar';
+import { BookingRequests } from './BookingRequests';
+import { InstructorSettings } from './InstructorSettings';
+import { NotificationCenter } from './NotificationCenter';
+import { SessionAnalytics } from './SessionAnalytics';
+import { AIInsightsPanel } from './AIInsightsPanel';
+import { QuickActions } from './QuickActions';
+import { toast } from 'sonner';
 
-// Import types
-import { 
-  InstructorProfile, 
-  SessionStats, 
-  AIInsight,
-  SessionNotification 
-} from "@/features/sessions/types/session.types";
+export function InstructorDashboard() {
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<SessionStatus | 'ALL'>('ALL');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [isSessionDetailsOpen, setIsSessionDetailsOpen] = useState(false);
+  const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
-interface InstructorDashboardProps {
-  user: any;
-  instructorProfile?: InstructorProfile;
-  sessionStats?: SessionStats;
-  aiInsights?: AIInsight[];
-  isProfileEnabled: boolean;
-  isLoading: {
-    profile: boolean;
-    stats: boolean;
-    insights: boolean;
-  };
-}
+  // Data fetching hooks
+  const { 
+    data: sessions, 
+    isLoading: sessionsLoading, 
+    refetch: refetchSessions 
+  } = useInstructorLiveSessions(user?.id || '');
+  
+  const { data: stats, isLoading: statsLoading } = useSessionStats(user?.id || '');
+  const { data: upcomingSessions, isLoading: upcomingLoading } = useUpcomingSessions(user?.id || '');
+  
+  // Session-specific data
+  const { data: participants } = useSessionParticipants(selectedSession?.id || '');
+  const { data: attendance } = useSessionAttendance(selectedSession?.id || '');
 
-export function InstructorDashboard({
-  user,
-  instructorProfile,
-  sessionStats,
-  aiInsights,
-  isProfileEnabled,
-  isLoading,
-}: InstructorDashboardProps) {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  // Mutation hooks
+  const startSessionMutation = useStartLiveSession();
+  const endSessionMutation = useEndLiveSession();
+  const cancelSessionMutation = useCancelLiveSession();
+  const rescheduleSessionMutation = useRescheduleLiveSession();
+  const updateSessionMutation = useUpdateLiveSession();
+  const addParticipantMutation = useAddParticipant();
+  const removeParticipantMutation = useRemoveParticipant();
+  const updateAttendanceMutation = useUpdateAttendance();
 
-  // Hooks
-  const enableLiveSessions = useEnableLiveSessions();
-  // const { data: notifications = [] } = useNotifications(user?.id || "");
-  const markAllAsRead = useMarkAllNotificationsAsRead();
+  // Filter sessions based on search and status
+  const filteredSessions = sessions?.filter((session: any) => {
+    const matchesSearch = session.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         session.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || session.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }) || [];
 
-  // const unreadNotifications = notifications.filter(n => !n.isRead);
+  // Group sessions by status
+  const scheduledSessions = filteredSessions.filter((s: any) => s.status === SessionStatus.SCHEDULED);
+  const confirmedSessions = filteredSessions.filter((s: any) => s.status === SessionStatus.CONFIRMED);
+  const inProgressSessions = filteredSessions.filter((s: any) => s.status === SessionStatus.IN_PROGRESS);
+  const completedSessions = filteredSessions.filter((s: any) => s.status === SessionStatus.COMPLETED);
+  const cancelledSessions = filteredSessions.filter((s: any) => s.status === SessionStatus.CANCELLED);
 
-  // Handle enabling live sessions
-  const handleEnableLiveSessions = async () => {
+  // Session action handlers
+  const handleStartSession = async (sessionId: string) => {
     try {
-      await enableLiveSessions.mutateAsync(user.id);
-      toast.success("Live sessions enabled successfully!");
+      await startSessionMutation.mutateAsync({ id: sessionId });
+      refetchSessions();
+      toast.success('Session started successfully');
     } catch (error) {
-      toast.error("Failed to enable live sessions");
+      toast.error('Failed to start session');
     }
   };
 
-  // Handle marking all notifications as read
-  const handleMarkAllAsRead = async () => {
+  const handleEndSession = async (sessionId: string) => {
     try {
-      await markAllAsRead.mutateAsync(user.id);
-      toast.success("All notifications marked as read");
+      await endSessionMutation.mutateAsync({ id: sessionId });
+      refetchSessions();
+      toast.success('Session ended successfully');
     } catch (error) {
-      toast.error("Failed to mark notifications as read");
+      toast.error('Failed to end session');
     }
   };
 
-  // If live sessions are not enabled, show onboarding
-  if (!isProfileEnabled) {
+  const handleCancelSession = async (sessionId: string, reason?: string) => {
+    try {
+      await cancelSessionMutation.mutateAsync({ id: sessionId, cancelData: { reason } });
+      refetchSessions();
+      toast.success('Session cancelled successfully');
+    } catch (error) {
+      toast.error('Failed to cancel session');
+    }
+  };
+
+  const handleRescheduleSession = async (sessionId: string, rescheduleData: any) => {
+    try {
+      await rescheduleSessionMutation.mutateAsync({ 
+        id: sessionId, 
+        rescheduleData 
+      });
+      refetchSessions();
+      toast.success('Session rescheduled successfully');
+    } catch (error) {
+      toast.error('Failed to reschedule session');
+    }
+  };
+
+  const handleUpdateSession = async (sessionId: string, formData: any) => {
+    try {
+      await updateSessionMutation.mutateAsync({
+        id: sessionId,
+        ...formData,
+      });
+      refetchSessions();
+      toast.success('Session updated successfully');
+    } catch (error) {
+      toast.error('Failed to update session');
+    }
+  };
+
+  const handleAddParticipant = async (sessionId: string, studentId: string) => {
+    try {
+      await addParticipantMutation.mutateAsync({ 
+        sessionId, 
+        participantData: { userId: studentId } 
+      });
+      refetchSessions();
+      toast.success('Participant added successfully');
+    } catch (error) {
+      toast.error('Failed to add participant');
+    }
+  };
+
+  const handleRemoveParticipant = async (sessionId: string, studentId: string) => {
+    try {
+      await removeParticipantMutation.mutateAsync({ sessionId, userId: studentId });
+      refetchSessions();
+      toast.success('Participant removed successfully');
+    } catch (error) {
+      toast.error('Failed to remove participant');
+    }
+  };
+
+  const handleUpdateAttendance = async (sessionId: string, studentId: string, attendanceData: any) => {
+    try {
+      await updateAttendanceMutation.mutateAsync({ sessionId, studentId, ...attendanceData });
+      refetchSessions();
+      toast.success('Attendance updated successfully');
+    } catch (error) {
+      toast.error('Failed to update attendance');
+    }
+  };
+
+  const handleSessionClick = (session: any) => {
+    setSelectedSession(session);
+    setIsSessionDetailsOpen(true);
+  };
+
+  const handleManageParticipants = (session: any) => {
+    setSelectedSession(session);
+    setIsParticipantsModalOpen(true);
+  };
+
+  const handleManageAttendance = (session: any) => {
+    setSelectedSession(session);
+    setIsAttendanceModalOpen(true);
+  };
+
+  const handleEditSession = (session: any) => {
+    setSelectedSession(session);
+    setIsSessionDetailsOpen(true);
+  };
+
+  const handleCreateSuccess = () => {
+    refetchSessions();
+    setIsCreateModalOpen(false);
+  };
+
+  if (!user) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="mb-8">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <Zap className="h-10 w-10 text-primary" />
-              </div>
-              <h1 className="text-3xl font-bold mb-4">Enable Live Sessions</h1>
-              <p className="text-muted-foreground text-lg">
-                Start offering live teaching sessions to students and grow your income.
-              </p>
-            </div>
-
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  What you'll get
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                  <div className="flex items-start gap-3">
-                    <DollarSign className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Earn More</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Set your own rates and earn from live sessions
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Users className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Reach Students</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Connect with students worldwide
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Calendar className="h-5 w-5 text-purple-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Flexible Schedule</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Set your own availability and work when you want
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Award className="h-5 w-5 text-orange-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Build Reputation</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Get reviews and build your teaching profile
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-4">
-              <Button 
-                onClick={handleEnableLiveSessions}
-                disabled={enableLiveSessions.isPending}
-                size="lg"
-                className="w-full"
-              >
-                {enableLiveSessions.isPending ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Enabling...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="mr-2 h-5 w-5" />
-                    Enable Live Sessions
-                  </>
-                )}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                You can customize your settings after enabling live sessions
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p>Please log in to access the instructor dashboard.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b bg-card">
-        <div className="flex h-16 items-center px-6 justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">Live Sessions Dashboard</h1>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Active
-            </Badge>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {/* Notification Bell */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setNotificationsOpen(true)}
-              className="relative"
-            >
-              <Bell className="h-4 w-4" />
-              {/* {unreadNotifications.length > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs animate-pulse"
-                >
-                  {unreadNotifications.length}
-                </Badge>
-              )} */}
-            </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Instructor Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage your live sessions, offerings, and availability
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create Session
+        </Button>
+      </div>
 
+      {/* Stats Overview */}
+      <SessionStatsOverview stats={stats} isLoading={statsLoading} />
+
+      {/* Main Dashboard Tabs */}
+      <Tabs defaultValue="sessions" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Video className="w-4 h-4" />
+            Live Sessions
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Calendar
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            Requests
+          </TabsTrigger>
+          <TabsTrigger value="offerings" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Offerings
+          </TabsTrigger>
+          <TabsTrigger value="availability" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Availability
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Live Sessions Tab */}
+        <TabsContent value="sessions" className="space-y-6">
+          {/* Search and Filters */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search sessions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as SessionStatus | 'ALL')}>
+              <SelectTrigger className="w-48">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Status</SelectItem>
+                <SelectItem value={SessionStatus.SCHEDULED}>Scheduled</SelectItem>
+                <SelectItem value={SessionStatus.CONFIRMED}>Confirmed</SelectItem>
+                <SelectItem value={SessionStatus.IN_PROGRESS}>In Progress</SelectItem>
+                <SelectItem value={SessionStatus.COMPLETED}>Completed</SelectItem>
+                <SelectItem value={SessionStatus.CANCELLED}>Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sessions by Status */}
+          <div className="space-y-6">
+            {/* Scheduled Sessions */}
+            {scheduledSessions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Scheduled Sessions ({scheduledSessions.length})
+                </h3>
+                <div className="grid gap-4">
+                                     {scheduledSessions.map((session: any) => (
+                     <LiveSessionCard
+                       key={session.id}
+                       session={session}
+                       onSessionClick={() => handleSessionClick(session)}
+                       onStart={() => handleStartSession(session.id)}
+                       onCancel={() => handleCancelSession(session.id)}
+                       onReschedule={(rescheduleData) => 
+                         handleRescheduleSession(session.id, rescheduleData)
+                       }
+                       onManageParticipants={() => handleManageParticipants(session)}
+                       onManageAttendance={() => handleManageAttendance(session)}
+                       onEdit={() => handleEditSession(session)}
+                     />
+                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Confirmed Sessions */}
+            {confirmedSessions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5" />
+                  Confirmed Sessions ({confirmedSessions.length})
+                </h3>
+                <div className="grid gap-4">
+                                     {confirmedSessions.map((session: any) => (
+                     <LiveSessionCard
+                       key={session.id}
+                       session={session}
+                       onSessionClick={() => handleSessionClick(session)}
+                       onStart={() => handleStartSession(session.id)}
+                       onCancel={() => handleCancelSession(session.id)}
+                       onReschedule={(rescheduleData) => 
+                         handleRescheduleSession(session.id, rescheduleData)
+                       }
+                       onManageParticipants={() => handleManageParticipants(session)}
+                       onManageAttendance={() => handleManageAttendance(session)}
+                       onEdit={() => handleEditSession(session)}
+                     />
+                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* In Progress Sessions */}
+            {inProgressSessions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Video className="w-5 h-5" />
+                  In Progress Sessions ({inProgressSessions.length})
+                </h3>
+                <div className="grid gap-4">
+                  {inProgressSessions.map((session: any) => (
+                    <LiveSessionCard
+                      key={session.id}
+                      session={session}
+                      onSessionClick={() => handleSessionClick(session)}
+                      onEnd={() => handleEndSession(session.id)}
+                      onManageParticipants={() => handleManageParticipants(session)}
+                      onManageAttendance={() => handleManageAttendance(session)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed Sessions */}
+            {completedSessions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Completed Sessions ({completedSessions.length})
+                </h3>
+                <div className="grid gap-4">
+                  {completedSessions.map((session: any) => (
+                    <LiveSessionCard
+                      key={session.id}
+                      session={session}
+                      onSessionClick={() => handleSessionClick(session)}
+                      onManageParticipants={() => handleManageParticipants(session)}
+                      onManageAttendance={() => handleManageAttendance(session)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cancelled Sessions */}
+            {cancelledSessions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Cancelled Sessions ({cancelledSessions.length})
+                </h3>
+                <div className="grid gap-4">
+                  {cancelledSessions.map((session: any) => (
+                    <LiveSessionCard
+                      key={session.id}
+                      session={session}
+                      onSessionClick={() => handleSessionClick(session)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {filteredSessions.length === 0 && !sessionsLoading && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <div className="space-y-4">
+                    <Video className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <h3 className="text-lg font-medium">No sessions found</h3>
+                      <p className="text-muted-foreground">
+                        {searchTerm || statusFilter !== 'ALL' 
+                          ? 'Try adjusting your search or filters'
+                          : 'Create your first live session to get started'
+                        }
+                      </p>
+                    </div>
+                    {!searchTerm && statusFilter === 'ALL' && (
+                      <Button onClick={() => setIsCreateModalOpen(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Your First Session
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Calendar Tab */}
+        <TabsContent value="calendar" className="space-y-6">
+          <SessionsCalendar user={user} />
+        </TabsContent>
+
+        {/* Booking Requests Tab */}
+        <TabsContent value="requests" className="space-y-6">
+          <BookingRequests user={user} />
+        </TabsContent>
+
+        {/* Offerings Tab */}
+        <TabsContent value="offerings" className="space-y-6">
+          <SessionOfferings />
+        </TabsContent>
+
+        {/* Availability Tab */}
+        <TabsContent value="availability" className="space-y-6">
+          <AvailabilitySetup />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid gap-6">
             {/* Quick Actions */}
             <QuickActions user={user} />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-80 border-r bg-card p-6 hidden xl:block">
-          <div className="space-y-6">
-            {/* Quick Stats */}
+            
+            {/* Session Analytics */}
+            <SessionAnalytics user={user} />
+            
+            {/* AI Insights */}
+            <AIInsightsPanel />
+            
+            {/* Upcoming Sessions */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Quick Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoading.stats ? (
-                  <div className="flex items-center justify-center py-8">
-                    <LoadingSpinner />
-                  </div>
-                ) : sessionStats ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {sessionStats.totalSessions}
-                      </div>
-                      <div className="text-xs text-blue-800">Total Sessions</div>
-                    </div>
-                    <div className="text-center p-3 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {sessionStats.pendingRequests}
-                      </div>
-                      <div className="text-xs text-orange-800">Pending Requests</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {sessionStats.upcomingSessions}
-                      </div>
-                      <div className="text-xs text-green-800">Upcoming</div>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
-                        ${sessionStats.totalEarnings}
-                      </div>
-                      <div className="text-xs text-purple-800">Total Earned</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground py-4">
-                    No stats available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* AI Insights Preview */}
-            {/* {aiInsights && aiInsights.length > 0 && (
-              <AIInsightsPanel insights={aiInsights.slice(0, 2)} compact />
-            )} */}
-
-            {/* Recent Notifications */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Recent Notifications</CardTitle>
-                  {/* {unreadNotifications.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMarkAllAsRead}
-                      disabled={markAllAsRead.isPending}
-                    >
-                      Mark all read
-                    </Button>
-                  )} */}
-                </div>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Upcoming Sessions
+                </CardTitle>
+                <CardDescription>
+                  Your next scheduled sessions
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {/* {notifications.slice(0, 3).map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`flex items-start gap-3 p-2 rounded-lg ${
-                        notification.isRead ? 'bg-muted/50' : 'bg-blue-50'
-                      }`}
-                    >
-                      <div className="flex-shrink-0 mt-1">
-                        {notification.type.includes('booking') && (
-                          <MessageSquare className="h-4 w-4 text-blue-600" />
-                        )}
-                        {notification.type.includes('session') && (
-                          <Play className="h-4 w-4 text-green-600" />
-                        )}
-                        {notification.type.includes('payment') && (
-                          <DollarSign className="h-4 w-4 text-purple-600" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {notification.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(notification.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))} */}
-                  {/* {notifications.length === 0 && (
-                    <div className="text-center text-muted-foreground py-4">
-                      No notifications
-                    </div>
-                  )} */}
-                </div>
+                <UpcomingSessionsList 
+                  sessions={upcomingSessions || []} 
+                  onSessionClick={(session: any) => handleSessionClick(session)}
+                  isLoading={upcomingLoading}
+                />
               </CardContent>
             </Card>
           </div>
-        </aside>
+        </TabsContent>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="border-b">
-              <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-7 max-w-4xl">
-                  <TabsTrigger value="overview" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Calendar
-                  </TabsTrigger>
-                  <TabsTrigger value="availability" className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Availability
-                  </TabsTrigger>
-                  <TabsTrigger value="offerings" className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Offerings
-                  </TabsTrigger>
-                  <TabsTrigger value="requests" className="relative flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Requests
-                    {sessionStats?.pendingRequests && sessionStats.pendingRequests > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-red-500">
-                        {sessionStats.pendingRequests}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <NotificationCenter 
+            isOpen={false}
+            onClose={() => {}}
+            notifications={[]}
+            onMarkAllAsRead={() => {}}
+          />
+        </TabsContent>
 
-            <div className="flex-1 overflow-hidden">
-              <TabsContent value="overview" className="h-full p-6 mt-0">
-                <DashboardOverview
-                  user={user}
-                  instructorProfile={instructorProfile}
-                  sessionStats={sessionStats}
-                  // aiInsights={aiInsights}
-                  isLoading={isLoading}
-                />
-              </TabsContent>
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          <InstructorSettings user={user} />
+        </TabsContent>
+      </Tabs>
 
-              <TabsContent value="calendar" className="h-full p-6 mt-0">
-                <SessionsCalendar user={user} />
-              </TabsContent>
+      {/* Modals */}
+      <CreateSessionModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        instructorId={user.id}
+        onSuccess={handleCreateSuccess}
+      />
 
-              <TabsContent value="availability" className="h-full p-6 mt-0 overflow-y-auto">
-                <AvailabilitySetup />
-              </TabsContent>
+      {selectedSession && (
+        <>
+          <SessionDetailsModal
+            isOpen={isSessionDetailsOpen}
+            onClose={() => setIsSessionDetailsOpen(false)}
+            session={selectedSession}
+            onStart={() => handleStartSession(selectedSession.id)}
+            onEnd={() => handleEndSession(selectedSession.id)}
+            onCancel={() => handleCancelSession(selectedSession.id)}
+            onReschedule={handleRescheduleSession}
+            onUpdate={handleUpdateSession}
+          />
 
-              <TabsContent value="offerings" className="h-full p-6 mt-0 overflow-y-auto">
-                <SessionOfferings />
-              </TabsContent>
+          <SessionParticipantsModal
+            isOpen={isParticipantsModalOpen}
+            onClose={() => setIsParticipantsModalOpen(false)}
+            session={selectedSession}
+            participants={participants || []}
+            onAddParticipant={handleAddParticipant}
+            onRemoveParticipant={handleRemoveParticipant}
+          />
 
-              <TabsContent value="requests" className="h-full p-6 mt-0 overflow-y-auto">
-                <BookingRequests user={user} />
-              </TabsContent>
-
-              <TabsContent value="analytics" className="h-full p-6 mt-0 overflow-y-auto">
-                <SessionAnalytics user={user} />
-              </TabsContent>
-
-              <TabsContent value="settings" className="h-full p-6 mt-0 overflow-y-auto">
-                <InstructorSettings user={user} instructorProfile={instructorProfile} />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </main>
-      </div>
-
-      {/* Notification Center Modal */}
-      {/* <NotificationCenter
-        isOpen={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-        notifications={notifications}
-        onMarkAllAsRead={handleMarkAllAsRead}
-      /> */}
+          <AttendanceModal
+            isOpen={isAttendanceModalOpen}
+            onClose={() => setIsAttendanceModalOpen(false)}
+            session={selectedSession}
+            attendance={attendance || []}
+            onUpdateAttendance={handleUpdateAttendance}
+          />
+        </>
+      )}
     </div>
   );
 }

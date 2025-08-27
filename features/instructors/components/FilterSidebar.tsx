@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check, Search, Calendar, Clock, Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
+import { useInstructorsStore } from "@/stores/instructors.store"
 import type { Category } from "@/data/instructorsData"
 
 const categories: Category[] = [
@@ -62,25 +63,68 @@ interface FilterSidebarProps {
 }
 
 export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedExperience, setSelectedExperience] = useState<string[]>([])
-  const [selectedRatings, setSelectedRatings] = useState<string[]>([])
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
-  const [selectedTimePreferences, setSelectedTimePreferences] = useState<string[]>([])
-  const [selectedSessionTypes, setSelectedSessionTypes] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 200])
+  const { filters, setFilters, setSearchQuery: setStoreSearchQuery } = useInstructorsStore()
+  
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(filters.selectedCategories)
+  const [selectedExperience, setSelectedExperience] = useState<string[]>(filters.selectedExperience)
+  const [selectedRatings, setSelectedRatings] = useState<string[]>(filters.selectedRatings)
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(filters.selectedLanguages)
+  const [selectedTimePreferences, setSelectedTimePreferences] = useState<string[]>(filters.selectedTimePreferences)
+  const [selectedSessionTypes, setSelectedSessionTypes] = useState<string[]>(filters.selectedSessionTypes)
+  const [priceRange, setPriceRange] = useState(filters.priceRange)
   const [searchQuery, setSearchQuery] = useState("")
   const [mobileOpen, setMobileOpen] = useState(false)
 
   // Live Session Filters
-  const [availableToday, setAvailableToday] = useState(false)
-  const [offersLiveSessions, setOffersLiveSessions] = useState(false)
-  const [groupSessionsAvailable, setGroupSessionsAvailable] = useState(false)
-  const [hasRecordedCourses, setHasRecordedCourses] = useState(false)
-  const [activeOnReels, setActiveOnReels] = useState(false)
-  const [regularStoryPoster, setRegularStoryPoster] = useState(false)
+  const [availableToday, setAvailableToday] = useState(filters.availableToday)
+  const [offersLiveSessions, setOffersLiveSessions] = useState(filters.offersLiveSessions)
+  const [groupSessionsAvailable, setGroupSessionsAvailable] = useState(filters.groupSessionsAvailable)
+  const [hasRecordedCourses, setHasRecordedCourses] = useState(filters.hasRecordedCourses)
+  const [activeOnReels, setActiveOnReels] = useState(filters.activeOnReels)
+  const [regularStoryPoster, setRegularStoryPoster] = useState(filters.regularStoryPoster)
 
-  const handleCategoryChange = (category: string) => {
+  // Update store filters when local state changes
+  useEffect(() => {
+    const newFilters = {
+      searchQuery: searchQuery,
+      selectedCategories,
+      selectedExperience,
+      selectedRatings,
+      selectedLanguages,
+      selectedTimePreferences,
+      selectedSessionTypes,
+      priceRange,
+      availableToday,
+      offersLiveSessions,
+      groupSessionsAvailable,
+      hasRecordedCourses,
+      activeOnReels,
+      regularStoryPoster,
+    }
+    setFilters(newFilters)
+  }, [
+    searchQuery,
+    selectedCategories,
+    selectedExperience,
+    selectedRatings,
+    selectedLanguages,
+    selectedTimePreferences,
+    selectedSessionTypes,
+    priceRange,
+    availableToday,
+    offersLiveSessions,
+    groupSessionsAvailable,
+    hasRecordedCourses,
+    activeOnReels,
+    regularStoryPoster,
+    setFilters,
+  ])
+
+
+
+  const handleCategoryChange = (category: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
     )
@@ -325,7 +369,7 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
                     className={`justify-start h-7 px-2 w-full font-normal ${
                       selectedCategories.includes(category) ? "bg-secondary" : ""
                     }`}
-                    onClick={() => handleCategoryChange(category)}
+                    onClick={(e) => handleCategoryChange(category, e)}
                   >
                     <div className="flex items-center w-full">
                       <div
@@ -419,7 +463,13 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
           <AccordionTrigger>Session Price Range</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              <Slider value={priceRange} onValueChange={setPriceRange} max={200} step={10} className="w-full" />
+              <Slider 
+                value={priceRange} 
+                onValueChange={(value) => setPriceRange(value as [number, number])} 
+                max={200} 
+                step={10} 
+                className="w-full" 
+              />
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>${priceRange[0]}</span>
                 <span>${priceRange[1]}+</span>
@@ -478,7 +528,7 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
       {/* Mobile Filter Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="lg:hidden  absolute fixed ">
+          <Button variant="outline" className="lg:hidden fixed top-4 right-4 z-50">
             Filters
             {totalFilters > 0 && (
               <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">

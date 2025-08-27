@@ -100,16 +100,16 @@ export default function InstructorSessionsPage() {
         }
       >
         <InstructorDashboard
-          user={user}
-          instructorProfile={instructorProfile}
-          sessionStats={sessionStats}
-          // aiInsights={aiInsights}
-          isProfileEnabled={isProfileEnabled}
-          isLoading={{
-            profile: profileLoading,
-            stats: statsLoading,
-            insights: false,
-          }}
+          // user={user}
+          // instructorProfile={instructorProfile}
+          // sessionStats={sessionStats}
+          // // aiInsights={aiInsights}
+          // isProfileEnabled={isProfileEnabled}
+          // isLoading={{
+          //   profile: profileLoading,
+          //   stats: statsLoading,
+          //   insights: false,
+          // }}
         />
       </Suspense>
     </ErrorBoundary>

@@ -10,15 +10,20 @@ import {
   Award,
   Globe,
   MapPin,
+  GraduationCap,
+  DollarSign,
+  MessageCircle,
+  CheckCircle,
+  BookOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Instructor } from "@/data/instructorsData";
+import { TransformedInstructor } from "@/types/instructorGraphQLTypes";
 
 interface EnhancedInstructorCardProps {
-  instructor: Instructor;
+  instructor: TransformedInstructor;
   view?: "grid" | "list";
   className?: string;
 }
@@ -45,21 +50,35 @@ export function InstructorCard({
     weeklyBookings,
     reels,
     contentEngagement,
-    sessionPricing,
     location,
     isVerified,
     languages,
+    skills,
+    experience,
+    priceRange,
+    completionRate,
   } = instructor;
+
+  console.log("instructor", instructor);
+
+  // Calculate availability status
+  const getAvailabilityStatus = () => {
+    if (isOnline) return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
+    if (nextAvailableSlot) return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
+    return { status: "Available Soon", color: "bg-gray-500", icon: "⏰" };
+  };
+
+  const availability = getAvailabilityStatus();
 
   if (view === "list") {
     return (
       <Card
         className={cn(
-          "overflow-hidden hover:shadow-lg transition-all duration-300",
+          "overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100",
           className
         )}
       >
-        <CardContent className="p-6 py-2">
+        <CardContent className="p-6">
           <div className="flex gap-6">
             <div className="relative">
               <div className="w-24 h-24 md:w-32 md:h-32 relative rounded-full overflow-hidden ring-2 ring-primary/10">
@@ -89,7 +108,7 @@ export function InstructorCard({
                         variant="secondary"
                         className="bg-blue-50 text-blue-700 hover:bg-blue-100"
                       >
-                        <Award className="h-3 w-3 mr-1" />
+                        <CheckCircle className="h-3 w-3 mr-1" />
                         Verified
                       </Badge>
                     )}
@@ -107,20 +126,28 @@ export function InstructorCard({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-4 mt-3 text-sm">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500 mr-1" />
-                  <span className="font-medium">{rating.toFixed(1)}</span>
-                  <span className="text-muted-foreground ml-1">
-                    ({reviewsCount.toLocaleString()})
-                  </span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Users className="h-4 w-4 mr-1" />
-                  {studentsCount.toLocaleString()} students
-                </div>
-                <div className="text-muted-foreground">
-                  {coursesCount} {coursesCount === 1 ? "course" : "courses"}
+              {/* Rating and Key Stats */}
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 fill-amber-500 text-amber-500 mr-1" />
+                    <span className="font-medium">{rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground ml-1">
+                      ({reviewsCount.toLocaleString()})
+                    </span>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <Users className="h-4 w-4 mr-1" />
+                    {studentsCount.toLocaleString()}
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <GraduationCap className="h-4 w-4 mr-1" />
+                    {coursesCount}
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <Award className="h-4 w-4 mr-1" />
+                    {experience} years
+                  </div>
                 </div>
               </div>
 
@@ -128,23 +155,48 @@ export function InstructorCard({
                 {shortBio}
               </p>
 
+              {/* Skills and Categories */}
               <div className="mt-4 flex flex-wrap gap-2">
-                {categories.map((category) => (
+                {skills && skills.slice(0, 3).map((skill, index) => (
                   <Badge
-                    key={category}
+                    key={index}
                     variant="outline"
-                    className="text-xs bg-secondary/50"
+                    className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
+                  >
+                    {skill.name}
+                  </Badge>
+                ))}
+                {categories && categories.slice(0, 2).map((category, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
                   >
                     {category}
                   </Badge>
                 ))}
                 {liveSessionsEnabled && (
-                  <Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-200">
+                  <Badge className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-0.5">
                     <Play className="h-3 w-3 mr-1" />
                     Live Sessions
                   </Badge>
                 )}
               </div>
+
+              {/* Session Pricing */}
+              {liveSessionsEnabled && (
+                <div className="mt-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-purple-700">
+                      <DollarSign className="h-3 w-3" />
+                      <span className="font-medium">Session Rates</span>
+                    </div>
+                    <div className="text-purple-600">
+                      ${priceRange?.min || 50} - ${priceRange?.max || 200}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center">
@@ -153,7 +205,7 @@ export function InstructorCard({
                 </div>
                 <div className="flex items-center">
                   <Globe className="h-4 w-4 mr-1" />
-                  {languages.join(", ")}
+                  {languages.slice(0, 2).map(lang => typeof lang === 'string' ? lang : (lang as any).language || (lang as any).name || 'Unknown').join(", ")}
                 </div>
               </div>
             </div>
@@ -169,7 +221,7 @@ export function InstructorCard({
                   </p>
                 </div>
               )}
-              <Button asChild className="mt-4">
+              <Button asChild className="mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700">
                 <Link href={`/instructors/${id}`}>View Profile</Link>
               </Button>
             </div>
@@ -182,29 +234,28 @@ export function InstructorCard({
   return (
     <Card
       className={cn(
-        "group overflow-hidden h-full hover:shadow-lg transition-all duration-300 cursor-pointer py-0",
+        "group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1 relative min-h-[600px]",
         className
       )}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative">
         <Image
           src={avatar || "/placeholder.svg"}
           alt={name}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-110"
+          width={400}
+          height={300}
+          className="w-full h-56 object-cover"
         />
-
+        
         {/* Status Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          {isOnline && (
-            <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-              Online
-            </Badge>
-          )}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <Badge className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}>
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+            {availability.status}
+          </Badge>
           {isVerified && (
             <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs flex items-center gap-1">
-              <Award className="h-3 w-3" />
+              <CheckCircle className="h-3 w-3" />
               Verified
             </Badge>
           )}
@@ -216,38 +267,29 @@ export function InstructorCard({
           )}
         </div>
 
+        {/* Save Button */}
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-white/80 backdrop-blur-sm hover:bg-white"
+          >
+            <Heart className="h-4 w-4" />
+          </Button>
+        </div>
+
         {/* Reels Indicator */}
-        {reels.length > 0 && (
-          <div className="absolute top-3 right-3">
+        {reels && reels.length > 0 && (
+          <div className="absolute top-4 right-16">
             <div className="bg-black/60 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
               <Play className="h-3 w-3 text-white" />
               <span className="text-white text-xs">{reels.length}</span>
             </div>
           </div>
         )}
-
-        {/* Hover overlay with blur effect */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-3">
-          <Button
-            asChild
-            className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
-          >
-            <Link href={`/instructors/${id}`}>View Profile</Link>
-          </Button>
-          {nextAvailableSlot && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/90 hover:bg-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75"
-            >
-              <Calendar className="h-3 w-3 mr-1" />
-              Book Now - ${nextAvailableSlot.price}
-            </Button>
-          )}
-        </div>
       </div>
 
-      <CardContent className="p-4 pt-0">
+      <CardContent className="p-4 py-3 text-left pb-32">
         <div className="space-y-3">
           <div className="space-y-1">
             <Link href={`/instructors/${id}`} className="hover:underline">
@@ -255,58 +297,159 @@ export function InstructorCard({
                 {name}
               </h3>
             </Link>
-            <p className="text-sm text-muted-foreground line-clamp-1">
+            <p className="text-sm text-indigo-600 line-clamp-1">
               {title}
             </p>
           </div>
 
+          {/* Rating and Key Stats in one row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-              <span className="font-medium text-sm">{rating.toFixed(1)}</span>
-              <span className="text-xs text-muted-foreground">
-                ({reviewsCount.toLocaleString()})
+            <div className="flex items-center">
+              {[...Array(5)].map((_, idx) => (
+                <Star
+                  key={idx}
+                  size={14}
+                  className={`${
+                    idx < Math.round(rating)
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
+                  } mr-0.5`}
+                />
+              ))}
+              <span className="ml-1 text-xs text-gray-600">
+                {rating.toFixed(1)} ({reviewsCount.toLocaleString()})
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-              title="Follow instructor"
-            >
-              <Heart className="h-4 w-4" />
-              <span className="sr-only">Follow instructor</span>
-            </Button>
+            <div className="flex items-center gap-3 text-xs text-gray-600">
+              <div className="flex items-center">
+                <Users className="h-3 w-3 mr-1" />
+                {studentsCount.toLocaleString()}
+              </div>
+              <div className="flex items-center">
+                <GraduationCap className="h-3 w-3 mr-1" />
+                {coursesCount}
+              </div>
+            </div>
           </div>
 
-          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+          {/* Bio - shorter */}
+          <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed">
             {shortBio}
           </p>
 
-          {/* Live Session Info */}
-          {liveSessionsEnabled && nextAvailableSlot && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
+          {/* Skills - compact */}
+          {skills && skills.length > 0 && (
+            <div>
+              <div className="flex flex-wrap gap-1">
+                {skills.slice(0, 2).map((skill, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
+                  >
+                    {skill.name}
+                  </Badge>
+                ))}
+                {skills.length > 2 && (
+                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                    +{skills.length - 2}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Session Pricing - compact */}
+          {liveSessionsEnabled && (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-2">
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-purple-700">
+                <div className="flex items-center gap-2 text-purple-700">
+                  <DollarSign className="h-3 w-3" />
+                  <span className="font-medium">Session Rates</span>
+                </div>
+                <div className="text-purple-600">
+                  ${priceRange?.min || 50} - ${priceRange?.max || 200}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Next Available Slot - compact */}
+          {liveSessionsEnabled && nextAvailableSlot && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1 text-green-700">
                   <Clock className="h-3 w-3" />
                   <span>Next: {nextAvailableSlot.time}</span>
                 </div>
-                <span className="font-medium text-purple-700">
+                <span className="font-medium text-green-700">
                   ${nextAvailableSlot.price}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Weekly Activity */}
-          {weeklyBookings > 0 && (
-            <div className="text-xs text-muted-foreground flex items-center">
-              <Users className="h-3 w-3 mr-1" />
-              {weeklyBookings} sessions booked this week
+          {/* Categories - compact */}
+          {categories && categories.length > 0 && (
+            <div>
+              <div className="flex flex-wrap gap-1">
+                {categories.slice(0, 2).map((category, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
+                  >
+                    {category}
+                  </Badge>
+                ))}
+                {categories.length > 2 && (
+                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                    +{categories.length - 2}
+                  </Badge>
+                )}
+              </div>
             </div>
           )}
 
-          <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
+          {/* Languages - compact */}
+          {languages && languages.length > 0 && (
+            <div>
+              <div className="flex flex-wrap gap-1">
+                {languages.slice(0, 2).map((lang, index) => {
+                  const languageText = typeof lang === 'string' ? lang : 
+                    (lang as any).language || (lang as any).name || 'Unknown';
+                  return (
+                    <Badge
+                      key={`${languageText}-${index}`}
+                      variant="outline"
+                      className="text-xs bg-green-50 border-green-200 text-green-700 px-2 py-0.5"
+                    >
+                      <Globe className="h-2 w-2 mr-1" />
+                      {languageText}
+                    </Badge>
+                  );
+                })}
+                {languages.length > 2 && (
+                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                    +{languages.length - 2}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Completion Rate */}
+          {completionRate > 0 && (
+            <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+              <span className="text-xs text-blue-700">Course Completion Rate</span>
+              <span className="text-sm font-semibold text-blue-700">{completionRate}%</span>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom section - absolutely positioned */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
+          <div className="flex justify-between text-xs text-muted-foreground pb-3 border-t pt-2">
             <div className="flex items-center">
               <MapPin className="h-3 w-3 mr-1" />
               {location}
@@ -315,6 +458,12 @@ export function InstructorCard({
               {coursesCount} {coursesCount === 1 ? "course" : "courses"}
             </span>
           </div>
+
+          <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 py-2">
+            <Link href={`/instructors/${id}`} className="flex items-center gap-3 w-full justify-center">
+              View Profile <Calendar className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

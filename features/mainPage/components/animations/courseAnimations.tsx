@@ -30,19 +30,19 @@ const cardVariants = {
 
 interface CourseContainerProps {
   children: React.ReactNode;
-  key: string;
+  containerKey: string;
   isLoaded: boolean;
 }
 
 export const CourseContainer: React.FC<CourseContainerProps> = ({
   children,
-  key,
+  containerKey,
   isLoaded,
 }) => {
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={key}
+        key={containerKey}
         variants={containerVariants}
         initial="hidden"
         animate={isLoaded ? "visible" : "hidden"}

@@ -143,6 +143,18 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
                            pathname.startsWith("/sign-up") || 
                            pathname.startsWith("/sso-callback") ||
                            pathname === "/unauthorized" ||
+                           pathname === "/become-instructor" ||
+                           pathname === "/how-it-works" ||
+                           pathname === "/instructors" ||
+                           pathname === "/courses" ||
+                           pathname === "/become-instructor/verification" ||
+                           pathname === "/checkout" ||
+                           pathname === "/checkout/success" ||
+                           pathname === "/checkout/failure" ||
+                           pathname === "/checkout/cancel" ||
+                           pathname === "/checkout/error" ||
+                           pathname === "/checkout/pending" ||
+                           pathname === "/checkout/processing" ||
                            pathname === "/404";
       
       if (!isPublicRoute) {

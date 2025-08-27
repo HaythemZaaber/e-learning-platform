@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HoverAnimation } from "../animations/testimonialsAnimations";
 import TestimonialStars from "./TestimonialsStars";
 import { Testimonial } from "../../types/testimonialsTypes";
+import user from "@/public/images/courses/course.jpg";
 
 interface TestimonialCardProps {
   testimonial: Testimonial;
@@ -24,7 +25,7 @@ export default function TestimonialCard({
         <CardContent className="p-0 flex flex-col h-full">
           <div className="flex justify-between items-start mb-4">
             <Avatar className="w-14 h-14 border-2 border-blue-100">
-              <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+              <AvatarImage src={user.src} alt={testimonial.name} />
               <AvatarFallback className="bg-blue-100 text-blue-800">
                 {testimonial.fallback}
               </AvatarFallback>

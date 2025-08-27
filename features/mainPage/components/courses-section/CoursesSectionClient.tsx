@@ -883,7 +883,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 
       {/* Courses Display */}
       <CourseContainer
-        key={selectedCategory + (showFeatured ? "-featured" : "") + (showTrending ? "-trending" : "")}
+        containerKey={selectedCategory + (showFeatured ? "-featured" : "") + (showTrending ? "-trending" : "")}
         isLoaded={!isLoading}
       >
         {isLoading ? (

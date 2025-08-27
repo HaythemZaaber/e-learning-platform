@@ -9,6 +9,7 @@ import { SlideIn, ScaleIn } from "../animations/testimonialsAnimations";
 import TestimonialStars from "./TestimonialsStars";
 import { Testimonial } from "../../types/testimonialsTypes";
 import { Button } from "@/components/ui/button";
+import user from "@/public/images/courses/course.jpg";
 
 interface FeaturedTestimonialProps {
   featuredTestimonials: Testimonial[];
@@ -127,9 +128,7 @@ export default function FeaturedTestimonial({
                     <Avatar className="w-16 h-16 border-2 border-blue-100">
                       <AvatarImage
                         src={
-                          featuredTestimonials[
-                            currentSlide % featuredTestimonials.length
-                          ].avatar
+                          user.src
                         }
                         alt={
                           featuredTestimonials[

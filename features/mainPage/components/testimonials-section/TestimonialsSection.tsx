@@ -13,6 +13,8 @@ import TestimonialCarousel from "./TestimonialsCarousel";
 import TestimonialModal from "./TestimonialsModal";
 import { Testimonial } from "../../types/testimonialsTypes";
 
+
+
 export default function TestimonialsSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] =

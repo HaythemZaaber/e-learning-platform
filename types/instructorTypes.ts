@@ -17,7 +17,7 @@ export interface InstructorProfile {
   // Teaching Specialization
   subjectsTeaching: string[];
   teachingCategories: string[];
-  languagesSpoken: any;
+  languagesSpoken: LanguageProficiency[];
   teachingStyle?: string;
   targetAudience?: string;
   teachingMethodology?: string;
@@ -41,6 +41,11 @@ export interface InstructorProfile {
   maxStudentsPerCourse?: number;
   preferredSchedule: any;
   availableTimeSlots: any;
+  liveSessionsEnabled: boolean;
+  defaultSessionDuration: number;
+  defaultSessionType: string;
+  individualSessionRate: number;
+  groupSessionRate: number;
 
   // Verification & Compliance
   isVerified: boolean;
@@ -160,9 +165,15 @@ export interface LanguageProficiency {
 }
 
 export interface TimeSlot {
-  startTime: string;
-  endTime: string;
-  timezone: string;
+  start: string;
+  end: string;
+  duration: number;
+  slotId: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+  isBlocked: boolean;
+  currentBookings: number;
+  maxBookings: number;
 }
 
 export interface DaySchedule {
@@ -202,4 +213,292 @@ export interface PaymentPreferences {
   autoPayout: boolean;
   payoutFrequency: 'weekly' | 'monthly' | 'quarterly';
   notificationEmail: string;
+}
+
+// New types for backend API integration
+export interface InstructorDetailsResponse {
+  instructor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImage: string;
+    teachingRating: number;
+    totalStudents: number;
+    totalCourses: number;
+    expertise: string[];
+    qualifications: string[];
+    experience: number | null;
+    bio: string | null;
+  };
+  profile: InstructorProfile;
+  stats: InstructorProfile;
+  recentCourses: Course[];
+  recentReviews: Review[];
+  availability: AvailabilityResponse;
+  summary: {
+    totalCourses: number;
+    totalReviews: number;
+    averageRating: number;
+    totalStudents: number;
+    totalSessions: number;
+  };
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  shortDescription: string;
+  category: string;
+  subcategory: string | null;
+  level: string;
+  thumbnail: string | null;
+  trailer: string | null;
+  galleryImages: string[];
+  price: number;
+  originalPrice: number;
+  currency: string;
+  discountPercent: number;
+  discountValidUntil: string | null;
+  objectives: string[];
+  prerequisites: string[];
+  whatYouLearn: string[];
+  requirements: string[];
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoTags: string[];
+  marketingTags: string[];
+  targetAudience: string[];
+  status: string;
+  enrollmentType: string;
+  language: string;
+  subtitleLanguages: string[];
+  isPublic: boolean;
+  isFeatured: boolean;
+  isBestseller: boolean;
+  isTrending: boolean;
+  isNew: boolean;
+  certificate: boolean;
+  certificateTemplate: string | null;
+  passingGrade: number;
+  allowRetakes: boolean;
+  maxAttempts: number | null;
+  estimatedHours: number;
+  estimatedMinutes: number;
+  difficulty: number;
+  intensityLevel: string;
+  settings: any;
+  metadata: any;
+  accessibility: any;
+  views: number;
+  uniqueViews: number;
+  avgRating: number;
+  totalRatings: number;
+  completionRate: number;
+  totalSections: number;
+  totalLectures: number;
+  totalQuizzes: number;
+  totalAssignments: number;
+  totalContentItems: number;
+  totalDiscussions: number;
+  totalAnnouncements: number;
+  hasLiveSessions: boolean;
+  hasRecordings: boolean;
+  hasDiscussions: boolean;
+  hasAssignments: boolean;
+  hasQuizzes: boolean;
+  downloadableResources: boolean;
+  offlineAccess: boolean;
+  mobileOptimized: boolean;
+  enrollmentStartDate: string | null;
+  enrollmentEndDate: string | null;
+  courseStartDate: string | null;
+  courseEndDate: string | null;
+  maxStudents: number | null;
+  currentEnrollments: number;
+  waitlistEnabled: boolean;
+  version: string;
+  lastMajorUpdate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  instructorId: string;
+  sections: CourseSection[];
+  enrollments: CourseEnrollment[];
+  reviews: CourseReview[];
+  totalDuration: number;
+  totalEnrollments: number;
+  averageRating: number;
+  totalReviews: number;
+}
+
+export interface CourseSection {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  isLocked: boolean;
+  isRequired: boolean;
+  estimatedDuration: number;
+  createdAt: string;
+  updatedAt: string;
+  courseId: string;
+  lectures: CourseLecture[];
+}
+
+export interface CourseLecture {
+  id: string;
+  title: string;
+  duration: number;
+  isPreview: boolean;
+}
+
+export interface CourseEnrollment {
+  id: string;
+  status: string;
+}
+
+export interface CourseReview {
+  id: string;
+  rating: number;
+  comment: string;
+}
+
+export interface Review {
+  id: string;
+  reviewer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImage: string;
+  };
+  session: {
+    id: string;
+    title: string;
+    sessionType: string;
+    scheduledStart: string;
+  };
+  overallRating: number;
+  contentQuality: number;
+  instructorRating: number;
+  technicalQuality: number;
+  valueForMoney: number;
+  comment: string;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Availability {
+  id: string;
+  instructorId: string;
+  specificDate: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  maxSessionsInSlot: number;
+  defaultSlotDuration: number;
+  minAdvanceHours: number;
+  maxAdvanceHours: number;
+  bufferMinutes: number;
+  autoAcceptBookings: boolean;
+  priceOverride: number | null;
+  currency: string;
+  timezone: string;
+  notes: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  generatedSlots: GeneratedSlot[];
+}
+
+export interface AvailabilityResponse {
+  availabilities: Availability[];
+  defaultSettings: DefaultSettings;
+  summary: AvailabilitySummary;
+}
+
+export interface GeneratedSlot {
+  id: string;
+  availabilityId: string;
+  startTime: string;
+  endTime: string;
+  date: string;
+  dayOfWeek: number;
+  slotDuration: number;
+  isAvailable: boolean;
+  isBooked: boolean;
+  isBlocked: boolean;
+  maxBookings: number;
+  currentBookings: number;
+  timezone: string;
+  generatedAt: string;
+}
+
+export interface DefaultSettings {
+  defaultSessionDuration: number;
+  defaultSessionType: string;
+  individualSessionRate: number;
+  groupSessionRate: number;
+  currency: string;
+  bufferBetweenSessions: number;
+  maxSessionsPerDay: number;
+  preferredSchedule: WeeklySchedule;
+  availableTimeSlots: any[];
+}
+
+export interface AvailabilitySummary {
+  totalAvailabilities: number;
+  activeAvailabilities: number;
+  upcomingAvailabilities: number;
+}
+
+export interface InstructorCoursesResponse {
+  courses: Course[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface InstructorReviewsResponse {
+  reviews: Review[];
+  stats: ReviewStats;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ReviewStats {
+  totalReviews: number;
+  averageOverallRating: number;
+  averageContentQuality: number;
+  averageInstructorRating: number;
+  averageTechnicalQuality: number;
+  averageValueForMoney: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
+export interface BookingRequest {
+  slotId: string;
+  sessionType: 'individual' | 'group';
+  duration: number;
+  topic: string;
+  offerPrice: number;
+  specialRequirements: string;
+  studentInfo: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  timestamp: string;
 }

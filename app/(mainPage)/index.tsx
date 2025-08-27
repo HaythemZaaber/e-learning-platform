@@ -31,7 +31,7 @@ export default function MainPage() {
       />
       <TeachersSection />
       <WhyChooseUs />
-      {/* <TestimonialsSection /> */}
+      <TestimonialsSection />
       <CallToAction
       // isAuthenticated={isAuthenticated} userRole={userRole} 
       />

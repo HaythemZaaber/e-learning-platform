@@ -333,6 +333,9 @@ export interface InstructorAvailability {
   notes?: string;
   title?: string;
   
+  // Generated time slots
+  generatedSlots?: TimeSlot[];
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -1009,6 +1012,48 @@ export interface CreateLiveSessionDto {
 
 export interface UpdateLiveSessionDto extends Partial<CreateLiveSessionDto> {
   // All fields are optional for updates
+}
+
+// =============================================================================
+// ENHANCED LIVE SESSION DTOs
+// =============================================================================
+
+export interface StartLiveSessionDto {
+  meetingLink?: string;
+  meetingPassword?: string;
+  instructorNotes?: string;
+}
+
+export interface EndLiveSessionDto {
+  notes?: string;
+  summary?: string;
+  recordingUrl?: string;
+  sessionArtifacts?: string[];
+}
+
+export interface CancelLiveSessionDto {
+  reason?: string;
+  cancellationMessage?: string;
+}
+
+export interface RescheduleLiveSessionDto {
+  newStartTime: Date;
+  newEndTime: Date;
+  reason?: string;
+  rescheduleMessage?: string;
+}
+
+export interface LiveSessionFilterDto {
+  instructorId?: string;
+  studentId?: string;
+  status?: SessionStatus;
+  sessionType?: LiveSessionType;
+  format?: SessionFormat;
+  startDate?: Date;
+  endDate?: Date;
+  courseId?: string;
+  topicId?: string;
+  payoutStatus?: PayoutStatus;
 }
 
 // =============================================================================

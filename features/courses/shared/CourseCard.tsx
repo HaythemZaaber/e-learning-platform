@@ -754,7 +754,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
 
       {/* Enhanced Content Section */}
-      <CardContent className="px-5 flex-grow flex flex-col">
+      <CardContent className="px-5 pt-4 flex-grow flex flex-col">
         {/* Header with enhanced badges */}
         <div className="flex justify-between items-start mb-2">
           <Badge

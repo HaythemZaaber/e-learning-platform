@@ -78,7 +78,7 @@ export default function StudentLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* <Navbar /> */}
       <div className="flex relative">
         <div className="relative h-[calc(100vh-4rem)]">
@@ -115,7 +115,7 @@ export default function StudentLayout({
             isSidebarOpen || isHovering ? "ml-64" : "ml-0"
           )}
         >
-          <div className="p-4 sm:p-8 bg-gradient-to-br from-green-50 via-white to-blue-50">
+          <div className="p-4 sm:p-8 bg-gray-50">
             {children}
           </div>
         </main>

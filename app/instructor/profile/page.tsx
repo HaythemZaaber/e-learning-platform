@@ -161,8 +161,7 @@ export default function InstructorProfilePage() {
         'title', 'bio', 'shortBio', 'expertise', 'qualifications', 'experience',
         'personalWebsite', 'linkedinProfile', 'subjectsTeaching', 'teachingCategories',
         'languagesSpoken', 'teachingStyle', 'targetAudience', 'teachingMethodology',
-        'isAcceptingStudents', 'maxStudentsPerCourse', 'preferredSchedule',
-        'availableTimeSlots', 'revenueSharing', 'payoutSettings', 'taxInformation',
+        'isAcceptingStudents', 'maxStudentsPerCourse', 'revenueSharing', 'payoutSettings', 'taxInformation',
         'paymentPreferences', 'socialLinks'
       ];
 

@@ -201,9 +201,8 @@ export function MyBookings({ user, bookings }: MyBookingsProps) {
   const handleCancelBooking = async (bookingId: string) => {
     try {
       await cancelBooking.mutateAsync({ id: bookingId, reason: "Cancelled by student" });
-      toast.success("Booking cancelled successfully");
     } catch (error) {
-      toast.error("Failed to cancel booking");
+      console.error("Error cancelling booking:", error);
     }
   };
 

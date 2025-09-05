@@ -451,6 +451,15 @@ export interface DefaultSettings {
 
 export interface AvailabilitySummary {
   totalAvailabilities: number;
+  totalAvailableSlots: number;
+  nextAvailableSlot: {
+    date: Date;
+    startTime: string;
+    endTime: string;
+    isBooked: boolean;
+    availabilityId: string;
+    slotId: string;
+  };
   activeAvailabilities: number;
   upcomingAvailabilities: number;
 }

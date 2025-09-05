@@ -151,27 +151,24 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
   const handleStartSession = async (sessionId: string) => {
     try {
       await startSessionMutation.mutateAsync({ id: sessionId });
-      toast.success('Session started successfully');
     } catch (error) {
-      toast.error('Failed to start session');
+      console.error('Error starting session:', error);
     }
   };
 
   const handleEndSession = async (sessionId: string) => {
     try {
       await endSessionMutation.mutateAsync({ id: sessionId });
-      toast.success('Session ended successfully');
     } catch (error) {
-      toast.error('Failed to end session');
+      console.error('Error ending session:', error);
     }
   };
 
   const handleCancelSession = async (sessionId: string, reason?: string) => {
     try {
       await deleteSession.mutateAsync({ id: sessionId, cancelData: { reason } });
-      toast.success('Session cancelled successfully');
     } catch (error) {
-      toast.error('Failed to cancel session');
+      console.error('Error cancelling session:', error);
     }
   };
 
@@ -181,9 +178,8 @@ export function SessionsCalendar({ user }: SessionsCalendarProps) {
         id: sessionId, 
         rescheduleData 
       });
-      toast.success('Session rescheduled successfully');
     } catch (error) {
-      toast.error('Failed to reschedule session');
+      console.error('Error rescheduling session:', error);
     }
   };
 

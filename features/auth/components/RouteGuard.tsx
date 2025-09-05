@@ -82,6 +82,9 @@ export const ROUTE_PERMISSIONS: RouteConfig[] = [
   { path: "/sign-up", allowedRoles: [], requireAuth: false },
   { path: "/sso-callback", allowedRoles: [], requireAuth: false },
   { path: "/unauthorized", allowedRoles: [], requireAuth: false },
+  
+  // Payment routes (public)
+  { path: "/payment", allowedRoles: [], requireAuth: false },
 ];
 
 interface RouteGuardProps {
@@ -155,11 +158,17 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
                            pathname === "/checkout/error" ||
                            pathname === "/checkout/pending" ||
                            pathname === "/checkout/processing" ||
+                           pathname.startsWith("/payment/") ||
                            pathname === "/404";
       
       if (!isPublicRoute) {
         // This is an unknown route - redirect to 404
         console.warn(`Unknown route accessed: ${pathname}`);
+        console.log('Available public routes:', [
+          "/", "/sign-in", "/sign-up", "/sso-callback", "/unauthorized",
+          "/become-instructor", "/how-it-works", "/instructors", "/courses",
+          "/checkout", "/payment", "/404"
+        ]);
         router.push("/404");
         return;
       }

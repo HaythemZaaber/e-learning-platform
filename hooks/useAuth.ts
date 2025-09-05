@@ -14,8 +14,6 @@ export const useAuth = () => {
   const [fetchUserData, { loading: graphqlLoading }] = useLazyQuery(GET_CURRENT_USER, {
     onCompleted: (data) => {
       if (data?.me) {
-        console.log('User data fetched from GraphQL:', data.me);
-        
         // Convert GraphQL user data to our User format
         const userData = {
           id: data.me.id,
@@ -29,7 +27,6 @@ export const useAuth = () => {
           updatedAt: data.me.updatedAt || new Date().toISOString(),
         };
 
-        console.log('Setting user in auth store with backend role:', userData);
         setUser(userData);
       }
     },
@@ -48,7 +45,6 @@ export const useAuth = () => {
           createdAt: clerkUser.createdAt ? new Date(clerkUser.createdAt).toISOString() : new Date().toISOString(),
           updatedAt: clerkUser.updatedAt ? new Date(clerkUser.updatedAt).toISOString() : new Date().toISOString(),
         };
-        console.log('Using fallback user data:', fallbackUserData);
         setUser(fallbackUserData);
       }
     },
@@ -63,11 +59,9 @@ export const useAuth = () => {
 
     // If Clerk user is signed in, fetch user data from GraphQL backend
     if (isSignedIn && clerkUser) {
-      console.log('Clerk user authenticated, fetching user data from backend:', clerkUser);
       fetchUserData();
     } else if (!isSignedIn) {
       // User is not signed in, clear auth store
-      console.log('Clerk user not authenticated, clearing auth store');
       setUser(null);
     }
 

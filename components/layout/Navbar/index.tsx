@@ -163,7 +163,7 @@ const Navbar = ({
           },
           {
             label: "Schedule",
-            href: "/student/schedule",
+            href: "/student/sessions",
             icon: Calendar,
             description: "Manage your classes",
           },
@@ -237,7 +237,7 @@ const Navbar = ({
           },
           {
             label: "Schedule",
-            href: "/parent/schedule",
+            href: "/parent/sessions",
             icon: Calendar,
             description: "Family class schedule",
           },

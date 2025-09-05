@@ -2,17 +2,13 @@
 
 import React, { useState } from "react";
 import {
-  X,
   Calendar,
-  Clock,
   User,
   Users,
-  DollarSign,
   MessageSquare,
   CheckCircle,
   AlertCircle,
   Video,
-  Coffee,
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface BookingDetails {
   sessionType: "individual" | "group";
@@ -43,11 +46,20 @@ interface BookingDetails {
   };
 }
 
+interface TimeSlot {
+  startTime: string;
+  endTime: string;
+}
+
+interface SelectedDate {
+  date: string;
+}
+
 interface EnhancedBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedDate?: any;
-  selectedSlot?: any;
+  selectedDate?: SelectedDate;
+  selectedSlot?: TimeSlot;
   instructorName: string;
   pricing: {
     individual: number;
@@ -115,7 +127,7 @@ export default function EnhancedBookingModal({
       } else {
         setErrors({ submit: "Failed to submit booking. Please try again." });
       }
-    } catch (error) {
+    } catch {
       setErrors({ submit: "An error occurred. Please try again." });
     } finally {
       setLoading(false);
@@ -136,8 +148,8 @@ export default function EnhancedBookingModal({
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Calendar className="h-8 w-8 text-blue-600" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">Book Your Session</h3>
-        <p className="text-gray-600">Let's get started with your booking details</p>
+        <h3 className="text-lg font-semibold mb-2">Session Details</h3>
+        <p className="text-gray-600">Let&apos;s get started with your booking details</p>
       </div>
 
              {/* Session Summary */}
@@ -254,8 +266,8 @@ export default function EnhancedBookingModal({
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <MessageSquare className="h-8 w-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">Session Details</h3>
-        <p className="text-gray-600">Tell us about what you'd like to learn</p>
+        <h3 className="text-lg font-semibold mb-2">Learning Goals</h3>
+        <p className="text-gray-600">Tell us about what you&apos;d like to learn</p>
       </div>
 
       {/* Session Topic */}
@@ -387,12 +399,12 @@ export default function EnhancedBookingModal({
       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
         <CheckCircle className="h-10 w-10 text-green-600" />
       </div>
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Booking Confirmed!</h3>
-        <p className="text-gray-600 mb-4">
-          Your session has been successfully booked. You'll receive a confirmation email shortly.
-        </p>
-      </div>
+             <div>
+         <h3 className="text-lg font-semibold mb-2">Booking Confirmed!</h3>
+         <p className="text-gray-600 mb-4">
+           Your session has been successfully booked. You&apos;ll receive a confirmation email shortly.
+         </p>
+       </div>
 
       <Card className="border-green-200 bg-green-50">
         <CardContent className="p-4">
@@ -438,21 +450,21 @@ export default function EnhancedBookingModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Book Session</h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Book Session</DialogTitle>
+          <DialogDescription>
+            Schedule your learning session with {instructorName}
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="mt-6">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

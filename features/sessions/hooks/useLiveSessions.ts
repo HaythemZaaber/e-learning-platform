@@ -16,7 +16,7 @@ import {
   SessionReservation,
   SessionPayment,
   PaymentIntent,
-  InstructorPayout,
+  InstructorPayout, 
   SessionStats,
   SessionReview,
   SessionNotification,
@@ -869,7 +869,9 @@ export const useSessionOfferings = (filters?: {
   category?: string;
   search?: string;
 }) => {
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
+  
+
   
   return useQuery({
     queryKey: liveSessionsKeys.instructorOfferings(filters?.instructorId, filters),
@@ -881,7 +883,7 @@ export const useSessionOfferings = (filters?: {
       const api = getAuthenticatedLiveSessionsApi(token);
       return api.getSessionOfferings(filters);
     },
-    enabled: !!filters?.instructorId,
+    enabled: !!filters?.instructorId && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

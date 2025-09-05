@@ -30,6 +30,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useApolloClient } from "@apollo/client";
 import { GET_INSTRUCTOR_VERIFICATION } from "@/features/becomeInstructor/verification/graphql/instructor-application";
+import { StudentBookingDashboard } from "@/features/sessions/components/student/StudentBookingDashboard";
 
 // Mock data - replace with real data from your API
 const mockData = {
@@ -421,10 +422,10 @@ export default function StudentDashboard() {
                   <span className="text-sm">Progress Report</span>
                 </Button>
               </Link>
-              <Link href="/student/schedule">
+              <Link href="/student/sessions">
                 <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
                   <Calendar className="h-6 w-6 text-orange-600" />
-                  <span className="text-sm">Schedule</span>
+                  <span className="text-sm">My Sessions</span>
                 </Button>
               </Link>
             </div>

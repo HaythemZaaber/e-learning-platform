@@ -507,6 +507,8 @@ export interface BookingRequest {
   sessionDate?: Date;
   sessionTime?: string;
   sessionType?: SessionType;
+
+  timeSlot?: TimeSlot;
   
   createdAt: Date;
   updatedAt: Date;

@@ -111,16 +111,17 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
   const startSessionMutation = useStartSession();
   const completeSessionMutation = useCompleteSession();
 
-  // Filter bookings by status
-  const filteredBookings = bookings?.filter(booking => 
-    activeTab === "ALL" || booking.status === activeTab
-  ) || [];
+  // Group bookings by status (always use the full bookings array for counts)
+  const allBookings = bookings || [];
+  const pendingBookings = allBookings.filter(b => b.status === BookingStatus.PENDING);
+  const acceptedBookings = allBookings.filter(b => b.status === BookingStatus.ACCEPTED);
+  const completedBookings = allBookings.filter(b => b.status === BookingStatus.COMPLETED);
+  const cancelledBookings = allBookings.filter(b => b.status === BookingStatus.CANCELLED);
 
-  // Group bookings by status
-  const pendingBookings = filteredBookings.filter(b => b.status === BookingStatus.PENDING);
-  const acceptedBookings = filteredBookings.filter(b => b.status === BookingStatus.ACCEPTED);
-  const completedBookings = filteredBookings.filter(b => b.status === BookingStatus.COMPLETED);
-  const cancelledBookings = filteredBookings.filter(b => b.status === BookingStatus.CANCELLED);
+  // Filter bookings by status for display (only when not showing "ALL")
+  const filteredBookings = activeTab === "ALL" 
+    ? allBookings 
+    : allBookings.filter(booking => booking.status === activeTab);
 
   // Handle booking actions
   const handleViewDetails = (booking: any) => {
@@ -460,7 +461,7 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
         {/* Show bookings even while checking Stripe */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BookingStatus | "ALL")}>
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="ALL">All ({filteredBookings.length})</TabsTrigger>
+            <TabsTrigger value="ALL">All ({allBookings.length})</TabsTrigger>
             <TabsTrigger value={BookingStatus.PENDING}>Pending ({pendingBookings.length})</TabsTrigger>
             <TabsTrigger value={BookingStatus.ACCEPTED}>Accepted ({acceptedBookings.length})</TabsTrigger>
             <TabsTrigger value={BookingStatus.COMPLETED}>Completed ({completedBookings.length})</TabsTrigger>
@@ -587,7 +588,7 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BookingStatus | "ALL")}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="ALL">All ({filteredBookings.length})</TabsTrigger>
+          <TabsTrigger value="ALL">All ({allBookings.length})</TabsTrigger>
           <TabsTrigger value={BookingStatus.PENDING}>Pending ({pendingBookings.length})</TabsTrigger>
           <TabsTrigger value={BookingStatus.ACCEPTED}>Accepted ({acceptedBookings.length})</TabsTrigger>
           <TabsTrigger value={BookingStatus.COMPLETED}>Completed ({completedBookings.length})</TabsTrigger>

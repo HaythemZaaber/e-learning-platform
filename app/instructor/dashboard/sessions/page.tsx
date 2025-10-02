@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstructorProfile, useSessionStats, useAIInsights } from "@/features/sessions/hooks/useLiveSessions";
-import { InstructorDashboard } from "@/features/sessions/components/instructor/InstructorDashboard";
+import InstructorDashboard from "@/features/sessions/components/instructor/InstructorDashboard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "sonner";

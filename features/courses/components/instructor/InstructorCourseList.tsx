@@ -600,7 +600,7 @@ export const InstructorCourseList = ({
             </div>
 
             {/* Course Content */}
-            <CardContent className="px-5 flex-grow flex flex-col">
+            <CardContent className="px-5 pt-5 flex-grow flex flex-col">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex flex-col gap-1">
                   <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0 text-xs w-fit">

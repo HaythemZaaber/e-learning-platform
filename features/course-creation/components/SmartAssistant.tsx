@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { 
-  Bot, 
-  Send, 
-  X, 
-  Lightbulb, 
-  BarChart3, 
-  Wand2, 
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Bot,
+  Send,
+  X,
+  Lightbulb,
+  BarChart3,
+  Wand2,
   RefreshCw,
   CheckCircle,
   AlertCircle,
@@ -25,7 +25,8 @@ import {
   FileText,
   Award,
   Clock,
-  DollarSign
+  DollarSign,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +42,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { AIAssistantService, CourseSuggestion, CourseAnalysis } from '../services/aiAssistantService';
+import { useAIAssistant } from "../hooks/useAIAssistant";
+import { SuggestionType, ContentType } from "../services/aiAssistantService";
+import { ContentViewer } from "./ContentViewer";
 import { toast } from "sonner";
 
 interface SmartAssistantProps {
@@ -52,19 +55,11 @@ interface SmartAssistantProps {
   currentStep?: number;
 }
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  suggestions?: CourseSuggestion[];
-}
-
 interface GenerationRequest {
-  type: string;
+  type: ContentType;
   title: string;
   description: string;
   icon: any;
-  loading: boolean;
 }
 
 export function SmartAssistant({
@@ -76,256 +71,347 @@ export function SmartAssistant({
 }: SmartAssistantProps) {
   const [activeTab, setActiveTab] = useState("suggestions");
   const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: "Hello! I'm your AI course creation assistant. I can help you with suggestions, analyze your course, generate content, and answer any questions about course development.",
-      timestamp: new Date(),
-    },
-  ]);
-  
-  const [suggestions, setSuggestions] = useState<CourseSuggestion[]>([]);
-  const [analysis, setAnalysis] = useState<CourseAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
-  const [generationRequests, setGenerationRequests] = useState<GenerationRequest[]>([
-    {
-      type: 'lecture_outline',
-      title: 'Lecture Outlines',
-      description: 'Generate detailed lecture outlines based on your course structure.',
-      icon: BookOpen,
-      loading: false,
-    },
-    {
-      type: 'assessment_questions',
-      title: 'Assessment Questions',
-      description: 'Create quiz questions and assignments for each section.',
-      icon: FileText,
-      loading: false,
-    },
-    {
-      type: 'seo_content',
-      title: 'SEO Optimization',
-      description: 'Optimize your course title, description, and tags for search.',
-      icon: Search,
-      loading: false,
-    },
-    {
-      type: 'marketing_copy',
-      title: 'Marketing Copy',
-      description: 'Create compelling marketing materials for your course.',
-      icon: TrendingUp,
-      loading: false,
-    },
-  ]);
-  const [generatedContent, setGeneratedContent] = useState<Record<string, any>>({});
-  
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const aiService = useRef<AIAssistantService | null>(null);
+  const isApplyingSuggestionRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
-  // Initialize AI service
-  useEffect(() => {
-    // Initialize with your API endpoints
-    aiService.current = new AIAssistantService(
-      process.env.NEXT_PUBLIC_API_URL || '/api',
-      process.env.NEXT_PUBLIC_AI_API_KEY || ''
-    );
-    
-    // Generate initial suggestions
-    generateInitialSuggestions();
-  }, []);
+  const {
+    suggestions,
+    analysis,
+    chatHistory,
+    generatedContent,
+    selectedSuggestionType,
+    loadingStates,
+    generateSuggestions,
+    analyzeCourse,
+    sendChatMessage,
+    generateContent,
+    removeSuggestion,
+    clearStoredData,
+    changeSuggestionType,
+  } = useAIAssistant();
 
+  const suggestionTypes = [
+    {
+      type: SuggestionType.GENERAL,
+      title: "General Suggestions",
+      description: "Comprehensive suggestions for overall course improvement",
+      icon: Lightbulb,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+      borderColor: "border-yellow-200",
+    },
+    {
+      type: SuggestionType.TITLE,
+      title: "Title Optimization",
+      description: "Improve your course title for better engagement",
+      icon: PenTool,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+    },
+    {
+      type: SuggestionType.DESCRIPTION,
+      title: "Description Enhancement",
+      description: "Make your course description more compelling",
+      icon: BookOpen,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+    },
+    {
+      type: SuggestionType.STRUCTURE,
+      title: "Course Structure",
+      description: "Optimize your course organization and flow",
+      icon: Target,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+    },
+    {
+      type: SuggestionType.SEO,
+      title: "SEO Optimization",
+      description: "Improve search visibility and discoverability",
+      icon: Search,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200",
+    },
+    {
+      type: SuggestionType.PRICING,
+      title: "Pricing Strategy",
+      description: "Get recommendations for optimal pricing",
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      borderColor: "border-emerald-200",
+    },
+    {
+      type: SuggestionType.CONTENT,
+      title: "Content Quality",
+      description: "Enhance your course content and materials",
+      icon: FileText,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+    },
+  ];
+
+  const generationRequests: GenerationRequest[] = [
+    {
+      type: ContentType.LECTURE_OUTLINE,
+      title: "Lecture Outlines",
+      description:
+        "Creates comprehensive outlines for each lecture including learning objectives, key topics to cover, estimated duration, and suggested teaching methods. Perfect for structuring your course content.",
+      icon: BookOpen,
+    },
+    {
+      type: ContentType.ASSESSMENT_QUESTIONS,
+      title: "Assessment Questions",
+      description:
+        "Generates 10-15 quiz questions with multiple choice, true/false, and short answer formats. Includes correct answers and detailed explanations to help students learn from their mistakes.",
+      icon: FileText,
+    },
+    {
+      type: ContentType.SEO_CONTENT,
+      title: "SEO Optimization",
+      description:
+        "Optimizes your course for search engines with relevant keywords, meta descriptions (150-160 chars), optimized title variations, and tags. Increases course discoverability and student enrollment.",
+      icon: Search,
+    },
+    {
+      type: ContentType.MARKETING_COPY,
+      title: "Marketing Copy",
+      description:
+        "Creates compelling marketing materials including a catchy course tagline, 3 key benefits, a social media post (280 characters), and 3 email subject line variations to promote your course effectively.",
+      icon: TrendingUp,
+    },
+  ];
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  // Auto-generate suggestions when course data changes
+  // Reset initialization flag when dialog opens
   useEffect(() => {
-    if (data.title && data.description) {
-      const timer = setTimeout(() => {
-        generateInitialSuggestions();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [data.title, data.description, data.category, currentStep]);
+    hasInitializedRef.current = false;
+  }, []);
 
-  const generateInitialSuggestions = async () => {
-    if (!aiService.current) return;
-    
-    setIsGeneratingSuggestions(true);
-    try {
-      const suggestions = await aiService.current.generateSuggestions({
-        type: 'suggestion',
-        context: {
-          courseData: data,
-          currentStep,
-          contentByLecture,
-        },
-      });
-      setSuggestions(suggestions);
-    } catch (error) {
-      console.error('Failed to generate suggestions:', error);
-      toast.error('Failed to generate AI suggestions');
-    } finally {
-      setIsGeneratingSuggestions(false);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!query.trim() || !aiService.current) return;
-
-    const userMessage: ChatMessage = {
-      role: "user",
-      content: query,
-      timestamp: new Date(),
-    };
-
-    setChatHistory((prev) => [...prev, userMessage]);
-    setQuery("");
-    setIsLoading(true);
-
-    try {
-      const response = await aiService.current.chatWithAI(query, {
-        courseData: data,
-        currentStep,
-        contentByLecture,
-        userQuery: query,
-      });
-
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: response,
-        timestamp: new Date(),
-      };
-
-      setChatHistory((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat failed:', error);
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: "I apologize, but I'm having trouble processing your request right now. Please try again.",
-        timestamp: new Date(),
-      };
-      setChatHistory((prev) => [...prev, errorMessage]);
-      toast.error('Failed to chat with AI assistant');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApplySuggestion = (suggestion: CourseSuggestion) => {
-    switch (suggestion.type) {
-      case 'title':
-        updateData({ title: suggestion.content });
-        break;
-      case 'description':
-        updateData({ description: suggestion.content });
-        break;
-      case 'structure':
-        if (suggestion.metadata?.sections) {
-          updateData({ sections: suggestion.metadata.sections });
-        }
-        break;
-      case 'seo':
-        if (suggestion.metadata?.tags) {
-          updateData({ 
-            settings: { 
-              ...data.settings, 
-              seoTags: suggestion.metadata.tags,
-              seoDescription: suggestion.metadata.description || suggestion.content
-            } 
-          });
-        }
-        break;
-      case 'pricing':
-        if (suggestion.metadata?.price) {
-          updateData({ price: suggestion.metadata.price });
-        }
-        break;
-      default:
-        break;
-    }
-    
-    // Remove applied suggestion
-    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
-    toast.success('Suggestion applied successfully!');
-  };
-
-  const analyzeCourse = async () => {
-    if (!aiService.current) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const courseAnalysis = await aiService.current.analyzeCourse(data, contentByLecture);
-      setAnalysis(courseAnalysis);
-      setActiveTab("analysis");
-      toast.success('Course analysis completed!');
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      toast.error('Failed to analyze course');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const refreshSuggestions = async () => {
-    await generateInitialSuggestions();
-  };
-
-  const handleGenerateContent = async (type: string) => {
-    if (!aiService.current) return;
-
-    setGenerationRequests(prev => 
-      prev.map(req => req.type === type ? { ...req, loading: true } : req)
+  const handleRefreshSuggestions = useCallback(async () => {
+    await generateSuggestions(
+      selectedSuggestionType,
+      data,
+      currentStep,
+      contentByLecture
     );
+  }, [
+    generateSuggestions,
+    selectedSuggestionType,
+    data,
+    currentStep,
+    contentByLecture,
+  ]);
 
-    try {
-      const content = await aiService.current.generateContent(type, {
-        courseData: data,
-        contentByLecture,
-        currentStep,
+  // Generate initial suggestions on mount and when course data changes (but not when applying suggestions)
+  useEffect(() => {
+    if (
+      data.title &&
+      data.description &&
+      !isApplyingSuggestionRef.current &&
+      !hasInitializedRef.current
+    ) {
+      // Check if we already have suggestions for the current type
+      const hasExistingSuggestions = suggestions.some(
+        (suggestion) =>
+          suggestion.type === selectedSuggestionType ||
+          (selectedSuggestionType === SuggestionType.GENERAL &&
+            suggestions.length > 0)
+      );
+
+      // Only generate suggestions if we don't have any for the current type
+      if (!hasExistingSuggestions) {
+        console.log(
+          "No existing suggestions found, generating new ones for type:",
+          selectedSuggestionType
+        );
+        const timer = setTimeout(() => {
+          generateSuggestions(
+            selectedSuggestionType,
+            data,
+            currentStep,
+            contentByLecture
+          );
+          hasInitializedRef.current = true;
+        }, 1000);
+        return () => clearTimeout(timer);
+      } else {
+        console.log(
+          "Existing suggestions found, skipping generation for type:",
+          selectedSuggestionType
+        );
+        // Mark as initialized even if we have existing suggestions
+        hasInitializedRef.current = true;
+      }
+    }
+  }, [
+    data.title,
+    data.description,
+    data.category,
+    generateSuggestions,
+    selectedSuggestionType,
+    currentStep,
+    contentByLecture,
+    suggestions,
+  ]);
+
+  const handleAnalyzeCourse = useCallback(async () => {
+    const result = await analyzeCourse(data, contentByLecture);
+    if (result) {
+      setActiveTab("analysis");
+    }
+  }, [analyzeCourse, data, contentByLecture]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!query.trim()) return;
+
+    const message = query;
+    setQuery("");
+    await sendChatMessage(message, data, currentStep, contentByLecture);
+  }, [query, sendChatMessage, data, currentStep, contentByLecture]);
+
+  const handleGenerateContent = useCallback(
+    async (type: ContentType) => {
+      await generateContent(type, data, currentStep, contentByLecture);
+    },
+    [generateContent, data, currentStep, contentByLecture]
+  );
+
+  const handleApplySuggestion = useCallback(
+    (suggestion: any) => {
+      let applied = false;
+
+      // Set flag to prevent unwanted refresh
+      isApplyingSuggestionRef.current = true;
+
+      switch (suggestion.type) {
+        case "title":
+          updateData({ title: suggestion.content });
+          applied = true;
+          break;
+        case "description":
+          updateData({ description: suggestion.content });
+          applied = true;
+          break;
+        case "structure":
+          if (suggestion.metadata?.sections) {
+            updateData({ sections: suggestion.metadata.sections });
+            applied = true;
+          }
+          break;
+        case "seo":
+          if (suggestion.metadata?.tags) {
+            updateData({
+              settings: {
+                ...data.settings,
+                seoTags: suggestion.metadata.tags,
+                seoDescription:
+                  suggestion.metadata.description || suggestion.content,
+              },
+            });
+            applied = true;
+          }
+          break;
+        case "pricing":
+          if (suggestion.metadata?.price !== undefined) {
+            updateData({ price: suggestion.metadata.price });
+            applied = true;
+          }
+          break;
+        default:
+          toast.info("This suggestion type cannot be automatically applied");
+          isApplyingSuggestionRef.current = false;
+          return;
+      }
+
+      if (applied) {
+        removeSuggestion(suggestion.id);
+        toast.success("Suggestion applied successfully!");
+      } else {
+        toast.warning(
+          "This suggestion could not be applied. Please check the suggestion details."
+        );
+      }
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isApplyingSuggestionRef.current = false;
+      }, 100);
+    },
+    [updateData, data.settings, removeSuggestion]
+  );
+
+  const handleQuickPrompt = useCallback((prompt: string) => {
+    setQuery(prompt);
+    setActiveTab("chat");
+  }, []);
+
+  const handleSuggestionTypeChange = useCallback(
+    async (type: SuggestionType) => {
+      changeSuggestionType(type);
+
+      // Check if we already have suggestions for this specific type
+      const hasExistingSuggestions = suggestions.some((suggestion) => {
+        if (type === SuggestionType.GENERAL) {
+          // For general type, check if we have any suggestions at all
+          return suggestions.length > 0;
+        } else {
+          // For specific types, check for exact type match
+          return suggestion.type === type;
+        }
       });
 
-      setGeneratedContent(prev => ({
-        ...prev,
-        [type]: content,
-      }));
-
-      toast.success(`${type.replace('_', ' ')} generated successfully!`);
-    } catch (error) {
-      console.error(`Failed to generate ${type}:`, error);
-      toast.error(`Failed to generate ${type.replace('_', ' ')}`);
-    } finally {
-      setGenerationRequests(prev => 
-        prev.map(req => req.type === type ? { ...req, loading: false } : req)
-      );
-    }
-  };
-
-  const handleQuickAction = async (action: string) => {
-    const actions: Record<string, () => Promise<void>> = {
-      'improve_title': () => handleGenerateContent('title_suggestions'),
-      'expand_description': () => handleGenerateContent('description_improvement'),
-      'generate_objectives': () => handleGenerateContent('learning_objectives'),
-      'define_audience': () => handleGenerateContent('target_audience'),
-    };
-
-    if (actions[action]) {
-      await actions[action]();
-    }
-  };
+      // Only generate new suggestions if we don't have any for this type
+      if (!hasExistingSuggestions) {
+        console.log(
+          "No existing suggestions for type:",
+          type,
+          "generating new ones"
+        );
+        await generateSuggestions(type, data, currentStep, contentByLecture);
+      } else {
+        console.log(
+          "Existing suggestions found for type:",
+          type,
+          "skipping generation"
+        );
+      }
+    },
+    [
+      changeSuggestionType,
+      suggestions,
+      generateSuggestions,
+      data,
+      currentStep,
+      contentByLecture,
+    ]
+  );
 
   const getSuggestionIcon = (type: string) => {
     switch (type) {
-      case 'title': return <PenTool className="h-4 w-4" />;
-      case 'description': return <BookOpen className="h-4 w-4" />;
-      case 'structure': return <Target className="h-4 w-4" />;
-      case 'seo': return <Search className="h-4 w-4" />;
-      case 'pricing': return <DollarSign className="h-4 w-4" />;
-      case 'content': return <FileText className="h-4 w-4" />;
-      default: return <Lightbulb className="h-4 w-4" />;
+      case "title":
+        return <PenTool className="h-4 w-4" />;
+      case "description":
+        return <BookOpen className="h-4 w-4" />;
+      case "structure":
+        return <Target className="h-4 w-4" />;
+      case "seo":
+        return <Search className="h-4 w-4" />;
+      case "pricing":
+        return <DollarSign className="h-4 w-4" />;
+      case "content":
+        return <FileText className="h-4 w-4" />;
+      default:
+        return <Lightbulb className="h-4 w-4" />;
     }
   };
 
@@ -341,6 +427,40 @@ export function SmartAssistant({
     return "text-red-600";
   };
 
+  const isSuggestionActionable = useCallback((suggestion: any) => {
+    // Check if the suggestion has the actionable flag
+    if (suggestion.actionable === false) return false;
+
+    // Check if the suggestion type can be automatically applied
+    switch (suggestion.type) {
+      case "title":
+        return !!suggestion.content;
+      case "description":
+        return !!suggestion.content;
+      case "structure":
+        return !!suggestion.metadata?.sections;
+      case "seo":
+        return !!suggestion.metadata?.tags;
+      case "pricing":
+        return suggestion.metadata?.price !== undefined;
+      default:
+        return false;
+    }
+  }, []);
+
+  // Filter suggestions by the selected type
+  const getFilteredSuggestions = useCallback(() => {
+    if (selectedSuggestionType === SuggestionType.GENERAL) {
+      // For general type, show all suggestions
+      return suggestions;
+    } else {
+      // For specific types, show only suggestions of that type
+      return suggestions.filter(
+        (suggestion) => suggestion.type === selectedSuggestionType
+      );
+    }
+  }, [suggestions, selectedSuggestionType]);
+
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-6xl w-full h-[90vh] overflow-hidden flex flex-col">
@@ -350,31 +470,51 @@ export function SmartAssistant({
               <Bot className="h-6 w-6 text-blue-600" />
               <span>AI Course Assistant</span>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 ml-auto ">
               <Badge variant="secondary" className="bg-blue-50 text-blue-700">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Powered by AI
               </Badge>
-              <Button 
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearStoredData}
+                className="h-8 px-2 text-xs text-gray-500 hover:text-white mr-4 "
+                title="Clear all AI Assistant data"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Clear Data
+              </Button>
+              {/* <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onClose}
                 className="h-8 w-8 p-0"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </Button> */}
             </div>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col min-h-0">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full flex flex-col min-h-0"
+          >
             <TabsList className="grid grid-cols-4 mb-4 flex-shrink-0">
-              <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <TabsTrigger
+                value="suggestions"
+                className="flex items-center gap-2"
+              >
                 <Lightbulb className="h-4 w-4" />
                 Suggestions
                 {suggestions.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 min-w-5 text-xs"
+                  >
                     {suggestions.length}
                   </Badge>
                 )}
@@ -387,7 +527,10 @@ export function SmartAssistant({
                 <BarChart3 className="h-4 w-4" />
                 Analysis
                 {analysis && (
-                  <Badge variant="secondary" className="ml-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 w-5 text-xs p-0 flex items-center justify-center"
+                  >
                     ✓
                   </Badge>
                 )}
@@ -399,42 +542,153 @@ export function SmartAssistant({
             </TabsList>
 
             <div className="flex-1 overflow-hidden min-h-0">
-              <TabsContent value="suggestions" className="h-full flex flex-col data-[state=active]:flex data-[state=active]:flex-col min-h-0">
-                <div className="flex items-center justify-between flex-shrink-0 p-4">
+              {/* SUGGESTIONS TAB */}
+              <TabsContent
+                value="suggestions"
+                className="h-full flex flex-col data-[state=active]:flex data-[state=active]:flex-col min-h-0"
+              >
+                <div className="flex items-center justify-between flex-shrink-0 p-4 border-b">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-yellow-500" />
                     AI Suggestions
                   </h3>
                   <Button
-                    onClick={refreshSuggestions}
-                    disabled={isGeneratingSuggestions}
+                    onClick={handleRefreshSuggestions}
+                    disabled={loadingStates.suggestions}
                     variant="outline"
                     size="sm"
                   >
-                    {isGeneratingSuggestions ? (
+                    {loadingStates.suggestions ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <RefreshCw className="h-4 w-4" />
                     )}
-                    Refresh
+                    <span className="ml-2">Refresh</span>
                   </Button>
                 </div>
 
-                                <div className="flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-hidden min-h-0">
                   <ScrollArea className="h-full min-h-0">
-                    <div className="p-4 min-h-full">
-                      {isGeneratingSuggestions ? (
+                    <div className="p-4 min-h-full space-y-6">
+                      {/* Suggestion Type Selector - Now scrolls with content */}
+                      <div className="bg-gray-50 rounded-lg p-4 border">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Target className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm font-medium text-gray-700">
+                              Suggestion Type:
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {suggestionTypes.map((suggestionType) => {
+                              const IconComponent = suggestionType.icon;
+                              const isSelected =
+                                selectedSuggestionType === suggestionType.type;
+
+                              return (
+                                <button
+                                  key={suggestionType.type}
+                                  onClick={() =>
+                                    handleSuggestionTypeChange(
+                                      suggestionType.type
+                                    )
+                                  }
+                                  disabled={loadingStates.suggestions}
+                                  className={`p-3 rounded-lg border-2 transition-all duration-200 text-left hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    isSelected
+                                      ? `${suggestionType.borderColor} ${suggestionType.bgColor} border-opacity-100 shadow-md`
+                                      : "border-gray-200 bg-white hover:border-gray-300"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <IconComponent
+                                      className={`h-4 w-4 ${
+                                        isSelected
+                                          ? suggestionType.color
+                                          : "text-gray-500"
+                                      }`}
+                                    />
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        isSelected
+                                          ? suggestionType.color
+                                          : "text-gray-700"
+                                      }`}
+                                    >
+                                      {suggestionType.title}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 leading-tight">
+                                    {suggestionType.description}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Current Suggestion Type Header */}
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const currentType = suggestionTypes.find(
+                              (t) => t.type === selectedSuggestionType
+                            );
+                            const IconComponent =
+                              currentType?.icon || Lightbulb;
+                            return (
+                              <>
+                                <IconComponent
+                                  className={`h-4 w-4 ${
+                                    currentType?.color || "text-blue-600"
+                                  }`}
+                                />
+                                <span className="text-sm font-medium text-blue-800">
+                                  {currentType?.title || "General Suggestions"}
+                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className="ml-auto bg-blue-100 text-blue-700"
+                                >
+                                  {getFilteredSuggestions().length} suggestions
+                                </Badge>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          {
+                            suggestionTypes.find(
+                              (t) => t.type === selectedSuggestionType
+                            )?.description
+                          }
+                        </p>
+                      </div>
+
+                      {/* Suggestions Content */}
+                      {loadingStates.suggestions ? (
                         <div className="flex items-center justify-center py-12">
                           <div className="text-center">
                             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-                            <p className="text-gray-600">Generating AI suggestions...</p>
-                            <p className="text-sm text-gray-500 mt-1">This may take a few moments</p>
+                            <p className="text-gray-600">
+                              Generating{" "}
+                              {suggestionTypes
+                                .find((t) => t.type === selectedSuggestionType)
+                                ?.title.toLowerCase()}
+                              ...
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              This may take a few moments
+                            </p>
                           </div>
                         </div>
-                      ) : suggestions.length > 0 ? (
+                      ) : getFilteredSuggestions().length > 0 ? (
                         <div className="space-y-4">
-                          {suggestions.map((suggestion) => (
-                            <Card key={suggestion.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                          {getFilteredSuggestions().map((suggestion) => (
+                            <Card
+                              key={suggestion.id}
+                              className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow"
+                            >
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                   <CardTitle className="text-sm flex items-center gap-2">
@@ -443,32 +697,46 @@ export function SmartAssistant({
                                   </CardTitle>
                                   <div className="flex items-center gap-2">
                                     <div className="flex items-center gap-1">
-                                      <div 
-                                        className={`w-2 h-2 rounded-full ${getConfidenceColor(suggestion.confidence)}`} 
+                                      <div
+                                        className={`w-2 h-2 rounded-full ${getConfidenceColor(
+                                          suggestion.confidence
+                                        )}`}
                                       />
                                       <span className="text-xs text-gray-500">
-                                        {Math.round(suggestion.confidence * 100)}%
+                                        {Math.round(
+                                          suggestion.confidence * 100
+                                        )}
+                                        %
                                       </span>
                                     </div>
-                                    <Badge variant="outline" className="text-xs capitalize">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs capitalize"
+                                    >
                                       {suggestion.type}
                                     </Badge>
                                   </div>
                                 </div>
                               </CardHeader>
                               <CardContent className="space-y-3">
-                                <p className="text-sm leading-relaxed">{suggestion.content}</p>
+                                <p className="text-sm leading-relaxed">
+                                  {suggestion.content}
+                                </p>
                                 <div className="bg-blue-50 border-l-4 border-l-blue-400 p-3 rounded-r">
                                   <p className="text-xs text-blue-800 font-medium flex items-center gap-1">
                                     <Lightbulb className="h-3 w-3" />
                                     Why this helps:
                                   </p>
-                                  <p className="text-xs text-blue-700 mt-1">{suggestion.reasoning}</p>
+                                  <p className="text-xs text-blue-700 mt-1">
+                                    {suggestion.reasoning}
+                                  </p>
                                 </div>
-                                {suggestion.actionable && (
+                                {isSuggestionActionable(suggestion) && (
                                   <Button
                                     size="sm"
-                                    onClick={() => handleApplySuggestion(suggestion)}
+                                    onClick={() =>
+                                      handleApplySuggestion(suggestion)
+                                    }
                                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -481,25 +749,52 @@ export function SmartAssistant({
                         </div>
                       ) : (
                         <div className="text-center py-12 text-gray-500">
-                          <Lightbulb className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                          <h4 className="font-medium mb-2">No suggestions available</h4>
-                          <p className="text-sm">Add more course details or try refreshing to get AI suggestions.</p>
-                          <Button 
-                            onClick={refreshSuggestions} 
-                            variant="outline" 
-                            className="mt-4"
-                            disabled={isGeneratingSuggestions}
-                          >
-                            Generate Suggestions
-                          </Button>
+                          {(() => {
+                            const currentType = suggestionTypes.find(
+                              (t) => t.type === selectedSuggestionType
+                            );
+                            const IconComponent =
+                              currentType?.icon || Lightbulb;
+                            return (
+                              <>
+                                <IconComponent
+                                  className={`h-16 w-16 mx-auto mb-4 opacity-30 ${
+                                    currentType?.color || "text-gray-400"
+                                  }`}
+                                />
+                                <h4 className="font-medium mb-2">
+                                  No {currentType?.title.toLowerCase()}{" "}
+                                  available
+                                </h4>
+                                <p className="text-sm mb-4">
+                                  {selectedSuggestionType ===
+                                  SuggestionType.GENERAL
+                                    ? "Add more course details to get comprehensive AI suggestions."
+                                    : `Generate specific ${currentType?.title.toLowerCase()} for your course.`}
+                                </p>
+                                <Button
+                                  onClick={handleRefreshSuggestions}
+                                  variant="outline"
+                                  disabled={loadingStates.suggestions}
+                                  className="bg-white hover:bg-gray-50"
+                                >
+                                  <Wand2 className="h-4 w-4 mr-2" />
+                                  Generate {currentType?.title}
+                                </Button>
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
                   </ScrollArea>
                 </div>
               </TabsContent>
-
-              <TabsContent value="chat" className="h-full flex flex-col min-h-0">
+              {/* CHAT TAB */}
+              <TabsContent
+                value="chat"
+                className="h-full flex flex-col min-h-0"
+              >
                 <div className="flex-1 overflow-hidden min-h-0">
                   <ScrollArea className="h-full min-h-0">
                     <div className="p-4 space-y-4 min-h-full">
@@ -507,7 +802,9 @@ export function SmartAssistant({
                         <div
                           key={index}
                           className={`flex ${
-                            message.role === "user" ? "justify-end" : "justify-start"
+                            message.role === "user"
+                              ? "justify-end"
+                              : "justify-start"
                           }`}
                         >
                           <div
@@ -517,7 +814,9 @@ export function SmartAssistant({
                                 : "bg-gray-100 text-gray-900 border"
                             }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                              {message.content}
+                            </p>
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-xs opacity-70">
                                 {message.timestamp.toLocaleTimeString()}
@@ -529,12 +828,14 @@ export function SmartAssistant({
                           </div>
                         </div>
                       ))}
-                      {isLoading && (
+                      {loadingStates.chat && (
                         <div className="flex justify-start">
                           <div className="max-w-[85%] rounded-lg px-4 py-3 bg-gray-100 border">
                             <div className="flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                              <span className="text-sm text-gray-600">AI is thinking...</span>
+                              <span className="text-sm text-gray-600">
+                                AI is thinking...
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -543,7 +844,7 @@ export function SmartAssistant({
                     </div>
                   </ScrollArea>
                 </div>
-                
+
                 <div className="flex gap-2 p-4 border-t bg-gray-50">
                   <Input
                     placeholder="Ask about course creation, get suggestions, or request specific help..."
@@ -556,11 +857,11 @@ export function SmartAssistant({
                       }
                     }}
                     className="flex-1"
-                    disabled={isLoading}
+                    disabled={loadingStates.chat}
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={!query.trim() || isLoading}
+                    disabled={!query.trim() || loadingStates.chat}
                     size="icon"
                     className="bg-blue-600 hover:bg-blue-700"
                   >
@@ -568,7 +869,6 @@ export function SmartAssistant({
                   </Button>
                 </div>
 
-                {/* Quick prompts */}
                 <div className="px-4 pb-4">
                   <p className="text-xs text-gray-500 mb-2">Quick prompts:</p>
                   <div className="flex flex-wrap gap-2">
@@ -576,15 +876,15 @@ export function SmartAssistant({
                       "Help me improve my course title",
                       "What's missing from my course?",
                       "How should I structure this course?",
-                      "Suggest a good price for my course"
+                      "Suggest a good price for my course",
                     ].map((prompt, index) => (
                       <Button
                         key={index}
                         variant="outline"
                         size="sm"
                         className="text-xs h-7"
-                        onClick={() => setQuery(prompt)}
-                        disabled={isLoading}
+                        onClick={() => handleQuickPrompt(prompt)}
+                        disabled={loadingStates.chat}
                       >
                         {prompt}
                       </Button>
@@ -592,378 +892,529 @@ export function SmartAssistant({
                   </div>
                 </div>
               </TabsContent>
-
-              <TabsContent value="analysis" className="h-full flex flex-col min-h-0">
+              {/* ANALYSIS TAB */}
+              <TabsContent
+                value="analysis"
+                className="h-full flex flex-col min-h-0"
+              >
                 <div className="flex items-center justify-between flex-shrink-0 p-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-purple-600" />
                     Course Analysis
                   </h3>
                   <Button
-                    onClick={analyzeCourse}
-                    disabled={isAnalyzing}
+                    onClick={handleAnalyzeCourse}
+                    disabled={loadingStates.analysis}
                     variant="outline"
                     className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
                   >
-                    {isAnalyzing ? (
+                    {loadingStates.analysis ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <BarChart3 className="h-4 w-4 mr-2" />
                     )}
-                    {analysis ? 'Refresh Analysis' : 'Analyze Course'}
+                    {analysis ? "Refresh Analysis" : "Analyze Course"}
                   </Button>
                 </div>
 
                 <div className="flex-1 overflow-hidden min-h-0">
-                  {isAnalyzing ? (
+                  {loadingStates.analysis ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-purple-600" />
-                        <p className="text-gray-600">Analyzing your course...</p>
-                        <p className="text-sm text-gray-500 mt-1">This comprehensive analysis may take a moment</p>
+                        <p className="text-gray-600">
+                          Analyzing your course...
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          This comprehensive analysis may take a moment
+                        </p>
                       </div>
                     </div>
                   ) : analysis ? (
                     <ScrollArea className="h-full min-h-0">
                       <div className="p-4 space-y-6 min-h-full">
-                      {/* Overall Score Summary */}
-                      <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-purple-800">
-                            <Award className="h-5 w-5" />
-                            Overall Course Score
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center">
-                              <div className={`text-2xl font-bold ${getScoreColor(analysis.completeness.score)}`}>
-                                {analysis.completeness.score}%
-                              </div>
-                              <p className="text-sm text-gray-600">Completeness</p>
-                            </div>
-                            <div className="text-center">
-                              <div className={`text-2xl font-bold ${getScoreColor(analysis.quality.score)}`}>
-                                {analysis.quality.score}%
-                              </div>
-                              <p className="text-sm text-gray-600">Quality</p>
-                            </div>
-                            <div className="text-center">
-                              <div className={`text-2xl font-bold ${getScoreColor(analysis.marketability.score)}`}>
-                                {analysis.marketability.score}%
-                              </div>
-                              <p className="text-sm text-gray-600">Marketability</p>
-                            </div>
-                            <div className="text-center">
-                              <div className={`text-2xl font-bold ${getScoreColor(analysis.seo.score)}`}>
-                                {analysis.seo.score}%
-                              </div>
-                              <p className="text-sm text-gray-600">SEO</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Completeness Score */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Target className="h-5 w-5 text-blue-600" />
-                            Completeness Analysis
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center gap-4">
-                            <Progress value={analysis.completeness.score} className="flex-1" />
-                            <span className={`font-bold text-2xl ${getScoreColor(analysis.completeness.score)}`}>
-                              {analysis.completeness.score}%
-                            </span>
-                          </div>
-                          
-                          {analysis.completeness.missingElements.length > 0 && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                              <h4 className="font-medium text-red-800 mb-2 flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4" />
-                                Missing Elements:
-                              </h4>
-                              <ul className="space-y-1">
-                                {analysis.completeness.missingElements.map((element, index) => (
-                                  <li key={index} className="flex items-center gap-2 text-sm text-red-700">
-                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                                    {element}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {analysis.completeness.recommendations.length > 0 && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                              <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
-                                <Lightbulb className="h-4 w-4" />
-                                Recommendations:
-                              </h4>
-                              <ul className="space-y-1">
-                                {analysis.completeness.recommendations.map((rec, index) => (
-                                  <li key={index} className="flex items-center gap-2 text-sm text-blue-700">
-                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                                    {rec}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      {/* Quality & Marketability */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
+                        {/* Overall Score Summary */}
+                        <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
                           <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                              <Sparkles className="h-5 w-5 text-green-600" />
-                              Quality Assessment
+                            <CardTitle className="flex items-center gap-2 text-purple-800">
+                              <Award className="h-5 w-5" />
+                              Overall Course Score
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="flex items-center gap-4">
-                              <Progress value={analysis.quality.score} className="flex-1" />
-                              <span className={`font-bold text-xl ${getScoreColor(analysis.quality.score)}`}>
-                                {analysis.quality.score}%
-                              </span>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              {analysis.quality.strengths.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-green-700 mb-2 flex items-center gap-1">
-                                    <CheckCircle className="h-4 w-4" />
-                                    Strengths:
-                                  </h5>
-                                  <ul className="text-xs space-y-1 text-green-600">
-                                    {analysis.quality.strengths.map((strength, index) => (
-                                      <li key={index} className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-green-500 rounded-full" />
-                                        {strength}
-                                      </li>
-                                    ))}
-                                  </ul>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="text-center">
+                                <div
+                                  className={`text-2xl font-bold ${getScoreColor(
+                                    analysis.completeness.score
+                                  )}`}
+                                >
+                                  {analysis.completeness.score}%
                                 </div>
-                              )}
-                              
-                              {analysis.quality.improvements.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-orange-700 mb-2 flex items-center gap-1">
-                                    <Zap className="h-4 w-4" />
-                                    Areas for Improvement:
-                                  </h5>
-                                  <ul className="text-xs space-y-1 text-orange-600">
-                                    {analysis.quality.improvements.map((improvement, index) => (
-                                      <li key={index} className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-orange-500 rounded-full" />
-                                        {improvement}
-                                      </li>
-                                    ))}
-                                  </ul>
+                                <p className="text-sm text-gray-600">
+                                  Completeness
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <div
+                                  className={`text-2xl font-bold ${getScoreColor(
+                                    analysis.quality.score
+                                  )}`}
+                                >
+                                  {analysis.quality.score}%
                                 </div>
-                              )}
+                                <p className="text-sm text-gray-600">Quality</p>
+                              </div>
+                              <div className="text-center">
+                                <div
+                                  className={`text-2xl font-bold ${getScoreColor(
+                                    analysis.marketability.score
+                                  )}`}
+                                >
+                                  {analysis.marketability.score}%
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  Marketability
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <div
+                                  className={`text-2xl font-bold ${getScoreColor(
+                                    analysis.seo.score
+                                  )}`}
+                                >
+                                  {analysis.seo.score}%
+                                </div>
+                                <p className="text-sm text-gray-600">SEO</p>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
 
+                        {/* Completeness Score */}
                         <Card>
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                              <TrendingUp className="h-5 w-5 text-purple-600" />
-                              Market Analysis
+                              <Target className="h-5 w-5 text-blue-600" />
+                              Completeness Analysis
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div className="flex items-center gap-4">
-                              <Progress value={analysis.marketability.score} className="flex-1" />
-                              <span className={`font-bold text-xl ${getScoreColor(analysis.marketability.score)}`}>
-                                {analysis.marketability.score}%
+                              <Progress
+                                value={analysis.completeness.score}
+                                className="flex-1"
+                              />
+                              <span
+                                className={`font-bold text-2xl ${getScoreColor(
+                                  analysis.completeness.score
+                                )}`}
+                              >
+                                {analysis.completeness.score}%
                               </span>
                             </div>
-                            
-                            <div className="space-y-3">
-                              <div>
-                                <h5 className="text-sm font-medium mb-1">Competition Level:</h5>
-                                <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                                  {analysis.marketability.competitiveness}
-                                </p>
+
+                            {analysis.completeness.missingElements.length >
+                              0 && (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <h4 className="font-medium text-red-800 mb-2 flex items-center gap-2">
+                                  <AlertCircle className="h-4 w-4" />
+                                  Missing Elements:
+                                </h4>
+                                <ul className="space-y-1">
+                                  {analysis.completeness.missingElements.map(
+                                    (element, index) => (
+                                      <li
+                                        key={index}
+                                        className="flex items-center gap-2 text-sm text-red-700"
+                                      >
+                                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                                        {element}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
                               </div>
-                              
-                              <div>
-                                <h5 className="text-sm font-medium mb-2">Target Audience:</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {analysis.marketability.targetAudience.map((audience, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                      <Users className="h-3 w-3 mr-1" />
-                                      {audience}
-                                    </Badge>
-                                  ))}
-                                </div>
+                            )}
+
+                            {analysis.completeness.recommendations.length >
+                              0 && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4" />
+                                  Recommendations:
+                                </h4>
+                                <ul className="space-y-1">
+                                  {analysis.completeness.recommendations.map(
+                                    (rec, index) => (
+                                      <li
+                                        key={index}
+                                        className="flex items-center gap-2 text-sm text-blue-700"
+                                      >
+                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                                        {rec}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
                               </div>
-                              
-                              {analysis.marketability.pricingRecommendation && (
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                  <h5 className="text-sm font-medium text-green-800 mb-1">
-                                    Recommended Price:
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Quality & Marketability */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-green-600" />
+                                Quality Assessment
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="flex items-center gap-4">
+                                <Progress
+                                  value={analysis.quality.score}
+                                  className="flex-1"
+                                />
+                                <span
+                                  className={`font-bold text-xl ${getScoreColor(
+                                    analysis.quality.score
+                                  )}`}
+                                >
+                                  {analysis.quality.score}%
+                                </span>
+                              </div>
+
+                              <div className="space-y-3">
+                                {analysis.quality.strengths.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-medium text-green-700 mb-2 flex items-center gap-1">
+                                      <CheckCircle className="h-4 w-4" />
+                                      Strengths:
+                                    </h5>
+                                    <ul className="text-xs space-y-1 text-green-600">
+                                      {analysis.quality.strengths.map(
+                                        (strength, index) => (
+                                          <li
+                                            key={index}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <div className="w-1 h-1 bg-green-500 rounded-full" />
+                                            {strength}
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {analysis.quality.improvements.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-medium text-orange-700 mb-2 flex items-center gap-1">
+                                      <Zap className="h-4 w-4" />
+                                      Areas for Improvement:
+                                    </h5>
+                                    <ul className="text-xs space-y-1 text-orange-600">
+                                      {analysis.quality.improvements.map(
+                                        (improvement, index) => (
+                                          <li
+                                            key={index}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <div className="w-1 h-1 bg-orange-500 rounded-full" />
+                                            {improvement}
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5 text-purple-600" />
+                                Market Analysis
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="flex items-center gap-4">
+                                <Progress
+                                  value={analysis.marketability.score}
+                                  className="flex-1"
+                                />
+                                <span
+                                  className={`font-bold text-xl ${getScoreColor(
+                                    analysis.marketability.score
+                                  )}`}
+                                >
+                                  {analysis.marketability.score}%
+                                </span>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div>
+                                  <h5 className="text-sm font-medium mb-1">
+                                    Competition Level:
                                   </h5>
-                                  <p className="text-2xl font-bold text-green-700 flex items-center gap-1">
-                                    <DollarSign className="h-5 w-5" />
-                                    {analysis.marketability.pricingRecommendation}
+                                  <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                    {analysis.marketability.competitiveness}
                                   </p>
                                 </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
 
-                      {/* SEO Analysis */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Search className="h-5 w-5 text-indigo-600" />
-                            SEO Optimization
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center gap-4">
-                            <Progress value={analysis.seo.score} className="flex-1" />
-                            <span className={`font-bold text-xl ${getScoreColor(analysis.seo.score)}`}>
-                              {analysis.seo.score}%
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h5 className="text-sm font-medium mb-2 flex items-center gap-1">
-                                <Search className="h-4 w-4" />
-                                Recommended Keywords:
-                              </h5>
-                              <div className="flex flex-wrap gap-1">
-                                {analysis.seo.keywords.map((keyword, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {keyword}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h5 className="text-sm font-medium mb-2 flex items-center gap-1">
-                                <Zap className="h-4 w-4" />
-                                SEO Improvements:
-                              </h5>
-                              <ul className="text-xs space-y-1">
-                                {analysis.seo.optimizations.map((optimization, index) => (
-                                  <li key={index} className="flex items-center gap-2 text-gray-600">
-                                    <div className="w-1 h-1 bg-indigo-500 rounded-full" />
-                                    {optimization}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                    <h4 className="font-medium mb-2">No analysis available</h4>
-                    <p className="text-sm mb-4">Get detailed insights about your course quality, completeness, and marketability.</p>
-                    <Button 
-                      onClick={analyzeCourse} 
-                      className="bg-purple-600 hover:bg-purple-700"
-                      disabled={isAnalyzing}
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Analyze Course
-                    </Button>
-                  </div>
-                )}
-                </div>
-              </TabsContent>
+                                <div>
+                                  <h5 className="text-sm font-medium mb-2">
+                                    Target Audience:
+                                  </h5>
+                                  <div className="flex flex-wrap gap-1">
+                                    {analysis.marketability.targetAudience.map(
+                                      (audience, index) => (
+                                        <Badge
+                                          key={index}
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          <Users className="h-3 w-3 mr-1" />
+                                          {audience}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
 
-              <TabsContent value="generate" className="h-full flex flex-col min-h-0">
-                <div className="flex items-center gap-2 flex-shrink-0 p-4">
-                  <Wand2 className="h-5 w-5 text-purple-600" />
-                  <h3 className="text-lg font-semibold">Content Generation</h3>
-                </div>
-                
-                <div className="flex-1 overflow-hidden min-h-0">
-                  <ScrollArea className="h-full min-h-0">
-                    <div className="p-4 space-y-6 min-h-full">
-                      {/* Content Generation Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {generationRequests.map((request) => {
-                          const IconComponent = request.icon;
-                          const hasContent = generatedContent[request.type];
-                          
-                          return (
-                            <Card 
-                              key={request.type} 
-                              className={`cursor-pointer hover:shadow-md transition-all ${
-                                hasContent ? 'border-green-200 bg-green-50' : 'hover:border-purple-200'
-                              }`}
-                            >
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                  <IconComponent className="h-4 w-4" />
-                                  {request.title}
-                                  {hasContent && (
-                                    <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Generated
-                                    </Badge>
-                                  )}
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-3">
-                                <p className="text-sm text-gray-600">
-                                  {request.description}
-                                </p>
-                                
-                                {hasContent && (
-                                  <div className="bg-white border rounded-lg p-3 max-h-32 overflow-y-auto">
-                                    <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                                      {typeof generatedContent[request.type] === 'string' 
-                                        ? generatedContent[request.type].substring(0, 200) + '...'
-                                        : JSON.stringify(generatedContent[request.type], null, 2).substring(0, 200) + '...'
+                                {analysis.marketability
+                                  .pricingRecommendation && (
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <h5 className="text-sm font-medium text-green-800 mb-1">
+                                      Recommended Price:
+                                    </h5>
+                                    <p className="text-lg font-bold text-green-700 flex items-center gap-1">
+                                      <DollarSign className="h-4 w-4" />
+                                      {
+                                        analysis.marketability
+                                          .pricingRecommendation
                                       }
                                     </p>
                                   </div>
                                 )}
-                                
-                                <Button 
-                                  size="sm" 
-                                  className="w-full"
-                                  onClick={() => handleGenerateContent(request.type)}
-                                  disabled={request.loading}
-                                  variant={hasContent ? "outline" : "default"}
-                                >
-                                  {request.loading ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Generating...
-                                    </>
-                                  ) : hasContent ? (
-                                    <>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        {/* SEO Analysis */}
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Search className="h-5 w-5 text-indigo-600" />
+                              SEO Optimization
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="flex items-center gap-4">
+                              <Progress
+                                value={analysis.seo.score}
+                                className="flex-1"
+                              />
+                              <span
+                                className={`font-bold text-xl ${getScoreColor(
+                                  analysis.seo.score
+                                )}`}
+                              >
+                                {analysis.seo.score}%
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <h5 className="text-sm font-medium mb-2 flex items-center gap-1">
+                                  <Search className="h-4 w-4" />
+                                  Recommended Keywords:
+                                </h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {analysis.seo.keywords.map(
+                                    (keyword, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {keyword}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <h5 className="text-sm font-medium mb-2 flex items-center gap-1">
+                                  <Zap className="h-4 w-4" />
+                                  SEO Improvements:
+                                </h5>
+                                <ul className="text-xs space-y-1">
+                                  {analysis.seo.optimizations.map(
+                                    (optimization, index) => (
+                                      <li
+                                        key={index}
+                                        className="flex items-center gap-2 text-gray-600"
+                                      >
+                                        <div className="w-1 h-1 bg-indigo-500 rounded-full" />
+                                        {optimization}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <h4 className="font-medium mb-2">
+                        No analysis available
+                      </h4>
+                      <p className="text-sm mb-4">
+                        Get detailed insights about your course quality,
+                        completeness, and marketability.
+                      </p>
+                      <Button
+                        onClick={handleAnalyzeCourse}
+                        className="bg-purple-600 hover:bg-purple-700"
+                        disabled={loadingStates.analysis}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Analyze Course
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              {/* GENERATE TAB */}
+
+              <TabsContent
+                value="generate"
+                className="h-full flex flex-col min-h-0"
+              >
+                <div className="flex items-center gap-2 flex-shrink-0 p-4">
+                  <Wand2 className="h-5 w-5 text-purple-600" />
+                  <h3 className="text-lg font-semibold">Content Generation</h3>
+                </div>
+
+                <div className="flex-1 overflow-hidden min-h-0">
+                  <ScrollArea className="h-full min-h-0">
+                    <div className="p-4 space-y-6 min-h-full">
+                      {/* Info Banner */}
+                      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Sparkles className="h-5 w-5 text-purple-600 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-purple-900 mb-1">
+                                AI-Powered Content Generation
+                              </h4>
+                              <p className="text-sm text-purple-700">
+                                Generate professional course materials
+                                instantly. Click any card below to create
+                                content, then copy or download the results to
+                                use in your course.
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Content Generation Cards */}
+                      <div className="grid grid-cols-1 gap-4">
+                        {generationRequests.map((request) => {
+                          const IconComponent = request.icon;
+                          const hasContent = generatedContent[request.type];
+                          const isLoading = loadingStates[request.type];
+
+                          return (
+                            <Card
+                              key={request.type}
+                              className={`transition-all ${
+                                hasContent
+                                  ? "border-green-200 bg-green-50"
+                                  : "hover:border-purple-200 hover:shadow-md"
+                              }`}
+                            >
+                              <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <IconComponent className="h-5 w-5" />
+                                    <CardTitle className="text-base">
+                                      {request.title}
+                                    </CardTitle>
+                                  </div>
+                                  {hasContent && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="bg-green-100 text-green-700"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Generated
+                                    </Badge>
+                                  )}
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                  {request.description}
+                                </p>
+
+                                {!hasContent ? (
+                                  <Button
+                                    className="w-full"
+                                    onClick={() =>
+                                      handleGenerateContent(request.type)
+                                    }
+                                    disabled={isLoading}
+                                    variant="default"
+                                  >
+                                    {isLoading ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Generating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Wand2 className="h-4 w-4 mr-2" />
+                                        Generate Content
+                                      </>
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <ContentViewer
+                                      content={
+                                        generatedContent[request.type]
+                                          ?.content ||
+                                        generatedContent[request.type]
+                                      }
+                                      type={request.type}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      onClick={() =>
+                                        handleGenerateContent(request.type)
+                                      }
+                                      disabled={isLoading}
+                                    >
                                       <RefreshCw className="h-4 w-4 mr-2" />
                                       Regenerate
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Wand2 className="h-4 w-4 mr-2" />
-                                      Generate
-                                    </>
-                                  )}
-                                </Button>
+                                    </Button>
+                                  </div>
+                                )}
                               </CardContent>
                             </Card>
                           );
@@ -981,66 +1432,83 @@ export function SmartAssistant({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="justify-start h-auto py-3"
-                              onClick={() => handleQuickAction('improve_title')}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-yellow-500" />
-                                <div className="text-left">
-                                  <div className="font-medium">Improve Title</div>
-                                  <div className="text-xs text-gray-500">Make it more compelling</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              {
+                                type: ContentType.TITLE_SUGGESTIONS,
+                                icon: Sparkles,
+                                color: "yellow",
+                                title: "Improve Title",
+                                description:
+                                  "Get 5 compelling title alternatives",
+                              },
+                              {
+                                type: ContentType.DESCRIPTION_IMPROVEMENT,
+                                icon: BookOpen,
+                                color: "blue",
+                                title: "Expand Description",
+                                description: "Create 2-3 enhanced descriptions",
+                              },
+                              {
+                                type: ContentType.LEARNING_OBJECTIVES,
+                                icon: Target,
+                                color: "green",
+                                title: "Learning Objectives",
+                                description: "Define 5-8 measurable objectives",
+                              },
+                              {
+                                type: ContentType.TARGET_AUDIENCE,
+                                icon: Users,
+                                color: "purple",
+                                title: "Target Audience",
+                                description: "Identify ideal student profile",
+                              },
+                            ].map((action) => {
+                              const ActionIcon = action.icon;
+                              const hasContent = generatedContent[action.type];
+                              const isLoading = loadingStates[action.type];
+
+                              return (
+                                <div
+                                  key={action.type}
+                                  className="flex flex-col gap-2"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="justify-start h-auto py-3"
+                                    onClick={() =>
+                                      handleGenerateContent(action.type)
+                                    }
+                                    disabled={isLoading}
+                                  >
+                                    <div className="flex items-center gap-3 text-left w-full">
+                                      <ActionIcon
+                                        className={`h-5 w-5 text-${action.color}-500 flex-shrink-0`}
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-medium text-sm">
+                                          {action.title}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-0.5">
+                                          {action.description}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </Button>
+                                  {hasContent && (
+                                    <ContentViewer
+                                      content={
+                                        generatedContent[action.type]
+                                          ?.content ||
+                                        generatedContent[action.type]
+                                      }
+                                      type={action.type}
+                                    />
+                                  )}
                                 </div>
-                              </div>
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="justify-start h-auto py-3"
-                              onClick={() => handleQuickAction('expand_description')}
-                            >
-                              <div className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-blue-500" />
-                                <div className="text-left">
-                                  <div className="font-medium">Expand Description</div>
-                                  <div className="text-xs text-gray-500">Add more details</div>
-                                </div>
-                              </div>
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="justify-start h-auto py-3"
-                              onClick={() => handleQuickAction('generate_objectives')}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Target className="h-4 w-4 text-green-500" />
-                                <div className="text-left">
-                                  <div className="font-medium">Learning Objectives</div>
-                                  <div className="text-xs text-gray-500">Define clear goals</div>
-                                </div>
-                              </div>
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="justify-start h-auto py-3"
-                              onClick={() => handleQuickAction('define_audience')}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-purple-500" />
-                                <div className="text-left">
-                                  <div className="font-medium">Target Audience</div>
-                                  <div className="text-xs text-gray-500">Identify learners</div>
-                                </div>
-                              </div>
-                            </Button>
+                              );
+                            })}
                           </div>
                         </CardContent>
                       </Card>
@@ -1058,15 +1526,23 @@ export function SmartAssistant({
                             <div className="flex justify-between items-center text-sm">
                               <span>Content Generated:</span>
                               <span className="font-medium">
-                                {Object.keys(generatedContent).length} / {generationRequests.length}
+                                {Object.keys(generatedContent).length} /{" "}
+                                {generationRequests.length + 4}
                               </span>
                             </div>
-                            <Progress 
-                              value={(Object.keys(generatedContent).length / generationRequests.length) * 100} 
+                            <Progress
+                              value={
+                                (Object.keys(generatedContent).length /
+                                  (generationRequests.length + 4)) *
+                                100
+                              }
                               className="h-2"
                             />
                             <p className="text-xs text-gray-600">
-                              Complete all generations to have comprehensive course materials ready.
+                              {Object.keys(generatedContent).length ===
+                              (generationRequests.length + 4)
+                                ? "All content generated! You're ready to enhance your course."
+                                : "Generate more content to build comprehensive course materials."}
                             </p>
                           </div>
                         </CardContent>
@@ -1088,11 +1564,17 @@ export function SmartAssistant({
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span>Connected</span>
               </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                <span>Data Persisted</span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <span>Step {currentStep + 1} of 4</span>
               <Badge variant="outline" className="text-xs">
-                {data.title ? 'Course: ' + data.title.substring(0, 20) + '...' : 'Untitled Course'}
+                {data.title
+                  ? "Course: " + data.title.substring(0, 20) + "..."
+                  : "Untitled Course"}
               </Badge>
             </div>
           </div>

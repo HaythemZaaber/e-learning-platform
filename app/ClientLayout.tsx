@@ -44,8 +44,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const isUnauthorizedPage = pathname === "/unauthorized";
 
   // Don't show navbar on auth pages
-  const showNavbar = !isAuthPage;
-  const showFooter = !isAuthPage && !isDashboardPage && !isUnauthorizedPage;
+  const showNavbar = !isAuthPage && !pathname?.startsWith("/sessions") ;
+  const showFooter = !isAuthPage && !isDashboardPage && !isUnauthorizedPage && !pathname?.startsWith("/sessions");
+
 
   // Handle loading state
   useEffect(() => {

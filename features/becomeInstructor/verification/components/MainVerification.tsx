@@ -123,13 +123,6 @@ export function MainVerification() {
     return () => clearInterval(interval);
   }, []); // Remove store dependency
 
-  console.log("personalInfo", store.personalInfo);
-  console.log("professionalBackground", store.professionalBackground);
-  console.log("teachingInformation", store.teachingInformation);
-  console.log("documents", store.documents);
-  console.log("verificationStatus", store.verificationStatus);
-  console.log("consents", store.consents);
-  console.log("steps", store.steps);
   // Get the authenticated user ID
   const getCurrentUserId = (): string | null => {
     return user?.id || authUser?.id || null;
@@ -142,6 +135,23 @@ export function MainVerification() {
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
+    }
+  };
+
+  // Refresh application status from server
+  const refreshApplicationStatus = async (userId: string) => {
+    try {
+      const { data } = await client.query({
+        query: GET_INSTRUCTOR_VERIFICATION,
+        variables: { userId },
+        fetchPolicy: 'network-only',
+      });
+
+      if (data?.getInstructorVerification?.success && data?.getInstructorVerification?.data) {
+        setApplicationStatus(data.getInstructorVerification.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing application status:', error);
     }
   };
 
@@ -280,6 +290,9 @@ export function MainVerification() {
         
         // Show success state
         setAuthError(null);
+        
+        // Refresh application status after successful submission
+        await refreshApplicationStatus(userId);
       } else {
         throw new Error('Failed to submit application. Please try again.');
       }
@@ -366,8 +379,8 @@ export function MainVerification() {
     );
   }
 
-  // Show loading state
-  if (isLoading && !store.verificationId) {
+  // Show loading state only for initial load (not for submission)
+  if (isLoading && !store.verificationId && !loadAttempted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -457,7 +470,7 @@ export function MainVerification() {
               onClick={handleSaveDraft}
               variant="outline"
               disabled={saveStatus === 'saving'}
-              className='bg-blue-500 hover:bg-blue-600 text-white hover:text-white'
+              className='bg-blue-500 hover:bg-blue-600 text-white hover:text-white cursor-pointer'
             >
               {saveStatus === 'saving' ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -469,6 +482,22 @@ export function MainVerification() {
               {saveStatus === 'error' && 'Error'}
               {saveStatus === 'idle' && 'Save Draft'}
             </Button>
+            
+            {/* Submit Application Button - Only show on last step */}
+            {store.currentStep === steps.length - 1 && (
+              <Button
+                onClick={handleSubmitApplication}
+                disabled={!store.steps[store.currentStep]?.isValid || isLoading}
+                className="bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {isLoading ? 'Submitting...' : 'Submit Application'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -891,14 +920,7 @@ export function MainVerification() {
             {/* Step Content */}
             <Card>
               <CardContent className="p-6">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-3" />
-                    <span className="text-gray-600">Loading...</span>
-                  </div>
-                ) : (
-                  <CurrentStepComponent />
-                )}
+                <CurrentStepComponent />
               </CardContent>
             </Card>
 
@@ -918,6 +940,7 @@ export function MainVerification() {
                   onClick={handleSaveDraft}
                   variant="outline"
                   disabled={saveStatus === 'saving'}
+                  className='hover:text-white cursor-pointer'
                 >
                   {saveStatus === 'saving' ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -927,27 +950,14 @@ export function MainVerification() {
                   Save Draft
                 </Button>
 
-                {store.currentStep < steps.length - 1 ? (
+                {store.currentStep < steps.length - 1 && (
                   <Button
                     onClick={handleNext}
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
-                ) : (
-                  <Button
-                    onClick={handleSubmitApplication}
-                    disabled={!store.steps[store.currentStep]?.isValid || isLoading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    {isLoading ? 'Submitting...' : 'Submit Application'}
-                  </Button>
-                )}
+                ) }
               </div>
             </div>
 

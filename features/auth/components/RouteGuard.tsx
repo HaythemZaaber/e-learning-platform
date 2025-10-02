@@ -159,6 +159,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
                            pathname === "/checkout/pending" ||
                            pathname === "/checkout/processing" ||
                            pathname.startsWith("/payment/") ||
+                           pathname.startsWith("/sessions/") ||
                            pathname === "/404";
       
       if (!isPublicRoute) {
@@ -167,7 +168,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
         console.log('Available public routes:', [
           "/", "/sign-in", "/sign-up", "/sso-callback", "/unauthorized",
           "/become-instructor", "/how-it-works", "/instructors", "/courses",
-          "/checkout", "/payment", "/404"
+          "/checkout", "/payment", "/404", "/sessions/"
         ]);
         router.push("/404");
         return;

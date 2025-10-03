@@ -45,6 +45,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAIAssistant } from "../hooks/useAIAssistant";
 import { SuggestionType, ContentType } from "../services/aiAssistantService";
 import { ContentViewer } from "./ContentViewer";
+import { ContentPreviewModal } from "./ContentPreviewModal";
 import { toast } from "sonner";
 
 interface SmartAssistantProps {
@@ -71,6 +72,17 @@ export function SmartAssistant({
 }: SmartAssistantProps) {
   const [activeTab, setActiveTab] = useState("suggestions");
   const [query, setQuery] = useState("");
+  const [previewModal, setPreviewModal] = useState<{
+    isOpen: boolean;
+    content: any;
+    type: string;
+    title: string;
+  }>({
+    isOpen: false,
+    content: null,
+    type: "",
+    title: "",
+  });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isApplyingSuggestionRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -289,22 +301,63 @@ export function SmartAssistant({
   const handleApplySuggestion = useCallback(
     (suggestion: any) => {
       let applied = false;
+      let appliedContent = "";
 
       // Set flag to prevent unwanted refresh
       isApplyingSuggestionRef.current = true;
 
+      // Extract the actual content to apply based on suggestion type
+      let contentToApply = "";
+
       switch (suggestion.type) {
         case "title":
-          updateData({ title: suggestion.content });
+          // For title suggestions, try to extract the actual title from the content
+          // Look for patterns like "For example: 'Title here'" or similar
+          let titleMatch = suggestion.content?.match(
+            /For example:\s*['"]([^'"]+)['"]/
+          );
+          if (!titleMatch) {
+            // Try alternative patterns
+            titleMatch = suggestion.content?.match(/['"]([^'"]+)['"]/);
+          }
+          if (titleMatch) {
+            contentToApply = titleMatch[1];
+          } else if (suggestion.metadata?.title) {
+            contentToApply = suggestion.metadata.title;
+          } else {
+            // Fallback: use the suggestion title if no specific title is found
+            contentToApply = suggestion.title;
+          }
+          updateData({ title: contentToApply });
+          appliedContent = "title";
           applied = true;
           break;
         case "description":
-          updateData({ description: suggestion.content });
+          // For description suggestions, try to extract the actual description from the content
+          // Look for patterns like "For example:" followed by the description
+          let descMatch = suggestion.content?.match(
+            /For example:\s*['"]([^'"]+)['"]/
+          );
+          if (!descMatch) {
+            // Try alternative patterns - look for quoted text that might be the description
+            descMatch = suggestion.content?.match(/['"]([^'"]{20,})['"]/);
+          }
+          if (descMatch) {
+            contentToApply = descMatch[1];
+          } else if (suggestion.metadata?.description) {
+            contentToApply = suggestion.metadata.description;
+          } else {
+            // Fallback: use the suggestion title if no specific description is found
+            contentToApply = suggestion.title;
+          }
+          updateData({ description: contentToApply });
+          appliedContent = "description";
           applied = true;
           break;
         case "structure":
           if (suggestion.metadata?.sections) {
             updateData({ sections: suggestion.metadata.sections });
+            appliedContent = "course structure";
             applied = true;
           }
           break;
@@ -318,12 +371,14 @@ export function SmartAssistant({
                   suggestion.metadata.description || suggestion.content,
               },
             });
+            appliedContent = "SEO settings";
             applied = true;
           }
           break;
         case "pricing":
           if (suggestion.metadata?.price !== undefined) {
             updateData({ price: suggestion.metadata.price });
+            appliedContent = "pricing";
             applied = true;
           }
           break;
@@ -335,7 +390,13 @@ export function SmartAssistant({
 
       if (applied) {
         removeSuggestion(suggestion.id);
-        toast.success("Suggestion applied successfully!");
+        toast.success(
+          `${
+            appliedContent
+              ? appliedContent.charAt(0).toUpperCase() + appliedContent.slice(1)
+              : "Suggestion"
+          } applied successfully!`
+        );
       } else {
         toast.warning(
           "This suggestion could not be applied. Please check the suggestion details."
@@ -353,6 +414,30 @@ export function SmartAssistant({
   const handleQuickPrompt = useCallback((prompt: string) => {
     setQuery(prompt);
     setActiveTab("chat");
+  }, []);
+
+  const handlePreviewContent = useCallback(
+    (type: ContentType, title: string) => {
+      const content = generatedContent[type];
+      if (content) {
+        setPreviewModal({
+          isOpen: true,
+          content: content.content || content,
+          type,
+          title,
+        });
+      }
+    },
+    [generatedContent]
+  );
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewModal({
+      isOpen: false,
+      content: null,
+      type: "",
+      title: "",
+    });
   }, []);
 
   const handleSuggestionTypeChange = useCallback(
@@ -463,7 +548,7 @@ export function SmartAssistant({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-full h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl w-full h-[90vh] overflow-hidden flex flex-col pb-1">
         <DialogHeader className="flex-shrink-0 border-b pb-4">
           <DialogTitle className="text-xl flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -503,7 +588,7 @@ export function SmartAssistant({
             onValueChange={setActiveTab}
             className="h-full flex flex-col min-h-0"
           >
-            <TabsList className="grid grid-cols-4 mb-4 flex-shrink-0">
+            <TabsList className="grid grid-cols-4 flex-shrink-0">
               <TabsTrigger
                 value="suggestions"
                 className="flex items-center gap-2"
@@ -1371,28 +1456,67 @@ export function SmartAssistant({
                                 </p>
 
                                 {!hasContent ? (
-                                  <Button
-                                    className="w-full"
-                                    onClick={() =>
-                                      handleGenerateContent(request.type)
-                                    }
-                                    disabled={isLoading}
-                                    variant="default"
-                                  >
-                                    {isLoading ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Generating...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Wand2 className="h-4 w-4 mr-2" />
-                                        Generate Content
-                                      </>
-                                    )}
-                                  </Button>
+                                  <div className="space-y-2">
+                                    <Button
+                                      className="w-full"
+                                      onClick={() =>
+                                        handleGenerateContent(request.type)
+                                      }
+                                      disabled={isLoading}
+                                      variant="default"
+                                    >
+                                      {isLoading ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Generating...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Wand2 className="h-4 w-4 mr-2" />
+                                          Generate Content
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full"
+                                      disabled={true}
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Preview (Generate first)
+                                    </Button>
+                                  </div>
                                 ) : (
                                   <div className="space-y-3">
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={() =>
+                                          handlePreviewContent(
+                                            request.type,
+                                            request.title
+                                          )
+                                        }
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Preview
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={() =>
+                                          handleGenerateContent(request.type)
+                                        }
+                                        disabled={isLoading}
+                                      >
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Regenerate
+                                      </Button>
+                                    </div>
                                     <ContentViewer
                                       content={
                                         generatedContent[request.type]
@@ -1401,18 +1525,6 @@ export function SmartAssistant({
                                       }
                                       type={request.type}
                                     />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="w-full"
-                                      onClick={() =>
-                                        handleGenerateContent(request.type)
-                                      }
-                                      disabled={isLoading}
-                                    >
-                                      <RefreshCw className="h-4 w-4 mr-2" />
-                                      Regenerate
-                                    </Button>
                                   </div>
                                 )}
                               </CardContent>
@@ -1473,38 +1585,68 @@ export function SmartAssistant({
                                   key={action.type}
                                   className="flex flex-col gap-2"
                                 >
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="justify-start h-auto py-3"
-                                    onClick={() =>
-                                      handleGenerateContent(action.type)
-                                    }
-                                    disabled={isLoading}
-                                  >
-                                    <div className="flex items-center gap-3 text-left w-full">
-                                      <ActionIcon
-                                        className={`h-5 w-5 text-${action.color}-500 flex-shrink-0`}
-                                      />
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm">
-                                          {action.title}
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-0.5">
-                                          {action.description}
+                                  <div className="space-y-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full h-auto py-3"
+                                      style={{ width: "100%" }}
+                                      onClick={() =>
+                                        handleGenerateContent(action.type)
+                                      }
+                                      disabled={isLoading}
+                                    >
+                                      <div className="flex items-center gap-3 text-left">
+                                        <ActionIcon
+                                          className={`h-5 w-5 text-${action.color}-500 flex-shrink-0`}
+                                        />
+                                        <div className="flex-1">
+                                          <div className="font-medium text-sm">
+                                            {action.title}
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-0.5">
+                                            {action.description}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </Button>
+                                    </Button>
+                                    {!hasContent && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                        disabled={true}
+                                      >
+                                        <Eye className="h-3 w-3 mr-2" />
+                                        Preview (Generate first)
+                                      </Button>
+                                    )}
+                                  </div>
                                   {hasContent && (
-                                    <ContentViewer
-                                      content={
-                                        generatedContent[action.type]
-                                          ?.content ||
-                                        generatedContent[action.type]
-                                      }
-                                      type={action.type}
-                                    />
+                                    <div className="space-y-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() =>
+                                          handlePreviewContent(
+                                            action.type,
+                                            action.title
+                                          )
+                                        }
+                                      >
+                                        <Eye className="h-3 w-3 mr-2" />
+                                        Preview {action.title}
+                                      </Button>
+                                      <ContentViewer
+                                        content={
+                                          generatedContent[action.type]
+                                            ?.content ||
+                                          generatedContent[action.type]
+                                        }
+                                        type={action.type}
+                                      />
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -1540,7 +1682,7 @@ export function SmartAssistant({
                             />
                             <p className="text-xs text-gray-600">
                               {Object.keys(generatedContent).length ===
-                              (generationRequests.length + 4)
+                              generationRequests.length + 4
                                 ? "All content generated! You're ready to enhance your course."
                                 : "Generate more content to build comprehensive course materials."}
                             </p>
@@ -1580,6 +1722,15 @@ export function SmartAssistant({
           </div>
         </div>
       </DialogContent>
+
+      {/* Content Preview Modal */}
+      <ContentPreviewModal
+        isOpen={previewModal.isOpen}
+        onClose={handleClosePreview}
+        content={previewModal.content}
+        type={previewModal.type}
+        title={previewModal.title}
+      />
     </Dialog>
   );
 }

@@ -1,18 +1,35 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Copy, Download, Check } from "lucide-react";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Eye, X, Copy, Download, Check } from "lucide-react";
+import { ContentViewer } from "./ContentViewer";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface ContentViewerProps {
+interface ContentPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   content: any;
   type: string;
+  title: string;
 }
 
-export function ContentViewer({ content, type }: ContentViewerProps) {
+export function ContentPreviewModal({
+  isOpen,
+  onClose,
+  content,
+  type,
+  title,
+}: ContentPreviewModalProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -20,7 +37,7 @@ export function ContentViewer({ content, type }: ContentViewerProps) {
       typeof content === "string" ? content : JSON.stringify(content, null, 2);
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
-    toast.success("Copied to clipboard");
+    toast.success("Content copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -31,12 +48,58 @@ export function ContentViewer({ content, type }: ContentViewerProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${type.replace(/_/g, "-")}.txt`;
+    a.download = `${type.replace(/_/g, "-")}-preview.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Downloaded successfully");
+    toast.success("Content downloaded successfully");
+  };
+
+  const getTypeIcon = (contentType: string) => {
+    switch (contentType) {
+      case "lecture_outline":
+        return "📚";
+      case "assessment_questions":
+        return "❓";
+      case "seo_content":
+        return "🔍";
+      case "marketing_copy":
+        return "📢";
+      case "title_suggestions":
+        return "💡";
+      case "description_improvement":
+        return "📝";
+      case "learning_objectives":
+        return "🎯";
+      case "target_audience":
+        return "👥";
+      default:
+        return "📄";
+    }
+  };
+
+  const getTypeColor = (contentType: string) => {
+    switch (contentType) {
+      case "lecture_outline":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      case "assessment_questions":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "seo_content":
+        return "bg-green-50 text-green-700 border-green-200";
+      case "marketing_copy":
+        return "bg-purple-50 text-purple-700 border-purple-200";
+      case "title_suggestions":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "description_improvement":
+        return "bg-pink-50 text-pink-700 border-pink-200";
+      case "learning_objectives":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "target_audience":
+        return "bg-orange-50 text-orange-700 border-orange-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
+    }
   };
 
   // Parse content if it's a string containing JSON
@@ -85,38 +148,78 @@ export function ContentViewer({ content, type }: ContentViewerProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Action Buttons */}
-      <div className="flex gap-2 sticky top-0 bg-white z-10 py-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleCopy}
-          className="flex-1"
-        >
-          {copied ? (
-            <Check className="h-3 w-3 mr-1" />
-          ) : (
-            <Copy className="h-3 w-3 mr-1" />
-          )}
-          {copied ? "Copied!" : "Copy All"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleDownload}
-          className="flex-1"
-        >
-          <Download className="h-3 w-3 mr-1" />
-          Download
-        </Button>
-      </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl w-full h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 border-b pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{getTypeIcon(type)}</div>
+              <div>
+                <DialogTitle className="text-xl">{title}</DialogTitle>
+                <Badge className={`mt-1 ${getTypeColor(type)}`}>
+                  {type.replace(/_/g, " ").toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                className="flex items-center gap-2"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="flex items-center gap-2 mr-4"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+            </div>
+          </div>
+        </DialogHeader>
 
-      {/* Content Display - Hidden inline, only shown in preview modal */}
-      {/* <div className="space-y-4">{renderContent()}</div> */}
-    </div>
+        <div className="flex-1 overflow-hidden min-h-0">
+          <ScrollArea className="h-full min-h-0">
+            <div className="p-6">
+              <div className="space-y-4">{renderContent()}</div>
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t bg-gray-50 px-6 py-3">
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center gap-4">
+              <span>Preview Mode</span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Content Ready</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Type: {type.replace(/_/g, " ")}</span>
+              <Badge variant="outline" className="text-xs">
+                Generated Content
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
+
+// View components for content display
 
 // Marketing Copy View
 function MarketingCopyView({ content }: { content: any }) {

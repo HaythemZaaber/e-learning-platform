@@ -63,16 +63,20 @@ import courseThumbnail from "@/public/images/courses/courseThumbnail.jpg";
 // Utility function to calculate actual course duration from sections
 const getActualCourseDuration = (course: Course) => {
   if (!course?.sections) return { hours: 0, minutes: 0 };
-  
+
   const totalSeconds = course.sections.reduce((total: number, section: any) => {
-    const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
-      lectureTotal + (lecture.duration || 0), 0) || 0;
+    const sectionDuration =
+      section.lectures?.reduce(
+        (lectureTotal: number, lecture: any) =>
+          lectureTotal + (lecture.duration || 0),
+        0
+      ) || 0;
     return total + sectionDuration;
   }, 0);
-  
+
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  
+
   return { hours, minutes };
 };
 
@@ -82,7 +86,7 @@ interface CourseCardProps {
   onToggleSave: (id: string) => void;
   className?: string;
   viewMode: "grid" | "list";
-  
+
   // Enhanced student-specific props
   isEnrolled?: boolean;
   progress?: number; // 0-100
@@ -95,14 +99,14 @@ interface CourseCardProps {
   totalLectures?: number;
   difficultyMatch?: number; // 0-100 how well it matches student's level
   estimatedTimeToComplete?: number; // in hours
-  
+
   // Enhanced interaction callbacks
   onEnroll?: (courseId: string) => Promise<void>;
   onContinueLearning?: (courseId: string) => void;
   onPreview?: (courseId: string) => void;
   onShare?: (course: Course) => void;
   onTrackView?: (courseId: string) => void;
-  
+
   // Cart and payment callbacks
   onAddToCart?: (courseId: string) => Promise<void>;
   onRemoveFromCart?: (courseId: string) => Promise<void>;
@@ -121,7 +125,15 @@ const EnhancedCourseBadge = ({
   text: string;
   color?: CourseBadgeColor;
   icon?: React.ElementType;
-  variant?: "default" | "featured" | "trending" | "bestseller" | "enrolled" | "new" | "premium" | "free";
+  variant?:
+    | "default"
+    | "featured"
+    | "trending"
+    | "bestseller"
+    | "enrolled"
+    | "new"
+    | "premium"
+    | "free";
   className?: string;
 }) => {
   if (!text) return null;
@@ -144,12 +156,18 @@ const EnhancedCourseBadge = ({
         return "bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 text-white shadow-lg ring-2 ring-emerald-300/50";
       default:
         const colorClasses = {
-          primary: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-blue-300/50",
-          secondary: "bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-md ring-1 ring-gray-300/50",
-          accent: "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md ring-1 ring-indigo-300/50",
-          success: "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md ring-1 ring-emerald-300/50",
-          warning: "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md ring-1 ring-amber-300/50",
-          error: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md ring-1 ring-red-300/50",
+          primary:
+            "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-blue-300/50",
+          secondary:
+            "bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-md ring-1 ring-gray-300/50",
+          accent:
+            "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md ring-1 ring-indigo-300/50",
+          success:
+            "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md ring-1 ring-emerald-300/50",
+          warning:
+            "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md ring-1 ring-amber-300/50",
+          error:
+            "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md ring-1 ring-red-300/50",
           info: "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md ring-1 ring-cyan-300/50",
         };
         return colorClasses[color || "primary"];
@@ -191,7 +209,6 @@ const StudentPriceDisplay = ({
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
-    
   const isFree = price === 0;
 
   const sizeClasses = {
@@ -234,20 +251,22 @@ const StudentPriceDisplay = ({
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-baseline gap-2">
           <div className={cn("font-bold text-gray-900", sizeClasses[size])}>
-            {currencySymbol}{price.toFixed(2)}
+            {currencySymbol}
+            {price.toFixed(2)}
           </div>
-          
+
           {hasDiscount && (
             <div className="text-gray-500 line-through text-sm font-medium">
-              {currencySymbol}{originalPrice.toFixed(2)}
+              {currencySymbol}
+              {originalPrice.toFixed(2)}
             </div>
           )}
         </div>
-        
+
         {hasDiscount && (
           <div className="flex items-center gap-2">
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="text-xs px-3 py-1 font-bold bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg animate-pulse"
             >
               -{discountPercentage}% OFF
@@ -259,17 +278,20 @@ const StudentPriceDisplay = ({
           </div>
         )}
       </div>
-      
+
       {/* Additional Price Info */}
       {hasDiscount && (
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full">
             <Timer className="h-3 w-3" />
-            <span className="font-medium">Save {currencySymbol}{(originalPrice - price).toFixed(2)}</span>
+            <span className="font-medium">
+              Save {currencySymbol}
+              {(originalPrice - price).toFixed(2)}
+            </span>
           </div>
         </div>
       )}
-      
+
       {/* Free Course Benefits */}
       {isFree && (
         <div className="flex items-center gap-2 text-xs text-green-600 mt-1">
@@ -284,10 +306,10 @@ const StudentPriceDisplay = ({
 };
 
 // Progress Status Badge Component
-const ProgressStatusBadge = ({ 
-  progress, 
-  className 
-}: { 
+const ProgressStatusBadge = ({
+  progress,
+  className,
+}: {
   progress: number;
   className?: string;
 }) => {
@@ -297,28 +319,28 @@ const ProgressStatusBadge = ({
         text: "Not Started",
         color: "bg-gray-100 text-gray-700 border-gray-300",
         icon: Clock,
-        progressColor: "bg-gray-300"
+        progressColor: "bg-gray-300",
       };
     } else if (progress === 100) {
       return {
         text: "Completed",
         color: "bg-green-100 text-green-700 border-green-300",
         icon: CheckCircle,
-        progressColor: "bg-green-500"
+        progressColor: "bg-green-500",
       };
     } else if (progress >= 50) {
       return {
         text: "In Progress",
         color: "bg-blue-100 text-blue-700 border-blue-300",
         icon: TrendingUp,
-        progressColor: "bg-blue-500"
+        progressColor: "bg-blue-500",
       };
     } else {
       return {
         text: "Just Started",
         color: "bg-orange-100 text-orange-700 border-orange-300",
         icon: Play,
-        progressColor: "bg-orange-500"
+        progressColor: "bg-orange-500",
       };
     }
   };
@@ -329,13 +351,10 @@ const ProgressStatusBadge = ({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {/* Progress indicator dot */}
-      <div className={cn(
-        "w-2 h-2 rounded-full",
-        statusInfo.progressColor
-      )} />
-      
-      <Badge 
-        variant="outline" 
+      <div className={cn("w-2 h-2 rounded-full", statusInfo.progressColor)} />
+
+      <Badge
+        variant="outline"
         className={cn(
           "flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border-2",
           statusInfo.color
@@ -349,13 +368,13 @@ const ProgressStatusBadge = ({
 };
 
 // Enhanced Progress Bar Component
-const StudentProgressBar = ({ 
-  progress, 
-  timeSpent, 
-  streakDays, 
+const StudentProgressBar = ({
+  progress,
+  timeSpent,
+  streakDays,
   certificateEarned,
-  className 
-}: { 
+  className,
+}: {
   progress: number;
   timeSpent?: number;
   streakDays?: number;
@@ -364,7 +383,9 @@ const StudentProgressBar = ({
 }) => (
   <div className={cn("space-y-3", className)}>
     <div className="flex justify-between items-center">
-      <span className="text-sm font-semibold text-gray-700">Learning Progress</span>
+      <span className="text-sm font-semibold text-gray-700">
+        Learning Progress
+      </span>
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-blue-600">{progress}%</span>
         {certificateEarned && (
@@ -375,7 +396,7 @@ const StudentProgressBar = ({
         )}
       </div>
     </div>
-    
+
     <div className="relative w-full bg-gray-200 rounded-full h-3 overflow-hidden">
       <div
         className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 h-3 rounded-full transition-all duration-700 ease-out relative"
@@ -384,7 +405,7 @@ const StudentProgressBar = ({
         <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
       </div>
     </div>
-    
+
     <div className="flex items-center justify-between text-xs">
       {timeSpent && timeSpent > 0 && (
         <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
@@ -394,7 +415,7 @@ const StudentProgressBar = ({
           </span>
         </div>
       )}
-      
+
       {streakDays && streakDays > 0 && (
         <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
           <Zap className="h-3 w-3" />
@@ -408,11 +429,16 @@ const StudentProgressBar = ({
 // Enhanced Level Badge Styling
 const getLevelBadgeStyle = (level: CourseLevel) => {
   const styles = {
-    BEGINNER: "bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg ring-2 ring-green-300/50",
-    INTERMEDIATE: "bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg ring-2 ring-blue-300/50",
-    ADVANCED: "bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg ring-2 ring-orange-300/50",
-    EXPERT: "bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg ring-2 ring-red-300/50",
-    ALL_LEVELS: "bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg ring-2 ring-purple-300/50",
+    BEGINNER:
+      "bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg ring-2 ring-green-300/50",
+    INTERMEDIATE:
+      "bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg ring-2 ring-blue-300/50",
+    ADVANCED:
+      "bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg ring-2 ring-orange-300/50",
+    EXPERT:
+      "bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg ring-2 ring-red-300/50",
+    ALL_LEVELS:
+      "bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg ring-2 ring-purple-300/50",
   };
   return styles[level] || styles.BEGINNER;
 };
@@ -420,32 +446,37 @@ const getLevelBadgeStyle = (level: CourseLevel) => {
 // Intensity Level Icons
 const getIntensityIcon = (intensity?: CourseIntensity) => {
   if (!intensity) return null;
-  
+
   const icons = {
     LIGHT: <Battery className="h-3 w-3" />,
     REGULAR: <Signal className="h-3 w-3" />,
     INTENSIVE: <Zap className="h-3 w-3" />,
     BOOTCAMP: <Target className="h-3 w-3" />,
   };
-  
+
   return icons[intensity];
 };
 
 // Student Action Configuration
-const getStudentActions = (isEnrolled: boolean, isFree: boolean = false, isInCart: boolean = false) => {
+const getStudentActions = (
+  isEnrolled: boolean,
+  isFree: boolean = false,
+  isInCart: boolean = false
+) => {
   if (isEnrolled) {
     return {
       primary: {
         icon: Play,
         label: "Continue Learning",
         action: "continue",
-        className: "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg",
+        className:
+          "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg",
       },
-      secondary: { 
-        icon: BookOpen, 
-        label: "Course Details", 
+      secondary: {
+        icon: BookOpen,
+        label: "Course Details",
         action: "view",
-        className: "border-green-200 text-green-700 hover:bg-green-50"
+        className: "border-green-200 text-green-700 hover:bg-green-50",
       },
     };
   } else {
@@ -455,22 +486,22 @@ const getStudentActions = (isEnrolled: boolean, isFree: boolean = false, isInCar
           icon: ShoppingCart,
           label: isInCart ? "Remove from Cart" : "Add to Cart",
           action: isInCart ? "removeFromCart" : "addToCart",
-          className: isInCart 
+          className: isInCart
             ? "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
             : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg",
         },
-        secondary: { 
-          icon: BookOpen, 
-          label: "Enroll for Free", 
+        secondary: {
+          icon: BookOpen,
+          label: "Enroll for Free",
           action: "enroll",
-          className: "border-green-200 text-green-700 hover:bg-green-50"
+          className: "border-green-200 text-green-700 hover:bg-green-50",
         },
         tertiary: {
           icon: Eye,
           label: "Preview",
           action: "preview",
-          className: "border-gray-200 text-gray-700 hover:bg-gray-50"
-        }
+          className: "border-gray-200 text-gray-700 hover:bg-gray-50",
+        },
       };
     } else {
       return {
@@ -478,22 +509,23 @@ const getStudentActions = (isEnrolled: boolean, isFree: boolean = false, isInCar
           icon: ShoppingCart,
           label: isInCart ? "Remove from Cart" : "Add to Cart",
           action: isInCart ? "removeFromCart" : "addToCart",
-          className: isInCart 
+          className: isInCart
             ? "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
             : "bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg",
         },
-        secondary: { 
-          icon: DollarSign, 
-          label: "Buy Now", 
+        secondary: {
+          icon: DollarSign,
+          label: "Buy Now",
           action: "buyNow",
-          className: "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+          className:
+            "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-700",
         },
         tertiary: {
           icon: Eye,
           label: "Preview",
           action: "preview",
-          className: "border-gray-200 text-gray-700 hover:bg-gray-50"
-        }
+          className: "border-gray-200 text-gray-700 hover:bg-gray-50",
+        },
       };
     }
   }
@@ -550,7 +582,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const handleActionClick = async (action: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     switch (action) {
       case "continue":
         onContinueLearning?.(course.id);
@@ -576,7 +608,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
     }
   };
 
-  const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+  const isFree =
+    course.price === 0 || course.settings?.enrollmentType === "FREE";
   const actions = getStudentActions(isEnrolled, isFree, isInCart);
 
   const GridView = () => (
@@ -598,10 +631,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           //   imageLoaded ? "scale-100" : "scale-105",
           //   isHovered ? "scale-110" : "scale-100"
           // )}
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
           onLoad={() => setImageLoaded(true)}
         />
-        
+
         {/* Enhanced gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40" />
 
@@ -610,23 +643,39 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <div className="flex flex-col gap-2">
             {/* Priority badges with enhanced animations */}
             {course.isFeatured && (
-              <EnhancedCourseBadge text="✨ Featured" variant="featured" icon={Crown} />
+              <EnhancedCourseBadge
+                text="✨ Featured"
+                variant="featured"
+                icon={Crown}
+              />
             )}
             {course.isTrending && (
-              <EnhancedCourseBadge text="🔥 Trending" variant="trending" icon={TrendingUp} />
+              <EnhancedCourseBadge
+                text="🔥 Trending"
+                variant="trending"
+                icon={TrendingUp}
+              />
             )}
             {course.isBestseller && (
-              <EnhancedCourseBadge text="👑 Bestseller" variant="bestseller" icon={Award} />
+              <EnhancedCourseBadge
+                text="👑 Bestseller"
+                variant="bestseller"
+                icon={Award}
+              />
             )}
             {course.badge && (
-              <EnhancedCourseBadge 
-                text={course.badge} 
+              <EnhancedCourseBadge
+                text={course.badge}
                 color={course.badgeColor}
                 variant="premium"
               />
             )}
             {isEnrolled && (
-              <EnhancedCourseBadge text="Enrolled" variant="enrolled" icon={CheckCircle} />
+              <EnhancedCourseBadge
+                text="Enrolled"
+                variant="enrolled"
+                icon={CheckCircle}
+              />
             )}
           </div>
 
@@ -668,17 +717,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         {/* Enhanced bottom section with multiple badges */}
         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className={cn("text-xs font-bold border-0", getLevelBadgeStyle(course.level))}>
-              {course.level.replace('_', ' ')}
+            <Badge
+              className={cn(
+                "text-xs font-bold border-0",
+                getLevelBadgeStyle(course.level)
+              )}
+            >
+              {course.level.replace("_", " ")}
             </Badge>
-            
+
             {course.intensityLevel && (
               <Badge className="bg-black/70 backdrop-blur-md text-white border-0 text-xs flex items-center gap-1 shadow-lg">
                 {getIntensityIcon(course.intensityLevel)}
                 {course.intensityLevel}
               </Badge>
             )}
-            
+
             {/* Additional feature badges */}
             {course.hasCertificate && (
               <Badge className="bg-amber-500/90 backdrop-blur-md text-white border-0 text-xs shadow-lg">
@@ -688,13 +742,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {course.language && course.language !== 'en' && (
+            {course.language && course.language !== "en" && (
               <Badge className="bg-indigo-500/90 backdrop-blur-md text-white border-0 text-xs flex items-center gap-1 shadow-lg">
                 <Globe className="h-3 w-3" />
                 {course.language.toUpperCase()}
               </Badge>
             )}
-            
+
             <Badge className="bg-black/70 backdrop-blur-md text-white border-0 text-xs flex items-center gap-1 shadow-lg">
               <Clock className="h-3 w-3" />
               <span className="text-xs font-semibold">
@@ -744,9 +798,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         {/* Difficulty match indicator */}
         {difficultyMatch !== undefined && difficultyMatch >= 80 && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-            <EnhancedCourseBadge 
-              text="🎯 Perfect Match" 
-              variant="new" 
+            <EnhancedCourseBadge
+              text="🎯 Perfect Match"
+              variant="new"
               icon={Target}
             />
           </div>
@@ -765,8 +819,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           </Badge>
           <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-200">
             <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-bold text-yellow-700">{course.avgRating}</span>
-            <span className="text-xs text-yellow-600">({course.totalRatings})</span>
+            <span className="text-sm font-bold text-yellow-700">
+              {course.avgRating}
+            </span>
+            <span className="text-xs text-yellow-600">
+              ({course.totalRatings})
+            </span>
           </div>
         </div>
 
@@ -795,9 +853,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               streakDays={streakDays}
               certificateEarned={certificateEarned}
             /> */}
-            
-           {/* Continue learning section  */}
-            {/* {lastWatchedLecture && (
+
+        {/* Continue learning section  */}
+        {/* {lastWatchedLecture && (
               <div className="mt-4 pt-3 border-t border-blue-200">
                 <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
                   <Play className="h-4 w-4" />
@@ -810,27 +868,32 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         )} */}
 
         {/* Learning outcomes preview for non-enrolled students */}
-        {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
-            <div className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-green-600" />
-              What you'll learn
+        {!isEnrolled &&
+          course.whatYouLearn &&
+          course.whatYouLearn.length > 0 && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
+              <div className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-green-600" />
+                What you'll learn
+              </div>
+              <div className="space-y-1">
+                {course.whatYouLearn.slice(0, 2).map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-2 text-sm text-green-700"
+                  >
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
+                    <span className="line-clamp-1">{item}</span>
+                  </div>
+                ))}
+                {course.whatYouLearn.length > 2 && (
+                  <div className="text-sm text-green-600 font-semibold">
+                    +{course.whatYouLearn.length - 2} more skills to unlock
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-1">
-              {course.whatYouLearn.slice(0, 2).map((item, index) => (
-                <div key={index} className="flex items-start gap-2 text-sm text-green-700">
-                  <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                  <span className="line-clamp-1">{item}</span>
-                </div>
-              ))}
-              {course.whatYouLearn.length > 2 && (
-                <div className="text-sm text-green-600 font-semibold">
-                  +{course.whatYouLearn.length - 2} more skills to unlock
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Enhanced stats with premium styling */}
         <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-2">
@@ -844,15 +907,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           </div>
           <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1.5 rounded-lg">
             <Users className="h-4 w-4 text-green-500" />
-            <span className="font-medium">{course.currentEnrollments?.toLocaleString()} students</span>
+            <span className="font-medium">
+              {course.currentEnrollments?.toLocaleString()} students
+            </span>
           </div>
-          
-        
-          
-        
-          
-        
-          
+
           {course.hasSubtitles && (
             <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1.5 rounded-lg">
               <Languages className="h-4 w-4 text-indigo-500" />
@@ -867,7 +926,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 ring-3 ring-white shadow-md">
               <Image
                 src={course.instructor?.profileImage || courseThumbnail}
-                alt={course.instructor?.firstName + " " + course.instructor?.lastName || "Instructor"}
+                alt={
+                  course.instructor?.firstName +
+                    " " +
+                    course.instructor?.lastName || "Instructor"
+                }
                 width={40}
                 height={40}
                 className="object-cover"
@@ -875,18 +938,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {course.instructor?.firstName + " " + course.instructor?.lastName}
+                {course.instructor?.firstName +
+                  " " +
+                  course.instructor?.lastName}
               </p>
               <p className="text-xs text-gray-600 truncate">
                 {course.instructor?.title}
               </p>
             </div>
           </div>
-          
+
           {course.instructor?.teachingRating && (
             <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-200">
               <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-              <span className="text-xs font-semibold text-yellow-700">{course.instructor.teachingRating}</span>
+              <span className="text-xs font-semibold text-yellow-700">
+                {course.instructor.teachingRating}
+              </span>
             </div>
           )}
         </div>
@@ -906,7 +973,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 isEnrolled={isEnrolled}
                 currency={course.currency}
               />
-              
+
               {/* Course Value Indicators - Responsive */}
               {!isEnrolled && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -929,7 +996,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                       <Download className="h-3 w-3" />
                       <span className="hidden xs:inline">Resources</span>
                       <span className="xs:hidden">
-                        {typeof course.downloadableResources === 'number' ? course.downloadableResources : '✓'}
+                        {typeof course.downloadableResources === "number"
+                          ? course.downloadableResources
+                          : "✓"}
                       </span>
                     </div>
                   )}
@@ -964,12 +1033,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   <Share2 className="h-4 w-4" />
                 </Button>
               )} */}
-              
+
               {/* Tertiary Action Button - Only for non-enrolled paid courses */}
               {!isEnrolled && !isFree && actions.tertiary && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className={cn(
                     "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                     actions.tertiary.className
@@ -977,15 +1046,19 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   onClick={(e) => handleActionClick(actions.tertiary.action, e)}
                 >
                   <actions.tertiary.icon className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">{actions.tertiary.label}</span>
-                  <span className="sm:hidden">{actions.tertiary.label.split(' ')[0]}</span>
+                  <span className="hidden sm:inline">
+                    {actions.tertiary.label}
+                  </span>
+                  <span className="sm:hidden">
+                    {actions.tertiary.label.split(" ")[0]}
+                  </span>
                 </Button>
               )}
-              
+
               {/* Secondary Action Button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className={cn(
                   "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                   actions.secondary.className
@@ -993,13 +1066,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 onClick={(e) => handleActionClick(actions.secondary.action, e)}
               >
                 <actions.secondary.icon className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">{actions.secondary.label}</span>
-                <span className="sm:hidden">{actions.secondary.label.split(' ')[0]}</span>
+                <span className="hidden sm:inline">
+                  {actions.secondary.label}
+                </span>
+                <span className="sm:hidden">
+                  {actions.secondary.label.split(" ")[0]}
+                </span>
               </Button>
-            
+
               {/* Primary Action Button */}
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className={cn(
                   "rounded-xl hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                   actions.primary.className
@@ -1007,8 +1084,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 onClick={(e) => handleActionClick(actions.primary.action, e)}
               >
                 <actions.primary.icon className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">{actions.primary.label}</span>
-                <span className="sm:hidden">{actions.primary.label.split(' ')[0]}</span>
+                <span className="hidden sm:inline">
+                  {actions.primary.label}
+                </span>
+                <span className="sm:hidden">
+                  {actions.primary.label.split(" ")[0]}
+                </span>
               </Button>
             </div>
           </div>
@@ -1016,9 +1097,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           {/* Mobile Share Button - Only show on small screens */}
           {onShare && !isEnrolled && (
             <div className="sm:hidden">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="w-full text-gray-600 hover:text-gray-800"
                 onClick={(e) => {
                   e.preventDefault();
@@ -1037,17 +1118,26 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">Your Progress</span>
-                <span className="text-gray-900 font-semibold">{Math.round(progress)}%</span>
+                <span className="text-gray-900 font-semibold">
+                  {Math.round(progress)}%
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div 
+                <div
                   className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-500">
-                <span>{completedLectures || 0} of {totalLectures || 0} lectures</span>
-                <span>{timeSpent ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m` : '0m'} watched</span>
+                <span>
+                  {completedLectures || 0} of {totalLectures || 0} lectures
+                </span>
+                <span>
+                  {timeSpent
+                    ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m`
+                    : "0m"}{" "}
+                  watched
+                </span>
               </div>
             </div>
           )}
@@ -1078,38 +1168,54 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             )}
             onLoad={() => setImageLoaded(true)}
           />
-          
+
           <div className="absolute inset-0 bg-gradient-to-r lg:bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
           {/* Premium badges section */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
             {course.isFeatured && (
-              <EnhancedCourseBadge text="✨ Featured" variant="featured" icon={Crown} />
+              <EnhancedCourseBadge
+                text="✨ Featured"
+                variant="featured"
+                icon={Crown}
+              />
             )}
             {course.isTrending && (
-              <EnhancedCourseBadge text="🔥 Trending" variant="trending" icon={TrendingUp} />
+              <EnhancedCourseBadge
+                text="🔥 Trending"
+                variant="trending"
+                icon={TrendingUp}
+              />
             )}
             {course.isBestseller && (
-              <EnhancedCourseBadge text="👑 Bestseller" variant="bestseller" icon={Award} />
+              <EnhancedCourseBadge
+                text="👑 Bestseller"
+                variant="bestseller"
+                icon={Award}
+              />
             )}
             {course.badge && (
-              <EnhancedCourseBadge 
-                text={course.badge} 
+              <EnhancedCourseBadge
+                text={course.badge}
                 color={course.badgeColor}
                 variant="premium"
               />
             )}
             {isEnrolled && (
-              <EnhancedCourseBadge text="✅ Enrolled" variant="enrolled" icon={CheckCircle} />
+              <EnhancedCourseBadge
+                text="✅ Enrolled"
+                variant="enrolled"
+                icon={CheckCircle}
+              />
             )}
           </div>
 
           {/* Enhanced play overlay */}
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ 
-              opacity: isHovered ? 1 : 0, 
-              scale: isHovered ? 1 : 0.7 
+            animate={{
+              opacity: isHovered ? 1 : 0,
+              scale: isHovered ? 1 : 0.7,
             }}
             transition={{ duration: 0.4 }}
             className="absolute inset-0 flex items-center justify-center"
@@ -1121,8 +1227,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
           {/* Bottom info */}
           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-            <Badge className={cn("text-xs font-bold border-0", getLevelBadgeStyle(course.level))}>
-              {course.level.replace('_', ' ')}
+            <Badge
+              className={cn(
+                "text-xs font-bold border-0",
+                getLevelBadgeStyle(course.level)
+              )}
+            >
+              {course.level.replace("_", " ")}
             </Badge>
 
             <motion.button
@@ -1151,7 +1262,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 <div className="text-center">
                   <div className="text-xs font-bold">SAVE</div>
                   <div className="text-lg font-bold">
-                    {Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}%
+                    {Math.round(
+                      ((course.originalPrice - course.price) /
+                        course.originalPrice) *
+                        100
+                    )}
+                    %
                   </div>
                 </div>
               </div>
@@ -1182,7 +1298,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               >
                 {course.category}
               </Badge>
-              <Badge variant="outline" className="text-sm border-2 hover:bg-gray-50">
+              <Badge
+                variant="outline"
+                className="text-sm border-2 hover:bg-gray-50"
+              >
                 <Clock className="h-4 w-4 mr-1" />
                 {(() => {
                   const duration = getActualCourseDuration(course);
@@ -1204,18 +1323,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 </Badge>
               )}
               {difficultyMatch !== undefined && difficultyMatch >= 80 && (
-                <EnhancedCourseBadge 
-                  text="🎯 Perfect Match" 
-                  variant="new" 
+                <EnhancedCourseBadge
+                  text="🎯 Perfect Match"
+                  variant="new"
                   icon={Target}
                 />
               )}
             </div>
-            
+
             <div className="flex items-center gap-1 bg-yellow-50 px-3 py-2 rounded-xl border border-yellow-200">
               <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-              <span className="text-base font-bold text-yellow-700">{course.avgRating}</span>
-              <span className="text-sm text-yellow-600">({course.totalRatings})</span>
+              <span className="text-base font-bold text-yellow-700">
+                {course.avgRating}
+              </span>
+              <span className="text-sm text-yellow-600">
+                ({course.totalRatings})
+              </span>
             </div>
           </div>
 
@@ -1246,7 +1369,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               />
 
               {/* Next lesson continuation */}
-              {/* {lastWatchedLecture && (
+          {/* {lastWatchedLecture && (
                 <div className="mt-4 pt-4 border-t border-blue-200">
                   <div className="flex items-center gap-3 text-base text-blue-700 bg-blue-100 px-4 py-3 rounded-xl">
                     <Play className="h-5 w-5" />
@@ -1261,43 +1384,54 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           )} */}
 
           {/* Learning outcomes preview for non-enrolled students */}
-          {!isEnrolled && course.whatYouLearn && course.whatYouLearn.length > 0 && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
-              <div className="text-base font-semibold text-green-800 mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-green-600" />
-                What you'll learn
+          {!isEnrolled &&
+            course.whatYouLearn &&
+            course.whatYouLearn.length > 0 && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                <div className="text-base font-semibold text-green-800 mb-3 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-green-600" />
+                  What you'll learn
+                </div>
+                <div className="space-y-1">
+                  {course.whatYouLearn.slice(0, 2).map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-2 text-sm text-green-700"
+                    >
+                      <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
+                      <span className="line-clamp-1">{item}</span>
+                    </div>
+                  ))}
+                  {course.whatYouLearn.length > 2 && (
+                    <div className="text-sm text-green-600 font-semibold">
+                      +{course.whatYouLearn.length - 2} more skills to unlock
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1">
-                {course.whatYouLearn.slice(0, 2).map((item, index) => (
-                  <div key={index} className="flex items-start gap-2 text-sm text-green-700">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                    <span className="line-clamp-1">{item}</span>
-                  </div>
-                ))}
-                {course.whatYouLearn.length > 2 && (
-                  <div className="text-sm text-green-600 font-semibold">
-                    +{course.whatYouLearn.length - 2} more skills to unlock
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            )}
 
           {/* Enhanced stats with premium styling */}
           <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-6">
             <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1.5 rounded-lg">
               <BookOpen className="h-4 w-4 text-blue-500" />
-              <span className="font-medium">{course.totalSections} sections</span>
+              <span className="font-medium">
+                {course.totalSections} sections
+              </span>
             </div>
             <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1.5 rounded-lg">
               <BookOpen className="h-4 w-4 text-blue-500" />
-              <span className="font-medium">{course.totalLectures} lessons</span>
+              <span className="font-medium">
+                {course.totalLectures} lessons
+              </span>
             </div>
             <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1.5 rounded-lg">
               <Users className="h-4 w-4 text-green-500" />
-              <span className="font-medium">{course.currentEnrollments?.toLocaleString()} students</span>
+              <span className="font-medium">
+                {course.currentEnrollments?.toLocaleString()} students
+              </span>
             </div>
-            
+
             {course.hasSubtitles && (
               <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1.5 rounded-lg">
                 <Languages className="h-4 w-4 text-indigo-500" />
@@ -1312,7 +1446,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 ring-3 ring-white shadow-md">
                 <Image
                   src={course.instructor?.profileImage || courseThumbnail}
-                  alt={course.instructor?.firstName + " " + course.instructor?.lastName || "Instructor"}
+                  alt={
+                    course.instructor?.firstName +
+                      " " +
+                      course.instructor?.lastName || "Instructor"
+                  }
                   width={40}
                   height={40}
                   className="object-cover"
@@ -1320,18 +1458,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {course.instructor?.firstName + " " + course.instructor?.lastName}
+                  {course.instructor?.firstName +
+                    " " +
+                    course.instructor?.lastName}
                 </p>
                 <p className="text-xs text-gray-600 truncate">
                   {course.instructor?.title}
                 </p>
               </div>
             </div>
-            
+
             {course.instructor?.teachingRating && (
               <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-200">
                 <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                <span className="text-xs font-semibold text-yellow-700">{course.instructor.teachingRating}</span>
+                <span className="text-xs font-semibold text-yellow-700">
+                  {course.instructor.teachingRating}
+                </span>
               </div>
             )}
           </div>
@@ -1350,7 +1492,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                     isEnrolled={isEnrolled}
                     currency={course.currency}
                   />
-                  
+
                   {/* Course Value Indicators - Responsive */}
                   {!isEnrolled && (
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -1373,7 +1515,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                           <Download className="h-3 w-3" />
                           <span className="hidden xs:inline">Resources</span>
                           <span className="xs:hidden">
-                            {typeof course.downloadableResources === 'number' ? course.downloadableResources : '✓'}
+                            {typeof course.downloadableResources === "number"
+                              ? course.downloadableResources
+                              : "✓"}
                           </span>
                         </div>
                       )}
@@ -1392,48 +1536,66 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   {/* Tertiary Action Button - Only for non-enrolled paid courses */}
                   {!isEnrolled && !isFree && actions.tertiary && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className={cn(
                         "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                         actions.tertiary.className
                       )}
-                      onClick={(e) => handleActionClick(actions.tertiary.action, e)}
+                      onClick={(e) =>
+                        handleActionClick(actions.tertiary.action, e)
+                      }
                     >
                       <actions.tertiary.icon className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">{actions.tertiary.label}</span>
-                      <span className="sm:hidden">{actions.tertiary.label.split(' ')[0]}</span>
+                      <span className="hidden sm:inline">
+                        {actions.tertiary.label}
+                      </span>
+                      <span className="sm:hidden">
+                        {actions.tertiary.label.split(" ")[0]}
+                      </span>
                     </Button>
                   )}
-                  
+
                   {/* Secondary Action Button */}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className={cn(
                       "rounded-xl border-2 hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                       actions.secondary.className
                     )}
-                    onClick={(e) => handleActionClick(actions.secondary.action, e)}
+                    onClick={(e) =>
+                      handleActionClick(actions.secondary.action, e)
+                    }
                   >
                     <actions.secondary.icon className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">{actions.secondary.label}</span>
-                    <span className="sm:hidden">{actions.secondary.label.split(' ')[0]}</span>
+                    <span className="hidden sm:inline">
+                      {actions.secondary.label}
+                    </span>
+                    <span className="sm:hidden">
+                      {actions.secondary.label.split(" ")[0]}
+                    </span>
                   </Button>
-                
+
                   {/* Primary Action Button */}
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className={cn(
                       "rounded-xl hover:scale-105 transition-all duration-200 flex-1 sm:flex-none",
                       actions.primary.className
                     )}
-                    onClick={(e) => handleActionClick(actions.primary.action, e)}
+                    onClick={(e) =>
+                      handleActionClick(actions.primary.action, e)
+                    }
                   >
                     <actions.primary.icon className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">{actions.primary.label}</span>
-                    <span className="sm:hidden">{actions.primary.label.split(' ')[0]}</span>
+                    <span className="hidden sm:inline">
+                      {actions.primary.label}
+                    </span>
+                    <span className="sm:hidden">
+                      {actions.primary.label.split(" ")[0]}
+                    </span>
                   </Button>
                 </div>
               </div>
@@ -1441,9 +1603,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               {/* Mobile Share Button - Only show on small screens */}
               {onShare && !isEnrolled && (
                 <div className="sm:hidden">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="w-full text-gray-600 hover:text-gray-800"
                     onClick={(e) => {
                       e.preventDefault();
@@ -1461,18 +1623,29 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               {isEnrolled && progress !== undefined && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 font-medium">Your Progress</span>
-                    <span className="text-gray-900 font-semibold">{Math.round(progress)}%</span>
+                    <span className="text-gray-600 font-medium">
+                      Your Progress
+                    </span>
+                    <span className="text-gray-900 font-semibold">
+                      {Math.round(progress)}%
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>{completedLectures || 0} of {totalLectures || 0} lectures</span>
-                    <span>{timeSpent ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m` : '0m'} watched</span>
+                    <span>
+                      {completedLectures || 0} of {totalLectures || 0} lectures
+                    </span>
+                    <span>
+                      {timeSpent
+                        ? `${Math.floor(timeSpent / 60)}h ${timeSpent % 60}m`
+                        : "0m"}{" "}
+                      watched
+                    </span>
                   </div>
                 </div>
               )}
@@ -1490,12 +1663,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       whileHover={{ y: viewMode === "grid" ? -8 : 0 }}
-      transition={{ 
-        duration: 0.5, 
+      transition={{
+        duration: 0.5,
         ease: "easeOut",
         type: "spring",
         stiffness: 100,
-        damping: 15 
+        damping: 15,
       }}
       className={className}
       onMouseEnter={() => setIsHovered(true)}
@@ -1510,7 +1683,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 export default CourseCard;
 
 // Named exports for specific use cases
-export { CourseCard as StudentCourseCard, EnhancedCourseBadge, StudentPriceDisplay, StudentProgressBar };
+export {
+  CourseCard as StudentCourseCard,
+  EnhancedCourseBadge,
+  StudentPriceDisplay,
+  StudentProgressBar,
+};
 
 // Type exports
 export type { CourseCardProps };

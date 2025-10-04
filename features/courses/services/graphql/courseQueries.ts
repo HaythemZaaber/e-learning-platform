@@ -5,7 +5,10 @@ import { gql } from "@apollo/client";
 // ============================================================================
 
 export const GET_ALL_COURSES = gql`
-  query GetAllCourses($filters: CourseFiltersInput, $pagination: PaginationInput) {
+  query GetAllCourses(
+    $filters: CourseFiltersInput
+    $pagination: PaginationInput
+  ) {
     getAllCourses(filters: $filters, pagination: $pagination) {
       courses {
         id
@@ -15,27 +18,27 @@ export const GET_ALL_COURSES = gql`
         thumbnail
         trailer
         galleryImages
-        
+
         # Categorization
         category
         subcategory
         level
         status
-        
+
         # Pricing
         price
         originalPrice
         currency
         discountPercent
         discountValidUntil
-        
+
         # Analytics & Performance
         views
         uniqueViews
         completionRate
         avgRating
         totalRatings
-        
+
         # Content Counts
         totalSections
         totalLectures
@@ -44,20 +47,20 @@ export const GET_ALL_COURSES = gql`
         totalContentItems
         totalDiscussions
         totalAnnouncements
-        
+
         # Course Settings & Features
         isFeatured
         isBestseller
         isTrending
-        
+
         # Instructor
         instructor {
           id
           firstName
           lastName
-          
+
           email
-          
+
           profileImage
           title
           bio
@@ -65,9 +68,15 @@ export const GET_ALL_COURSES = gql`
           rating
           totalStudents
           totalCourses
+          instructorProfile {
+            id
+            title
+            bio
+            expertise
+          }
         }
         instructorId
-        
+
         # Content Structure
         sections {
           id
@@ -84,17 +93,17 @@ export const GET_ALL_COURSES = gql`
             isPreview
           }
         }
-        
+
         # Requirements & Outcomes
         requirements
         whatYouLearn
         objectives
         prerequisites
-        
+
         # Course Details
         language
         subtitleLanguages
-        
+
         # Advanced Features
         hasLiveSessions
         hasRecordings
@@ -104,56 +113,56 @@ export const GET_ALL_COURSES = gql`
         downloadableResources
         offlineAccess
         mobileOptimized
-        
+
         # Scheduling
         enrollmentStartDate
         enrollmentEndDate
         courseStartDate
         courseEndDate
-        
+
         # Capacity
         maxStudents
         currentEnrollments
         waitlistEnabled
-        
+
         # Reviews
         reviews {
           id
           rating
           comment
-           
+
           user {
             id
-           username
-           lastName
+            username
+            lastName
           }
         }
-        
+
         # SEO & Marketing
         seoTitle
         seoDescription
         seoTags
         marketingTags
         targetAudience
-        
+
         # Duration & Difficulty
         estimatedHours
         estimatedMinutes
         difficulty
         intensityLevel
-        
+
         # Certificates & Completion
         certificate
         certificateTemplate
         passingGrade
         allowRetakes
         maxAttempts
-        
+
         # Course Settings
         enrollmentType
         isPublic
         version
-        
+
         # Enrollment Information
         enrollments {
           id
@@ -168,33 +177,20 @@ export const GET_ALL_COURSES = gql`
           streakDays
           completionPercentage
           userId
-
         }
-        
-        
-        
-      
-         
-         
-         
-         
       }
 
-  total
+      total
 
-  page
+      page
 
-  limit
+      limit
 
-  totalPages
+      totalPages
 
-  hasNextPage
+      hasNextPage
 
-
-  hasPreviousPage
-
-
-      
+      hasPreviousPage
     }
   }
 `;
@@ -225,22 +221,16 @@ export const GET_FEATURED_COURSES = gql`
         profileImage
         title
       }
-      
+
       # User-specific enrollment data (if authenticated)
       enrollments {
         id
         status
         progress
-       
-       
-       
+
         totalTimeSpent
         completionPercentage
-       
-       
-
       }
-       
     }
   }
 `;
@@ -270,22 +260,16 @@ export const GET_TRENDING_COURSES = gql`
         profileImage
         title
       }
-      
+
       # User-specific enrollment data (if authenticated)
       enrollments {
         id
         status
         progress
-       
-       
-       
+
         totalTimeSpent
         completionPercentage
-       
-       
-
       }
-       
     }
   }
 `;
@@ -300,27 +284,27 @@ export const GET_COURSE_BY_ID = gql`
       thumbnail
       trailer
       galleryImages
-      
+
       # Categorization
       category
       subcategory
       level
       status
-      
+
       # Pricing
       price
       originalPrice
       currency
       discountPercent
       discountValidUntil
-      
+
       # Analytics & Performance
       views
       uniqueViews
       completionRate
       avgRating
       totalRatings
-      
+
       # Content Counts
       totalSections
       totalLectures
@@ -329,12 +313,12 @@ export const GET_COURSE_BY_ID = gql`
       totalContentItems
       totalDiscussions
       totalAnnouncements
-      
+
       # Course Settings & Features
       isFeatured
       isBestseller
       isTrending
-      
+
       # Instructor
       instructor {
         id
@@ -347,11 +331,11 @@ export const GET_COURSE_BY_ID = gql`
         bio
         expertise
         rating
-        
+
         totalCourses
       }
       instructorId
-      
+
       # Content Structure
       sections {
         id
@@ -369,7 +353,7 @@ export const GET_COURSE_BY_ID = gql`
           order
           isPreview
           settings
-          
+
           contentItem {
             id
             title
@@ -382,17 +366,17 @@ export const GET_COURSE_BY_ID = gql`
           }
         }
       }
-      
+
       # Requirements & Outcomes
       requirements
       whatYouLearn
       objectives
       prerequisites
-      
+
       # Course Details
       language
       subtitleLanguages
-      
+
       # Advanced Features
       hasLiveSessions
       hasRecordings
@@ -402,63 +386,59 @@ export const GET_COURSE_BY_ID = gql`
       downloadableResources
       offlineAccess
       mobileOptimized
-      
+
       # Scheduling
       enrollmentStartDate
       enrollmentEndDate
       courseStartDate
       courseEndDate
-      
+
       # Capacity
       maxStudents
       currentEnrollments
       waitlistEnabled
-      
+
       # Reviews
       reviews {
         id
         rating
         comment
-         
+
         user {
           id
-      
+
           profileImage
         }
       }
-      
+
       # SEO & Marketing
       seoTitle
       seoDescription
       seoTags
       marketingTags
       targetAudience
-      
+
       # Duration & Difficulty
       estimatedHours
       estimatedMinutes
       difficulty
       intensityLevel
-      
+
       # Certificates & Completion
       certificate
       certificateTemplate
       passingGrade
       allowRetakes
       maxAttempts
-      
+
       # Course Settings
       enrollmentType
       isPublic
       version
       lastMajorUpdate
-     
-      
     }
   }
 `;
-
-
 
 export const GET_COURSE_LEVELS = gql`
   query GetCourseLevels {
@@ -512,20 +492,20 @@ export const GET_INSTRUCTOR_COURSES = gql`
       thumbnail
       status
       language
-      
+
       # Course metrics (calculated fields from creation)
       avgRating
-      estimatedHours 
-      estimatedMinutes 
-      difficulty     
+      estimatedHours
+      estimatedMinutes
+      difficulty
       intensityLevel
-      
+
       totalLectures
       totalSections
-      totalRatings   
-      completionRate 
+      totalRatings
+      completionRate
       views
-      
+
       # Scheduling & capacity
       enrollmentStartDate
       enrollmentEndDate
@@ -534,7 +514,7 @@ export const GET_INSTRUCTOR_COURSES = gql`
       maxStudents
       currentEnrollments
       waitlistEnabled
-        
+
       # Requirements & outcomes
       objectives
       prerequisites
@@ -549,7 +529,11 @@ export const GET_INSTRUCTOR_COURSES = gql`
 // ============================================================================
 
 export const SEARCH_COURSES = gql`
-  query SearchCourses($query: String!, $filters: CourseFiltersInput, $pagination: PaginationInput) {
+  query SearchCourses(
+    $query: String!
+    $filters: CourseFiltersInput
+    $pagination: PaginationInput
+  ) {
     searchCourses(query: $query, filters: $filters, pagination: $pagination) {
       courses {
         id
@@ -575,7 +559,7 @@ export const SEARCH_COURSES = gql`
         isFeatured
         isBestseller
         isTrending
-        
+
         # User-specific enrollment data (if authenticated)
         userEnrollment {
           id
@@ -590,7 +574,6 @@ export const SEARCH_COURSES = gql`
           streakDays
           lastWatchedLecture
         }
-         
       }
       pagination {
         currentPage
@@ -605,8 +588,16 @@ export const SEARCH_COURSES = gql`
 `;
 
 export const GET_COURSES_BY_CATEGORY = gql`
-  query GetCoursesByCategory($category: String!, $filters: CourseFiltersInput, $pagination: PaginationInput) {
-    getCoursesByCategory(category: $category, filters: $filters, pagination: $pagination) {
+  query GetCoursesByCategory(
+    $category: String!
+    $filters: CourseFiltersInput
+    $pagination: PaginationInput
+  ) {
+    getCoursesByCategory(
+      category: $category
+      filters: $filters
+      pagination: $pagination
+    ) {
       courses {
         id
         title
@@ -631,7 +622,7 @@ export const GET_COURSES_BY_CATEGORY = gql`
         isFeatured
         isBestseller
         isTrending
-        
+
         # User-specific enrollment data (if authenticated)
         userEnrollment {
           id
@@ -646,7 +637,6 @@ export const GET_COURSES_BY_CATEGORY = gql`
           streakDays
           lastWatchedLecture
         }
-         
       }
       pagination {
         currentPage
@@ -661,8 +651,16 @@ export const GET_COURSES_BY_CATEGORY = gql`
 `;
 
 export const GET_COURSES_BY_INSTRUCTOR = gql`
-  query GetCoursesByInstructor($instructorId: String!, $filters: CourseFiltersInput, $pagination: PaginationInput) {
-    getCoursesByInstructor(instructorId: $instructorId, filters: $filters, pagination: $pagination) {
+  query GetCoursesByInstructor(
+    $instructorId: String!
+    $filters: CourseFiltersInput
+    $pagination: PaginationInput
+  ) {
+    getCoursesByInstructor(
+      instructorId: $instructorId
+      filters: $filters
+      pagination: $pagination
+    ) {
       courses {
         id
         title
@@ -687,7 +685,7 @@ export const GET_COURSES_BY_INSTRUCTOR = gql`
         isFeatured
         isBestseller
         isTrending
-        
+
         # User-specific enrollment data (if authenticated)
         userEnrollment {
           id
@@ -702,7 +700,6 @@ export const GET_COURSES_BY_INSTRUCTOR = gql`
           streakDays
           lastWatchedLecture
         }
-         
       }
       pagination {
         currentPage
@@ -737,7 +734,7 @@ export const GET_COURSE_ANALYTICS = gql`
       }
     }
   }
-`; 
+`;
 
 // ============================================================================
 // COURSE PREVIEW AND LECTURE QUERIES
@@ -753,39 +750,39 @@ export const GET_COURSE_PREVIEW = gql`
       thumbnail
       trailer
       galleryImages
-      
+
       # Categorization
       category
       subcategory
       level
       status
-      
+
       # Pricing
       price
       originalPrice
       currency
       discountPercent
       discountValidUntil
-      
+
       # Analytics & Performance
       views
       uniqueViews
       completionRate
       avgRating
       totalRatings
-      
+
       # Content Counts
       totalSections
       totalLectures
       totalQuizzes
       totalAssignments
       totalContentItems
-      
+
       # Course Settings & Features
       isFeatured
       isBestseller
       isTrending
-      
+
       # Instructor
       instructor {
         id
@@ -802,7 +799,7 @@ export const GET_COURSE_PREVIEW = gql`
         totalCourses
       }
       instructorId
-      
+
       # Content Structure (limited for preview)
       sections {
         id
@@ -822,7 +819,7 @@ export const GET_COURSE_PREVIEW = gql`
           videoUrl
           content
           settings
-          
+
           contentItem {
             id
             title
@@ -835,17 +832,17 @@ export const GET_COURSE_PREVIEW = gql`
           }
         }
       }
-      
+
       # Requirements & Outcomes
       requirements
       whatYouLearn
       objectives
       prerequisites
-      
+
       # Course Details
       language
       subtitleLanguages
-      
+
       # Advanced Features
       hasLiveSessions
       hasRecordings
@@ -855,18 +852,18 @@ export const GET_COURSE_PREVIEW = gql`
       downloadableResources
       offlineAccess
       mobileOptimized
-      
+
       # Scheduling
       enrollmentStartDate
       enrollmentEndDate
       courseStartDate
       courseEndDate
-      
+
       # Capacity
       maxStudents
       currentEnrollments
       waitlistEnabled
-      
+
       # Reviews (limited for preview)
       reviews {
         id
@@ -878,33 +875,33 @@ export const GET_COURSE_PREVIEW = gql`
           profileImage
         }
       }
-      
+
       # SEO & Marketing
       seoTitle
       seoDescription
       seoTags
       marketingTags
       targetAudience
-      
+
       # Duration & Difficulty
       estimatedHours
       estimatedMinutes
       difficulty
       intensityLevel
-      
+
       # Certificates & Completion
       certificate
       certificateTemplate
       passingGrade
       allowRetakes
       maxAttempts
-      
+
       # Course Settings
       enrollmentType
       isPublic
       version
       lastMajorUpdate
-      
+
       # User-specific data (if enrolled)
       enrollment {
         id
@@ -912,7 +909,7 @@ export const GET_COURSE_PREVIEW = gql`
         progress
         currentLessonId
       }
-      
+
       # Progress tracking
       progress {
         completedLectures
@@ -949,21 +946,21 @@ export const GET_LECTURE_PREVIEW = gql`
       isRequired
       isCompleted
       isLocked
-      
+
       # AI features
       hasAIQuiz
       aiSummary
       transcription
       autoTranscript
-      
+
       # Accessibility
       captions
       transcript
-      
+
       # Download & offline
       downloadable
       offlineContent
-      
+
       # Content association
       contentItem {
         id
@@ -981,20 +978,20 @@ export const GET_LECTURE_PREVIEW = gql`
         isDownloadable
         requiresAuth
       }
-      
+
       # Settings and metadata
       settings
       metadata
       status
       sectionId
-      
+
       # Resources
       resources {
         name
         url
         type
       }
-      
+
       # Quiz data (embedded)
       quiz {
         id
@@ -1019,13 +1016,11 @@ export const GET_LECTURE_PREVIEW = gql`
           order
         }
       }
-      
 
-      
       # Computed fields
       completionCount
       averageTimeSpent
-      
+
       # Navigation
       previousLecture {
         id
@@ -1034,7 +1029,7 @@ export const GET_LECTURE_PREVIEW = gql`
         isLocked
         isCompleted
       }
-      
+
       nextLecture {
         id
         title
@@ -1042,7 +1037,7 @@ export const GET_LECTURE_PREVIEW = gql`
         isLocked
         isCompleted
       }
-      
+
       # Section info
       section {
         id
@@ -1060,7 +1055,7 @@ export const GET_LECTURE_PREVIEW = gql`
           isCompleted
         }
       }
-      
+
       # Course info
       course {
         id
@@ -1109,7 +1104,6 @@ export const GET_LECTURE_NOTES = gql`
         timestamp
         createdAt
         updatedAt
-       
       }
       errors
     }
@@ -1256,7 +1250,7 @@ export const GENERATE_COURSE_QR_CODE = gql`
       errors
     }
   }
-`; 
+`;
 
 export const GET_MY_ENROLLMENTS = gql`
   query GetMyEnrollments {
@@ -1276,8 +1270,7 @@ export const GET_MY_ENROLLMENTS = gql`
       lastWatchedLecture
       currentLessonId
       enrolledAt
-      
-      
+
       course {
         # Basic Course Info
         id
@@ -1287,27 +1280,27 @@ export const GET_MY_ENROLLMENTS = gql`
         thumbnail
         trailer
         galleryImages
-        
+
         # Categorization
         category
         subcategory
         level
         status
-        
+
         # Pricing
         price
         originalPrice
         currency
         discountPercent
         discountValidUntil
-        
+
         # Analytics & Performance
         views
         uniqueViews
         completionRate
         avgRating
         totalRatings
-        
+
         # Content Counts
         totalSections
         totalLectures
@@ -1316,12 +1309,12 @@ export const GET_MY_ENROLLMENTS = gql`
         totalContentItems
         totalDiscussions
         totalAnnouncements
-        
+
         # Course Settings & Features
         isFeatured
         isBestseller
         isTrending
-        
+
         # Instructor
         instructor {
           id
@@ -1337,7 +1330,7 @@ export const GET_MY_ENROLLMENTS = gql`
           totalCourses
         }
         instructorId
-        
+
         # Content Structure
         sections {
           id
@@ -1354,17 +1347,17 @@ export const GET_MY_ENROLLMENTS = gql`
             isPreview
           }
         }
-        
+
         # Requirements & Outcomes
         requirements
         whatYouLearn
         objectives
         prerequisites
-        
+
         # Course Details
         language
         subtitleLanguages
-        
+
         # Advanced Features
         hasLiveSessions
         hasRecordings
@@ -1374,18 +1367,18 @@ export const GET_MY_ENROLLMENTS = gql`
         downloadableResources
         offlineAccess
         mobileOptimized
-        
+
         # Scheduling
         enrollmentStartDate
         enrollmentEndDate
         courseStartDate
         courseEndDate
-        
+
         # Capacity
         maxStudents
         currentEnrollments
         waitlistEnabled
-        
+
         # Reviews
         reviews {
           id
@@ -1397,32 +1390,32 @@ export const GET_MY_ENROLLMENTS = gql`
             lastName
           }
         }
-        
+
         # SEO & Marketing
         seoTitle
         seoDescription
         seoTags
         marketingTags
         targetAudience
-        
+
         # Duration & Difficulty
         estimatedHours
         estimatedMinutes
         difficulty
         intensityLevel
-        
+
         # Certificates & Completion
         certificate
         certificateTemplate
         passingGrade
         allowRetakes
         maxAttempts
-        
+
         # Course Settings
         enrollmentType
         isPublic
         version
-        
+
         # Timestamps
         createdAt
         updatedAt
@@ -1431,4 +1424,4 @@ export const GET_MY_ENROLLMENTS = gql`
       }
     }
   }
-`; 
+`;

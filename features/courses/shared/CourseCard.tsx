@@ -249,21 +249,21 @@ const StudentPriceDisplay = ({
     <div className={cn("flex flex-col gap-2", className)}>
       {/* Main Price Display */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-baseline gap-2">
-          <div className={cn("font-bold text-gray-900", sizeClasses[size])}>
+        <div className="flex items-baseline gap-2 ">
+          <div className={cn("font-bold text-gray-900 !text-2xl", sizeClasses[size])}>
             {currencySymbol}
-            {price.toFixed(2)}
+            {price?.toFixed(2)}
           </div>
 
-          {hasDiscount && (
+          {!!hasDiscount && (
             <div className="text-gray-500 line-through text-sm font-medium">
               {currencySymbol}
-              {originalPrice.toFixed(2)}
+              {originalPrice?.toFixed(2)}
             </div>
           )}
         </div>
 
-        {hasDiscount && (
+        {!!hasDiscount && (
           <div className="flex items-center gap-2">
             <Badge
               variant="destructive"
@@ -280,20 +280,20 @@ const StudentPriceDisplay = ({
       </div>
 
       {/* Additional Price Info */}
-      {hasDiscount && (
+      {!!hasDiscount && (
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full">
             <Timer className="h-3 w-3" />
             <span className="font-medium">
               Save {currencySymbol}
-              {(originalPrice - price).toFixed(2)}
+              {(originalPrice - price)?.toFixed(2)}
             </span>
           </div>
         </div>
       )}
 
       {/* Free Course Benefits */}
-      {isFree && (
+      {!!isFree && (
         <div className="flex items-center gap-2 text-xs text-green-600 mt-1">
           <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full">
             <CheckCircle className="h-3 w-3" />
@@ -615,7 +615,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const GridView = () => (
     <Card
       className={cn(
-        "overflow-hidden pt-0 hover:shadow-2xl transition-all duration-500 min-h-[800px] border-0 shadow-lg h-full flex flex-col bg-white rounded-2xl group transform hover:-translate-y-2 cursor-pointer",
+        "overflow-hidden pt-0 hover:shadow-2xl transition-all duration-500 min-h-[650px] border-0 shadow-lg h-full flex flex-col bg-white rounded-2xl group transform hover:-translate-y-2 cursor-pointer",
         className
       )}
       onClick={handleViewDetails}
@@ -808,7 +808,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
 
       {/* Enhanced Content Section */}
-      <CardContent className="px-5 pt-4 flex-grow flex flex-col">
+      <CardContent className="px-5 pt-4 pb-0 flex-grow flex flex-col">
         {/* Header with enhanced badges */}
         <div className="flex justify-between items-start mb-2">
           <Badge
@@ -868,7 +868,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         )} */}
 
         {/* Learning outcomes preview for non-enrolled students */}
-        {!isEnrolled &&
+        {/* {!isEnrolled &&
           course.whatYouLearn &&
           course.whatYouLearn.length > 0 && (
             <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
@@ -893,7 +893,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
         {/* Enhanced stats with premium styling */}
         <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-2">
@@ -943,7 +943,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   course.instructor?.lastName}
               </p>
               <p className="text-xs text-gray-600 truncate">
-                {course.instructor?.title}
+                {course.instructor?.instructorProfile?.title}
               </p>
             </div>
           </div>
@@ -973,44 +973,6 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 isEnrolled={isEnrolled}
                 currency={course.currency}
               />
-
-              {/* Course Value Indicators - Responsive */}
-              {!isEnrolled && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  {course.hasLifetimeAccess && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                      <Timer className="h-3 w-3" />
-                      <span className="hidden xs:inline">Lifetime</span>
-                      <span className="xs:hidden">∞</span>
-                    </div>
-                  )}
-                  {course.hasCertificate && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
-                      <GraduationCap className="h-3 w-3" />
-                      <span className="hidden xs:inline">Certificate</span>
-                      <span className="xs:hidden">Cert</span>
-                    </div>
-                  )}
-                  {course.downloadableResources && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
-                      <Download className="h-3 w-3" />
-                      <span className="hidden xs:inline">Resources</span>
-                      <span className="xs:hidden">
-                        {typeof course.downloadableResources === "number"
-                          ? course.downloadableResources
-                          : "✓"}
-                      </span>
-                    </div>
-                  )}
-                  {course.hasMobileAccess && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-                      <Smartphone className="h-3 w-3" />
-                      <span className="hidden xs:inline">Mobile</span>
-                      <span className="xs:hidden">📱</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Action Buttons - Responsive Stack */}
@@ -1463,7 +1425,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                     course.instructor?.lastName}
                 </p>
                 <p className="text-xs text-gray-600 truncate">
-                  {course.instructor?.title}
+                  {course.instructor?.instructorProfile?.title}
                 </p>
               </div>
             </div>

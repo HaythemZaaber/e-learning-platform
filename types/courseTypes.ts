@@ -6,82 +6,142 @@ import { UserRole } from "@/stores/auth.store";
 // ============================================================================
 // ENHANCED ENUM TYPES (Aligned with Prisma Schema)
 // ============================================================================
-export type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT" | "ALL_LEVELS";
-export type CourseStatus = "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED" | "SUSPENDED" | "COMING_SOON";
+export type CourseLevel =
+  | "BEGINNER"
+  | "INTERMEDIATE"
+  | "ADVANCED"
+  | "EXPERT"
+  | "ALL_LEVELS";
+export type CourseStatus =
+  | "DRAFT"
+  | "UNDER_REVIEW"
+  | "PUBLISHED"
+  | "ARCHIVED"
+  | "SUSPENDED"
+  | "COMING_SOON";
 export type CourseIntensity = "LIGHT" | "REGULAR" | "INTENSIVE" | "BOOTCAMP";
-export type EnrollmentType = "FREE" | "PAID" | "SUBSCRIPTION" | "INVITATION_ONLY" | "WAITLIST";
-export type CourseBadgeColor = "primary" | "secondary" | "success" | "error" | "warning" | "info";
+export type EnrollmentType =
+  | "FREE"
+  | "PAID"
+  | "SUBSCRIPTION"
+  | "INVITATION_ONLY"
+  | "WAITLIST";
+export type CourseBadgeColor =
+  | "primary"
+  | "secondary"
+  | "success"
+  | "error"
+  | "warning"
+  | "info";
 
 // Enhanced content types
-export type LectureType = 
-  | "VIDEO" 
-  | "TEXT" 
-  | "AUDIO" 
-  | "QUIZ" 
-  | "ASSIGNMENT" 
-  |"IMAGE"
-  |"DOCUMENT"
-  |"ARCHIVE"
-  |"RESOURCE"
-export type ContentType = 
-  | "VIDEO" 
-  | "AUDIO" 
-  | "DOCUMENT" 
-  | "TEXT" 
-  | "QUIZ" 
-  | "ASSIGNMENT" 
-  | "RESOURCE" 
-  | "IMAGE" 
-  | "ARCHIVE" 
+export type LectureType =
+  | "VIDEO"
+  | "TEXT"
+  | "AUDIO"
+  | "QUIZ"
+  | "ASSIGNMENT"
+  | "IMAGE"
+  | "DOCUMENT"
+  | "ARCHIVE"
+  | "RESOURCE";
+export type ContentType =
+  | "VIDEO"
+  | "AUDIO"
+  | "DOCUMENT"
+  | "TEXT"
+  | "QUIZ"
+  | "ASSIGNMENT"
+  | "RESOURCE"
+  | "IMAGE"
+  | "ARCHIVE"
   | "RESOURCE";
 
-export type VideoProvider = "YOUTUBE" | "VIMEO" | "WISTIA" | "SELF_HOSTED" | "AWS_S3" | "CLOUDINARY";
+export type VideoProvider =
+  | "YOUTUBE"
+  | "VIMEO"
+  | "WISTIA"
+  | "SELF_HOSTED"
+  | "AWS_S3"
+  | "CLOUDINARY";
 
-export type QuestionType = 
-  | "MULTIPLE_CHOICE" 
-  | "SINGLE_CHOICE" 
-  | "TRUE_FALSE" 
-  | "FILL_IN_BLANK" 
-  | "ESSAY" 
-  | "MATCHING" 
-  | "ORDERING" 
+export type QuestionType =
+  | "MULTIPLE_CHOICE"
+  | "SINGLE_CHOICE"
+  | "TRUE_FALSE"
+  | "FILL_IN_BLANK"
+  | "ESSAY"
+  | "MATCHING"
+  | "ORDERING"
   | "NUMERIC";
 
-export type AssignmentType = "TEXT" | "FILE_UPLOAD" | "URL_SUBMISSION" | "PEER_REVIEW";
-export type SubmissionStatus = "DRAFT" | "SUBMITTED" | "GRADED" | "RETURNED" | "LATE";
+export type AssignmentType =
+  | "TEXT"
+  | "FILE_UPLOAD"
+  | "URL_SUBMISSION"
+  | "PEER_REVIEW";
+export type SubmissionStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "GRADED"
+  | "RETURNED"
+  | "LATE";
 
-export type EnrollmentStatus = "ACTIVE" | "COMPLETED" | "CANCELLED" | "SUSPENDED" | "REFUNDED" | "EXPIRED";
-export type PaymentStatus = "FREE" | "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIAL_REFUND";
+export type EnrollmentStatus =
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "SUSPENDED"
+  | "REFUNDED"
+  | "EXPIRED";
+export type PaymentStatus =
+  | "FREE"
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUNDED"
+  | "PARTIAL_REFUND";
 
 export type ReviewStatus = "PUBLISHED" | "PENDING" | "FLAGGED" | "HIDDEN";
-export type EnrollmentSource = "DIRECT" | "REFERRAL" | "PROMOTION" | "BUNDLE" | "LEARNING_PATH";
+export type EnrollmentSource =
+  | "DIRECT"
+  | "REFERRAL"
+  | "PROMOTION"
+  | "BUNDLE"
+  | "LEARNING_PATH";
 
-export type NotificationType = 
-  | "COURSE_UPDATE" 
-  | "NEW_LESSON" 
-  | "ASSIGNMENT_DUE" 
-  | "CERTIFICATE_EARNED" 
-  | "DISCUSSION_REPLY" 
-  | "INSTRUCTOR_APPROVED" 
-  | "SYSTEM_ANNOUNCEMENT" 
-  | "AI_RECOMMENDATION" 
-  | "ENROLLMENT_CONFIRMATION" 
+export type NotificationType =
+  | "COURSE_UPDATE"
+  | "NEW_LESSON"
+  | "ASSIGNMENT_DUE"
+  | "CERTIFICATE_EARNED"
+  | "DISCUSSION_REPLY"
+  | "INSTRUCTOR_APPROVED"
+  | "SYSTEM_ANNOUNCEMENT"
+  | "AI_RECOMMENDATION"
+  | "ENROLLMENT_CONFIRMATION"
   | "PAYMENT_CONFIRMATION";
 
 export type NotificationPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export type AnnouncementPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
-export type AIInteractionType = 
-  | "QUESTION" 
-  | "EXPLANATION" 
-  | "QUIZ_GENERATION" 
-  | "SUMMARY" 
-  | "RECOMMENDATION" 
-  | "TUTORING" 
-  | "CODE_REVIEW" 
+export type AIInteractionType =
+  | "QUESTION"
+  | "EXPLANATION"
+  | "QUIZ_GENERATION"
+  | "SUMMARY"
+  | "RECOMMENDATION"
+  | "TUTORING"
+  | "CODE_REVIEW"
   | "CONTENT_ANALYSIS";
 
-export type DiscussionType = "QUESTION" | "ANSWER" | "ANNOUNCEMENT" | "GENERAL" | "BUG_REPORT" | "FEATURE_REQUEST";
+export type DiscussionType =
+  | "QUESTION"
+  | "ANSWER"
+  | "ANNOUNCEMENT"
+  | "GENERAL"
+  | "BUG_REPORT"
+  | "FEATURE_REQUEST";
 
 // Backward compatibility aliases
 export type LessonType = LectureType;
@@ -90,7 +150,7 @@ export type LessonType = LectureType;
 // ENHANCED USER INTERFACE
 // ============================================================================
 
-export interface CourseInstructor extends Omit<Instructor, 'socialLinks'> {
+export interface CourseInstructor extends Omit<Instructor, "socialLinks"> {
   id: string;
   firstName?: string;
   lastName?: string;
@@ -104,6 +164,18 @@ export interface CourseInstructor extends Omit<Instructor, 'socialLinks'> {
   totalStudentsTaught?: number;
   totalCourses?: number;
   averageRating?: number;
+  instructorProfile?: {
+    title?: string;
+    bio?: string;
+    shortBio?: string;
+    expertise?: string[];
+    qualifications?: string[];
+    experience?: number;
+    teachingRating?: number;
+    totalStudents?: number;
+    totalCourses?: number;
+    isVerified?: boolean;
+  };
 }
 
 // ============================================================================
@@ -138,12 +210,12 @@ export interface CourseLecture {
   description?: string;
   type: LectureType;
   content?: string;
-  
+
   // Enhanced video fields
   videoUrl?: string;
   videoProvider?: VideoProvider;
   videoDuration?: number;
-  
+
   // Lesson properties
   duration: number;
   order?: number;
@@ -152,41 +224,41 @@ export interface CourseLecture {
   isRequired?: boolean;
   isCompleted?: boolean;
   isLocked?: boolean;
-  
+
   // AI features
   hasAIQuiz?: boolean;
   aiSummary?: string;
   transcription?: string;
   autoTranscript?: boolean;
-  
+
   // Accessibility
   captions?: string;
   transcript?: string;
-  
+
   // Download & offline
   downloadable?: boolean;
   offlineContent?: string;
-  
+
   // Content association
   contentItem?: ContentItem;
-  
+
   // Settings and metadata
   settings?: any;
   metadata?: any;
   status?: string;
   sectionId?: string;
-  
+
   // Legacy support
   articleContent?: string;
   isFree?: boolean;
-  
+
   // Resources
   resources?: {
     name: string;
     url: string;
     type: "pdf" | "code" | "link" | "image";
   }[];
-  
+
   // Quiz data (embedded)
   quiz?: {
     questions: {
@@ -196,11 +268,11 @@ export interface CourseLecture {
       correctAnswer: number;
     }[];
   };
-  
+
   // Timestamps
   createdAt?: Date;
   updatedAt?: Date;
-  
+
   // Computed fields
   completionCount?: number;
   averageTimeSpent?: number;
@@ -218,7 +290,7 @@ export interface CourseSection {
   courseId?: string;
   createdAt?: Date;
   updatedAt?: Date;
-  
+
   // Computed fields
   duration: number; // Total duration for backward compatibility
   totalLessons?: number;
@@ -259,7 +331,7 @@ export interface Quiz {
   questions?: QuizQuestion[];
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Computed fields
   totalQuestions?: number;
   totalPoints?: number;
@@ -282,7 +354,7 @@ export interface Assignment {
   courseId: string;
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Computed fields
   submissionCount?: number;
   gradedCount?: number;
@@ -318,18 +390,18 @@ export interface CourseReview {
   comment?: string;
   isVerified?: boolean;
   helpfulCount?: number;
-  
+
   // Enhanced review details
   courseQuality?: number;
   instructorRating?: number;
   difficultyRating?: number;
   valueForMoney?: number;
-  
+
   status?: ReviewStatus;
   flaggedCount?: number;
   createdAt: Date;
   updatedAt?: Date;
-  
+
   // Legacy fields
   title?: string;
   helpful?: number;
@@ -348,14 +420,14 @@ export interface CourseProgress {
   timeSpent: number; // in minutes
   completionPercentage: number;
   certificateEarned: boolean;
-  
+
   // Enhanced progress tracking
   watchTime?: number; // in seconds for videos
   interactions?: any; // Track interactions
   currentLessonId?: string;
   streakDays?: number;
   lastAccessedAt?: Date;
-  
+
   // AI insights
   difficultyRating?: number;
   aiRecommendations?: string[];
@@ -493,27 +565,27 @@ export interface Enrollment {
   status: EnrollmentStatus;
   progress: number; // 0-100
   currentLessonId?: string;
-  
+
   // Enhanced enrollment features
   enrollmentSource: EnrollmentSource;
   completedLessons: number;
   totalLessons: number;
-  
+
   // Payment info
   paymentStatus: PaymentStatus;
   paymentId?: string;
   amountPaid?: number;
   discountApplied?: number;
-  
+
   // Learning analytics
   totalTimeSpent: number; // in minutes
   streakDays: number;
   lastAccessedAt?: Date;
-  
+
   // Certificates
   certificateEarned: boolean;
   certificateEarnedAt?: Date;
-  
+
   userId: string;
   courseId: string;
 }
@@ -528,12 +600,12 @@ export interface Course {
   title: string;
   slug?: string;
   subtitle?: string;
- 
+
   description: string;
   shortDescription?: string;
 
   // Enhanced media
-  
+
   thumbnail?: string;
 
   trailer?: string;
@@ -553,7 +625,7 @@ export interface Course {
   price: number;
   originalPrice?: number;
   enrollmentType?: EnrollmentType;
-  
+
   currency: string;
   discountPercent?: number;
   discountValidUntil?: Date;
@@ -577,13 +649,13 @@ export interface Course {
   // Badge and marketing properties
   badge?: string;
   badgeColor?: CourseBadgeColor;
- 
+
   isBestseller?: boolean;
   isTrending?: boolean;
   isFeatured?: boolean;
   featured?: boolean;
   bestseller?: boolean;
-  trending?: boolean; 
+  trending?: boolean;
 
   // Instructor
   instructor: CourseInstructor;
@@ -610,7 +682,7 @@ export interface Course {
   hasMobileAccess: boolean;
 
   // Enhanced features
-  
+
   hasLiveSessions?: boolean;
 
   hasDiscussions?: boolean;
@@ -649,8 +721,6 @@ export interface Course {
   publishedAt?: Date;
   archivedAt?: Date;
 
-  
-
   // Analytics
   views?: number;
   uniqueViews?: number;
@@ -666,7 +736,6 @@ export interface Course {
 
   // User-specific fields
 
-
   // Content organization
   organizedContent?: {
     contentByLecture: Record<string, any>;
@@ -677,8 +746,6 @@ export interface Course {
       lectureBreakdown: Record<string, any>;
     };
   };
-
-
 }
 
 // ============================================================================
@@ -694,48 +761,48 @@ export interface CourseData {
   category: string;
   subcategory?: string;
   level: CourseLevel;
-  
+
   // Enhanced media
   thumbnail?: string;
   trailer?: string;
   galleryImages?: string[];
-  
+
   // Enhanced pricing
   price: number;
   originalPrice?: number;
   currency?: string;
   discountPercent?: number;
   discountValidUntil?: Date;
-  
+
   // Enhanced duration & difficulty
   estimatedHours?: number;
   estimatedMinutes?: number;
   difficulty?: number;
   intensityLevel?: CourseIntensity;
-  
+
   // Enhanced capacity
   maxStudents?: number;
   waitlistEnabled?: boolean;
-  
+
   // Enhanced scheduling
   enrollmentStartDate?: Date;
   enrollmentEndDate?: Date;
   courseStartDate?: Date;
   courseEndDate?: Date;
-  
+
   // Enhanced content structure
   objectives: string[];
   prerequisites: string[];
   whatYouLearn?: string[];
   requirements?: string[];
-  
+
   // Enhanced SEO & marketing
   seoTitle?: string;
   seoDescription?: string;
   seoTags?: string[];
   marketingTags?: string[];
   targetAudience?: string[];
-  
+
   // Enhanced features
   hasAITutor?: boolean;
   aiPersonality?: string;
@@ -749,14 +816,14 @@ export interface CourseData {
   downloadableResources?: boolean;
   offlineAccess?: boolean;
   mobileOptimized?: boolean;
-  
+
   // Versioning
   version?: string;
-  
+
   sections: CourseSection[];
   settings?: CourseSettings;
   additionalContent?: ContentItem[];
-  
+
   // Metadata
   instructorId?: string;
   status?: CourseStatus;
@@ -770,7 +837,7 @@ export interface CourseData {
   publishedAt?: Date;
   archivedAt?: Date;
   enrollmentType?: EnrollmentType;
-  
+
   // Enhanced metadata
   metadata?: any;
 }
@@ -953,7 +1020,7 @@ export interface CourseInformationForm {
   thumbnail?: File;
   trailer?: string;
   galleryImages?: string[];
-  
+
   // Enhanced form fields
   estimatedHours?: number;
   estimatedMinutes?: number;
@@ -961,7 +1028,7 @@ export interface CourseInformationForm {
   intensityLevel?: CourseIntensity;
   maxStudents?: number;
   waitlistEnabled?: boolean;
-  
+
   // SEO fields
   seoTitle?: string;
   seoDescription?: string;
@@ -1046,13 +1113,12 @@ export interface UploadedFilesState {
 // ENHANCED FILTER TYPES
 // ============================================================================
 
-
 export interface priceRange {
   min: number;
   max: number;
 }
 export interface CourseFilters {
-  search?: string;  
+  search?: string;
   categories?: string[];
   subcategories?: string[];
   levels?: CourseLevel[];
@@ -1067,7 +1133,14 @@ export interface CourseFilters {
   showFeatured?: boolean;
   showNew?: boolean;
   showBestsellers?: boolean;
-  sortBy?: "newest" | "popular" | "rating" | "price-low" | "price-high" | "duration" | "enrollments";
+  sortBy?:
+    | "newest"
+    | "popular"
+    | "rating"
+    | "price-low"
+    | "price-high"
+    | "duration"
+    | "enrollments";
   sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
@@ -1108,7 +1181,8 @@ export type DeepPartial<T> = {
 };
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export type OptionalFields<T, K extends keyof T> = Omit<T, K> &
+  Partial<Pick<T, K>>;
 
 // ============================================================================
 // ENHANCED CONSTANTS
@@ -1139,7 +1213,7 @@ export const COURSE_CATEGORIES = [
 
 export const COURSE_LEVELS: CourseLevel[] = [
   "BEGINNER",
-  "INTERMEDIATE", 
+  "INTERMEDIATE",
   "ADVANCED",
   "EXPERT",
   "ALL_LEVELS",
@@ -1450,7 +1524,7 @@ export const LECTURE_TYPE_ICONS: Record<LectureType, string> = {
 // Duration formatting helpers
 export const DURATION_UNITS = {
   SECONDS: "seconds",
-  MINUTES: "minutes", 
+  MINUTES: "minutes",
   HOURS: "hours",
   DAYS: "days",
 } as const;
@@ -1464,7 +1538,7 @@ export const DIFFICULTY_LEVELS: Record<CourseLevel, number> = {
   ALL_LEVELS: 0,
 };
 
-// Intensity levels with numeric mapping  
+// Intensity levels with numeric mapping
 export const INTENSITY_LEVELS: Record<CourseIntensity, number> = {
   LIGHT: 1,
   REGULAR: 2,
@@ -1530,24 +1604,39 @@ export const ANALYTICS_TIME_RANGES = [
 ] as const;
 
 // Notification priorities with colors
-export const NOTIFICATION_PRIORITY_COLORS: Record<NotificationPriority, string> = {
+export const NOTIFICATION_PRIORITY_COLORS: Record<
+  NotificationPriority,
+  string
+> = {
   LOW: "text-gray-600",
-  NORMAL: "text-blue-600", 
+  NORMAL: "text-blue-600",
   HIGH: "text-orange-600",
   URGENT: "text-red-600",
 };
 
 // Course creation steps
 export const COURSE_CREATION_STEPS = [
-  { id: 1, name: "Basic Information", description: "Course title, description, and category" },
+  {
+    id: 1,
+    name: "Basic Information",
+    description: "Course title, description, and category",
+  },
   { id: 2, name: "Course Structure", description: "Sections and lectures" },
-  { id: 3, name: "Content Upload", description: "Videos, documents, and resources" },
-  { id: 4, name: "Pricing & Settings", description: "Price, accessibility, and course settings" },
+  {
+    id: 3,
+    name: "Content Upload",
+    description: "Videos, documents, and resources",
+  },
+  {
+    id: 4,
+    name: "Pricing & Settings",
+    description: "Price, accessibility, and course settings",
+  },
   { id: 5, name: "Review & Publish", description: "Review course and publish" },
 ] as const;
 
 // Export type for the steps
-export type CourseCreationStep = typeof COURSE_CREATION_STEPS[number];
+export type CourseCreationStep = (typeof COURSE_CREATION_STEPS)[number];
 
 // Progress calculation weights
 export const COMPLETION_WEIGHTS = {
@@ -1562,7 +1651,7 @@ export const COMPLETION_WEIGHTS = {
 // Feature flags for course capabilities
 export const COURSE_FEATURES = {
   AI_TUTOR: "hasAITutor",
-  AI_QUIZZES: "hasAIQuizzes", 
+  AI_QUIZZES: "hasAIQuizzes",
   INTERACTIVE_ELEMENTS: "hasInteractiveElements",
   LIVE_SESSIONS: "hasLiveSessions",
   PROJECT_WORK: "hasProjectWork",
@@ -1620,12 +1709,12 @@ export const formatDuration = (seconds: number): string => {
 
 // Utility function to format file size
 export const formatFileSize = (bytes: number): string => {
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  if (bytes === 0) return '0 Bytes';
-  
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  if (bytes === 0) return "0 Bytes";
+
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   const size = (bytes / Math.pow(1024, i)).toFixed(2);
-  
+
   return `${size} ${sizes[i]}`;
 };
 
@@ -1642,7 +1731,7 @@ export const calculateCompletionPercentage = (
 export const getCourseLevelColor = (level: CourseLevel): string => {
   const colors: Record<CourseLevel, string> = {
     BEGINNER: "text-green-600 bg-green-100",
-    INTERMEDIATE: "text-blue-600 bg-blue-100", 
+    INTERMEDIATE: "text-blue-600 bg-blue-100",
     ADVANCED: "text-orange-600 bg-orange-100",
     EXPERT: "text-red-600 bg-red-100",
     ALL_LEVELS: "text-purple-600 bg-purple-100",
@@ -1664,7 +1753,10 @@ export const getEnrollmentStatusColor = (status: EnrollmentStatus): string => {
 };
 
 // Utility function to validate file type
-export const isValidFileType = (file: File, allowedTypes: readonly string[]): boolean => {
+export const isValidFileType = (
+  file: File,
+  allowedTypes: readonly string[]
+): boolean => {
   return allowedTypes.includes(file.type);
 };
 

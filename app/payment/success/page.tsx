@@ -6,13 +6,30 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuth as useClerkAuth } from "@clerk/nextjs";
 import { usePaymentSession } from "@/features/payments/hooks/usePayment";
 import { useEnrollment } from "@/features/payments/hooks/usePayment";
-import { enrollmentService, paymentSessionService } from "@/features/payments/services/paymentService";
+import {
+  enrollmentService,
+  paymentSessionService,
+} from "@/features/payments/services/paymentService";
 import { usePaymentStore } from "@/stores/payment.store";
 import { sessionBookingApi } from "@/features/sessions/services/api/sessionBookingApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, ArrowRight, Home, BookOpen, Clock, Video, Calendar } from "lucide-react";
+import {
+  CheckCircle,
+  ArrowRight,
+  Home,
+  BookOpen,
+  Clock,
+  Video,
+  Calendar,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function PaymentSuccessPage() {
@@ -40,9 +57,12 @@ export default function PaymentSuccessPage() {
     try {
       const sessionIdParam = searchParams.get("session_id");
       const bookingIdParam = searchParams.get("booking_id");
-      
-      console.log('Processing session booking with params:', { sessionIdParam, bookingIdParam });
-      
+
+      console.log("Processing session booking with params:", {
+        sessionIdParam,
+        bookingIdParam,
+      });
+
       if (!sessionIdParam || !bookingIdParam) {
         toast.error("Missing session or booking information");
         router.push("/");
@@ -55,7 +75,7 @@ export default function PaymentSuccessPage() {
 
       // Check if user is authenticated
       if (!user) {
-        console.log('User not authenticated, redirecting to sign-in');
+        console.log("User not authenticated, redirecting to sign-in");
         toast.error("Please sign in to complete your booking");
         router.push("/sign-in");
         return;
@@ -64,7 +84,7 @@ export default function PaymentSuccessPage() {
       // Get auth token
       const token = await getToken();
       if (!token) {
-        console.log('No auth token found, redirecting to sign-in');
+        console.log("No auth token found, redirecting to sign-in");
         toast.error("Authentication token not found");
         router.push("/sign-in");
         return;
@@ -73,15 +93,18 @@ export default function PaymentSuccessPage() {
       // Confirm the session booking
       const confirmData = {
         bookingId: bookingIdParam,
-        paymentIntentId: '', // Will be retrieved from checkout session
+        paymentIntentId: "", // Will be retrieved from checkout session
         stripeSessionId: sessionIdParam,
       };
 
-      console.log('Confirming session booking with data:', confirmData);
+      console.log("Confirming session booking with data:", confirmData);
 
       try {
-        const result = await sessionBookingApi.confirmSessionBooking(confirmData, token);
-        
+        const result = await sessionBookingApi.confirmSessionBooking(
+          confirmData,
+          token
+        );
+
         if (result.success) {
           setSessionBooking(result.liveSession);
           toast.success("Payment successful! Your session is confirmed.");
@@ -95,7 +118,6 @@ export default function PaymentSuccessPage() {
         toast.error("Failed to confirm booking. Please contact support.");
         // Don't redirect on API error, just show the error message
       }
-
     } catch (error) {
       console.error("Error handling session booking success:", error);
       toast.error("There was an issue processing your session booking");
@@ -125,7 +147,10 @@ export default function PaymentSuccessPage() {
         return;
       }
 
-      const session = await paymentSessionService.getSessionByStripeId(sessionIdParam, token);
+      const session = await paymentSessionService.getSessionByStripeId(
+        sessionIdParam,
+        token
+      );
       if (!session) {
         toast.error("Payment session not found");
         router.push("/");
@@ -134,12 +159,18 @@ export default function PaymentSuccessPage() {
 
       setPaymentSession(session);
 
-      const enrollment = await enrollmentService.getEnrollmentByCourse(session.courseId, token);
+      const enrollment = await enrollmentService.getEnrollmentByCourse(
+        session.course?.id || "",
+        token
+      );
       console.log("enrollment", enrollment);
       if (enrollment) {
         setEnrollment(enrollment);
       } else {
-        const newEnrollment = await createEnrollment(session.courseId, session.id);
+        const newEnrollment = await createEnrollment(
+          session.course?.id || "",
+          session.id
+        );
         if (newEnrollment) {
           setEnrollment(newEnrollment);
         }
@@ -149,52 +180,70 @@ export default function PaymentSuccessPage() {
       clearCheckout();
       resetPaymentSession();
 
-      toast.success("Payment completed successfully! You are now enrolled in the course.");
-
+      toast.success(
+        "Payment completed successfully! You are now enrolled in the course."
+      );
     } catch (error) {
       console.error("Error handling course enrollment success:", error);
       toast.error("There was an issue processing your payment success");
     } finally {
       setIsLoading(false);
     }
-  }, [searchParams, clerkAuth, createEnrollment, clearCheckout, resetPaymentSession, router]);
+  }, [
+    searchParams,
+    clerkAuth,
+    createEnrollment,
+    clearCheckout,
+    resetPaymentSession,
+    router,
+  ]);
 
   const handlePaymentSuccess = useCallback(async () => {
     // Prevent multiple executions
     if (isProcessingRef.current || hasProcessed) {
-      console.log('Payment success already processed, skipping...');
+      console.log("Payment success already processed, skipping...");
       return;
     }
 
     isProcessingRef.current = true;
     setHasProcessed(true);
 
-    console.log('Starting payment success processing...');
+    console.log("Starting payment success processing...");
 
     // Check if this is a session booking or course enrollment
     const bookingIdParam = searchParams.get("booking_id");
     const sessionIdParam = searchParams.get("session_id");
-    
-    console.log('URL params - bookingId:', bookingIdParam, 'sessionId:', sessionIdParam);
-    
+
+    console.log(
+      "URL params - bookingId:",
+      bookingIdParam,
+      "sessionId:",
+      sessionIdParam
+    );
+
     if (bookingIdParam) {
       // This is a session booking
-      console.log('Processing session booking...');
+      console.log("Processing session booking...");
       await handleSessionBookingSuccess();
     } else {
       // This is a course enrollment
-      console.log('Processing course enrollment...');
+      console.log("Processing course enrollment...");
       await handleCourseEnrollmentSuccess();
     }
-  }, [searchParams, hasProcessed, handleSessionBookingSuccess, handleCourseEnrollmentSuccess]);
+  }, [
+    searchParams,
+    hasProcessed,
+    handleSessionBookingSuccess,
+    handleCourseEnrollmentSuccess,
+  ]);
 
   useEffect(() => {
     handlePaymentSuccess();
   }, [handlePaymentSuccess]);
 
   const handleStartLearning = () => {
-    if (paymentSession?.courseId) {
-      router.push(`/courses/${paymentSession.courseId}/learn`);
+    if (paymentSession?.course?.id) {
+      router.push(`/courses/${paymentSession.course?.id}/learn`);
     }
   };
 
@@ -218,13 +267,14 @@ export default function PaymentSuccessPage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
               <p className="text-lg font-medium text-gray-700">
-                {isSessionBooking ? "Processing your session booking..." : "Processing your payment..."}
+                {isSessionBooking
+                  ? "Processing your session booking..."
+                  : "Processing your payment..."}
               </p>
               <p className="text-sm text-gray-500 text-center">
-                {isSessionBooking 
+                {isSessionBooking
                   ? "Please wait while we confirm your session booking"
-                  : "Please wait while we confirm your enrollment"
-                }
+                  : "Please wait while we confirm your enrollment"}
               </p>
             </div>
           </CardContent>
@@ -260,7 +310,10 @@ export default function PaymentSuccessPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-600">Status:</span>
-                    <Badge variant="default" className="ml-2 bg-green-100 text-green-800">
+                    <Badge
+                      variant="default"
+                      className="ml-2 bg-green-100 text-green-800"
+                    >
                       Confirmed
                     </Badge>
                   </div>
@@ -278,11 +331,13 @@ export default function PaymentSuccessPage() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <Video className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-900">Session Confirmed</span>
+                <span className="font-medium text-green-900">
+                  Session Confirmed
+                </span>
               </div>
               <p className="text-sm text-green-700 mt-1">
-                You'll receive an email with the meeting link 15 minutes before your session. 
-                Make sure to test your audio and video beforehand.
+                You'll receive an email with the meeting link 15 minutes before
+                your session. Make sure to test your audio and video beforehand.
               </p>
             </div>
 
@@ -308,7 +363,8 @@ export default function PaymentSuccessPage() {
             {/* Additional Information */}
             <div className="text-center pt-6 border-t">
               <p className="text-sm text-gray-500">
-                A confirmation email has been sent to your registered email address.
+                A confirmation email has been sent to your registered email
+                address.
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 If you have any questions, please contact our support team.
@@ -347,13 +403,21 @@ export default function PaymentSuccessPage() {
                 <div>
                   <span className="text-gray-600">Amount:</span>
                   <span className="ml-2 font-medium">
-                    ${(paymentSession.finalAmount).toFixed(2)}
+                    $
+                    {(
+                      paymentSession.finalAmount ||
+                      paymentSession.amount ||
+                      0
+                    ).toFixed(2)}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Status:</span>
-                  <Badge variant="default" className="ml-2 bg-green-100 text-green-800">
-                    {paymentSession.status}
+                  <Badge
+                    variant="default"
+                    className="ml-2 bg-green-100 text-green-800"
+                  >
+                    {paymentSession.status || "Completed"}
                   </Badge>
                 </div>
                 {paymentSession.couponCode && (
@@ -371,7 +435,9 @@ export default function PaymentSuccessPage() {
           {/* Course Information */}
           {paymentSession?.course && (
             <div className="bg-white border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold text-gray-900">Course Information</h3>
+              <h3 className="font-semibold text-gray-900">
+                Course Information
+              </h3>
               <div className="flex items-start space-x-4">
                 {paymentSession.course.thumbnail && (
                   <img
@@ -397,7 +463,9 @@ export default function PaymentSuccessPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <BookOpen className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-900">Enrollment Confirmed</span>
+                <span className="font-medium text-blue-900">
+                  Enrollment Confirmed
+                </span>
               </div>
               <p className="text-sm text-blue-700 mt-1">
                 You now have lifetime access to this course.
@@ -422,11 +490,7 @@ export default function PaymentSuccessPage() {
               <ArrowRight className="h-4 w-4 mr-2" />
               Browse More Courses
             </Button>
-            <Button
-              onClick={handleGoHome}
-              variant="ghost"
-              className="flex-1"
-            >
+            <Button onClick={handleGoHome} variant="ghost" className="flex-1">
               <Home className="h-4 w-4 mr-2" />
               Go Home
             </Button>
@@ -435,7 +499,8 @@ export default function PaymentSuccessPage() {
           {/* Additional Information */}
           <div className="text-center pt-6 border-t">
             <p className="text-sm text-gray-500">
-              A confirmation email has been sent to your registered email address.
+              A confirmation email has been sent to your registered email
+              address.
             </p>
             <p className="text-sm text-gray-500 mt-1">
               If you have any questions, please contact our support team.

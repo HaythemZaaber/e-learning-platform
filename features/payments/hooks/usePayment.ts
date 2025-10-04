@@ -54,7 +54,9 @@ export const usePaymentSession = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const createSession = useCallback(
-    async (request: CreatePaymentSessionRequest): Promise<PaymentSession | null> => {
+    async (
+      request: CreatePaymentSessionRequest
+    ): Promise<PaymentSession | null> => {
       if (!user) {
         toast.error("Please sign in to continue");
         router.push("/sign-in");
@@ -68,31 +70,43 @@ export const usePaymentSession = () => {
       try {
         // Get Clerk token
         const token = await clerkAuth.getToken();
-        
+
         // Remove userId from request since it will be extracted from the token
         const { userId, ...requestBody } = request;
-        const response = await paymentSessionService.createSession(requestBody, token || undefined);
-        
+
+        // Ensure courseId is backed up in metadata
+        if (requestBody.courseId && requestBody.metadata) {
+          requestBody.metadata.courseId = requestBody.courseId;
+          requestBody.metadata.course_id = requestBody.courseId;
+        }
+
+        const response = await paymentSessionService.createSession(
+          requestBody,
+          token || undefined
+        );
+
         if (response.success && response.session) {
           setCurrentPaymentSession(response.session);
           addPaymentSession(response.session);
-          
+
           // If there's a redirect URL (Stripe Checkout), redirect to it
           if (response.redirectUrl) {
             window.location.href = response.redirectUrl;
             return response.session;
           }
-          
+
           toast.success("Payment session created successfully");
           return response.session;
         } else {
-          const errorMessage = response.error || "Failed to create payment session";
+          const errorMessage =
+            response.error || "Failed to create payment session";
           setError(errorMessage);
           toast.error(errorMessage);
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An error occurred";
+        const errorMessage =
+          error instanceof Error ? error.message : "An error occurred";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -101,7 +115,16 @@ export const usePaymentSession = () => {
         setCreatingSession(false);
       }
     },
-    [user, router, clerkAuth, setCurrentPaymentSession, addPaymentSession, setCreatingSession, setError, clearErrors]
+    [
+      user,
+      router,
+      clerkAuth,
+      setCurrentPaymentSession,
+      addPaymentSession,
+      setCreatingSession,
+      setError,
+      clearErrors,
+    ]
   );
 
   const getSession = useCallback(
@@ -109,13 +132,17 @@ export const usePaymentSession = () => {
       setIsLoading(true);
       try {
         const token = await clerkAuth.getToken();
-        const session = await paymentSessionService.getSession(sessionId, token || undefined);
+        const session = await paymentSessionService.getSession(
+          sessionId,
+          token || undefined
+        );
         if (session) {
           setCurrentPaymentSession(session);
         }
         return session;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch session";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to fetch session";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -127,16 +154,23 @@ export const usePaymentSession = () => {
   );
 
   const updateSession = useCallback(
-    async (sessionId: string, updates: Partial<PaymentSession>): Promise<boolean> => {
+    async (
+      sessionId: string,
+      updates: Partial<PaymentSession>
+    ): Promise<boolean> => {
       try {
-        const success = await paymentSessionService.updateSession(sessionId, updates);
+        const success = await paymentSessionService.updateSession(
+          sessionId,
+          updates
+        );
         if (success) {
           updatePaymentSession(sessionId, updates);
           toast.success("Payment session updated successfully");
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to update session";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to update session";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -155,7 +189,8 @@ export const usePaymentSession = () => {
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to cancel session";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to cancel session";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -204,13 +239,20 @@ export const useCoupon = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const response = await couponService.validateCoupon(request, token || undefined);
+        const response = await couponService.validateCoupon(
+          request,
+          token || undefined
+        );
 
         console.log("response", response);
-        
+
         if (response.isValid && response.coupon) {
           setAppliedCoupon(response.coupon);
-          toast.success(`Coupon applied! ${response.message || "Discount applied successfully"}`);
+          toast.success(
+            `Coupon applied! ${
+              response.message || "Discount applied successfully"
+            }`
+          );
           return response.coupon;
         } else {
           const errorMessage = response.error || "Invalid coupon code";
@@ -220,7 +262,8 @@ export const useCoupon = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to validate coupon";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to validate coupon";
         setError(errorMessage);
         toast.error(errorMessage);
         setAppliedCoupon(null);
@@ -230,7 +273,14 @@ export const useCoupon = () => {
         setValidatingCoupon(false);
       }
     },
-    [user, clerkAuth, setAppliedCoupon, setValidatingCoupon, setError, clearErrors]
+    [
+      user,
+      clerkAuth,
+      setAppliedCoupon,
+      setValidatingCoupon,
+      setError,
+      clearErrors,
+    ]
   );
 
   const getCoupon = useCallback(
@@ -240,7 +290,8 @@ export const useCoupon = () => {
         const coupon = await couponService.getCoupon(code);
         return coupon;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch coupon";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to fetch coupon";
         setError(errorMessage);
         return null;
       } finally {
@@ -285,7 +336,10 @@ export const useEnrollment = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const createEnrollment = useCallback(
-    async (courseId: string, paymentSessionId?: string): Promise<Enrollment | null> => {
+    async (
+      courseId: string,
+      paymentSessionId?: string
+    ): Promise<Enrollment | null> => {
       if (!user) {
         toast.error("Please sign in to enroll in courses");
         router.push("/sign-in");
@@ -298,8 +352,13 @@ export const useEnrollment = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const enrollment = await enrollmentService.createEnrollment(courseId, user.id, paymentSessionId, token || undefined);
-        
+        const enrollment = await enrollmentService.createEnrollment(
+          courseId,
+          user.id,
+          paymentSessionId,
+          token || undefined
+        );
+
         if (enrollment) {
           addEnrollment(enrollment);
           toast.success("Successfully enrolled in course!");
@@ -312,7 +371,10 @@ export const useEnrollment = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create enrollment";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to create enrollment";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -321,30 +383,39 @@ export const useEnrollment = () => {
         setEnrolling(false);
       }
     },
-    [user, router, clerkAuth, addEnrollment, setEnrolling, setError, clearErrors]
+    [
+      user,
+      router,
+      clerkAuth,
+      addEnrollment,
+      setEnrolling,
+      setError,
+      clearErrors,
+    ]
   );
 
-  const getUserEnrollments = useCallback(
-    async (): Promise<Enrollment[]> => {
-      if (!user) return [];
+  const getUserEnrollments = useCallback(async (): Promise<Enrollment[]> => {
+    if (!user) return [];
 
-      setIsLoading(true);
-      try {
-        const token = await clerkAuth.getToken();
-        const userEnrollments = await enrollmentService.getUserEnrollments(user.id, token || undefined);
-        setEnrollments(userEnrollments);
-        return userEnrollments;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollments";
-        setError(errorMessage);
-        toast.error(errorMessage);
-        return [];
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [user, clerkAuth, setEnrollments, setError]
-  );
+    setIsLoading(true);
+    try {
+      const token = await clerkAuth.getToken();
+      const userEnrollments = await enrollmentService.getUserEnrollments(
+        user.id,
+        token || undefined
+      );
+      setEnrollments(userEnrollments);
+      return userEnrollments;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch enrollments";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, clerkAuth, setEnrollments, setError]);
 
   const getEnrollmentByCourse = useCallback(
     async (courseId: string): Promise<Enrollment | null> => {
@@ -352,10 +423,14 @@ export const useEnrollment = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const enrollment = await enrollmentService.getEnrollmentByCourse(courseId, token || undefined);
+        const enrollment = await enrollmentService.getEnrollmentByCourse(
+          courseId,
+          token || undefined
+        );
         return enrollment;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollment";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to fetch enrollment";
         setError(errorMessage);
         return null;
       }
@@ -364,16 +439,25 @@ export const useEnrollment = () => {
   );
 
   const updateEnrollmentStatus = useCallback(
-    async (enrollmentId: string, updates: Partial<Enrollment>): Promise<boolean> => {
+    async (
+      enrollmentId: string,
+      updates: Partial<Enrollment>
+    ): Promise<boolean> => {
       try {
-        const success = await enrollmentService.updateEnrollment(enrollmentId, updates);
+        const success = await enrollmentService.updateEnrollment(
+          enrollmentId,
+          updates
+        );
         if (success) {
           updateEnrollment(enrollmentId, updates);
           toast.success("Enrollment updated successfully");
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to update enrollment";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to update enrollment";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -388,12 +472,15 @@ export const useEnrollment = () => {
         const success = await enrollmentService.cancelEnrollment(enrollmentId);
         if (success) {
           // Remove from local state
-          setEnrollments(enrollments.filter(e => e.id !== enrollmentId));
+          setEnrollments(enrollments.filter((e) => e.id !== enrollmentId));
           toast.success("Enrollment canceled successfully");
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to cancel enrollment";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to cancel enrollment";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -432,7 +519,9 @@ export const useCheckout = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const createCheckoutSession = useCallback(
-    async (request: CreateCheckoutSessionRequest): Promise<CheckoutSession | null> => {
+    async (
+      request: CreateCheckoutSessionRequest
+    ): Promise<CheckoutSession | null> => {
       if (!user) {
         toast.error("Please sign in to checkout");
         router.push("/sign-in");
@@ -449,8 +538,11 @@ export const useCheckout = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const session = await checkoutService.createCheckoutSession(request, token || undefined);
-        
+        const session = await checkoutService.createCheckoutSession(
+          request,
+          token || undefined
+        );
+
         if (session) {
           setCheckoutSession(session);
           toast.success("Checkout session created successfully");
@@ -462,7 +554,10 @@ export const useCheckout = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create checkout session";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to create checkout session";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -483,7 +578,10 @@ export const useCheckout = () => {
         }
         return session;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch checkout session";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch checkout session";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -497,14 +595,19 @@ export const useCheckout = () => {
   const completeCheckoutSession = useCallback(
     async (sessionId: string): Promise<boolean> => {
       try {
-        const success = await checkoutService.completeCheckoutSession(sessionId);
+        const success = await checkoutService.completeCheckoutSession(
+          sessionId
+        );
         if (success) {
           toast.success("Checkout completed successfully!");
           router.push("/dashboard");
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to complete checkout";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to complete checkout";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -543,30 +646,37 @@ export const usePaymentMethods = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const getUserPaymentMethods = useCallback(
-    async (): Promise<PaymentMethod[]> => {
-      if (!user) return [];
+  const getUserPaymentMethods = useCallback(async (): Promise<
+    PaymentMethod[]
+  > => {
+    if (!user) return [];
 
-      setIsLoading(true);
-      try {
-        const token = await clerkAuth.getToken();
-        const methods = await paymentMethodService.getUserPaymentMethods(user.id, token || undefined);
-        setPaymentMethods(methods);
-        return methods;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch payment methods";
-        setError(errorMessage);
-        toast.error(errorMessage);
-        return [];
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [user, clerkAuth, setPaymentMethods, setError]
-  );
+    setIsLoading(true);
+    try {
+      const token = await clerkAuth.getToken();
+      const methods = await paymentMethodService.getUserPaymentMethods(
+        user.id,
+        token || undefined
+      );
+      setPaymentMethods(methods);
+      return methods;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch payment methods";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, clerkAuth, setPaymentMethods, setError]);
 
   const addNewPaymentMethod = useCallback(
-    async (request: CreatePaymentMethodRequest): Promise<PaymentMethod | null> => {
+    async (
+      request: CreatePaymentMethodRequest
+    ): Promise<PaymentMethod | null> => {
       if (!user) {
         toast.error("Please sign in to add payment methods");
         return null;
@@ -577,7 +687,7 @@ export const usePaymentMethods = () => {
 
       try {
         const method = await paymentMethodService.addPaymentMethod(request);
-        
+
         if (method) {
           addPaymentMethod(method);
           toast.success("Payment method added successfully");
@@ -589,7 +699,10 @@ export const usePaymentMethods = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to add payment method";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to add payment method";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -603,14 +716,19 @@ export const usePaymentMethods = () => {
   const removePaymentMethodById = useCallback(
     async (methodId: string): Promise<boolean> => {
       try {
-        const success = await paymentMethodService.removePaymentMethod(methodId);
+        const success = await paymentMethodService.removePaymentMethod(
+          methodId
+        );
         if (success) {
           removePaymentMethod(methodId);
           toast.success("Payment method removed successfully");
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to remove payment method";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to remove payment method";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -622,9 +740,11 @@ export const usePaymentMethods = () => {
   const setDefaultPaymentMethodById = useCallback(
     async (methodId: string): Promise<boolean> => {
       try {
-        const success = await paymentMethodService.setDefaultPaymentMethod(methodId);
+        const success = await paymentMethodService.setDefaultPaymentMethod(
+          methodId
+        );
         if (success) {
-          const method = paymentMethods.find(m => m.id === methodId);
+          const method = paymentMethods.find((m) => m.id === methodId);
           if (method) {
             setDefaultPaymentMethod(method);
           }
@@ -632,7 +752,10 @@ export const usePaymentMethods = () => {
         }
         return success;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to set default payment method";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to set default payment method";
         setError(errorMessage);
         toast.error(errorMessage);
         return false;
@@ -664,7 +787,11 @@ export const useStripe = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const createPaymentIntent = useCallback(
-    async (amount: number, currency: string, metadata?: Record<string, any>): Promise<StripePaymentIntent | null> => {
+    async (
+      amount: number,
+      currency: string,
+      metadata?: Record<string, any>
+    ): Promise<StripePaymentIntent | null> => {
       if (!user) {
         toast.error("Please sign in to make payments");
         return null;
@@ -675,8 +802,13 @@ export const useStripe = () => {
 
       try {
         const token = await clerkAuth.getToken();
-        const paymentIntent = await stripeService.createPaymentIntent(amount, currency, metadata, token || undefined);
-        
+        const paymentIntent = await stripeService.createPaymentIntent(
+          amount,
+          currency,
+          metadata,
+          token || undefined
+        );
+
         if (paymentIntent) {
           toast.success("Payment intent created successfully");
           return paymentIntent;
@@ -687,7 +819,10 @@ export const useStripe = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create payment intent";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to create payment intent";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -714,8 +849,13 @@ export const useStripe = () => {
       clearErrors();
 
       try {
-        const session = await stripeService.createCheckoutSession(items, successUrl, cancelUrl, metadata);
-        
+        const session = await stripeService.createCheckoutSession(
+          items,
+          successUrl,
+          cancelUrl,
+          metadata
+        );
+
         if (session) {
           toast.success("Checkout session created successfully");
           return session;
@@ -726,7 +866,10 @@ export const useStripe = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create checkout session";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to create checkout session";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -738,7 +881,11 @@ export const useStripe = () => {
   );
 
   const createCustomer = useCallback(
-    async (email: string, name?: string, metadata?: Record<string, any>): Promise<StripeCustomer | null> => {
+    async (
+      email: string,
+      name?: string,
+      metadata?: Record<string, any>
+    ): Promise<StripeCustomer | null> => {
       if (!user) {
         toast.error("Please sign in to create customer profile");
         return null;
@@ -748,8 +895,12 @@ export const useStripe = () => {
       clearErrors();
 
       try {
-        const customer = await stripeService.createCustomer(email, name, metadata);
-        
+        const customer = await stripeService.createCustomer(
+          email,
+          name,
+          metadata
+        );
+
         if (customer) {
           toast.success("Customer profile created successfully");
           return customer;
@@ -760,7 +911,10 @@ export const useStripe = () => {
           return null;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create customer profile";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to create customer profile";
         setError(errorMessage);
         toast.error(errorMessage);
         return null;
@@ -839,7 +993,7 @@ export const useQuickPayment = () => {
       }
 
       // Add to cart if not already there
-      if (!checkoutItems.find(item => item.courseId === course.id)) {
+      if (!checkoutItems.find((item) => item.courseId === course.id)) {
         addToCheckout(course);
       }
 
@@ -859,17 +1013,23 @@ export const useQuickPayment = () => {
 
       try {
         // For free courses, create a payment session with $0 amount
-        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl =
+          process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
         const token = await clerkAuth.getToken();
-        const response = await paymentSessionService.createSession({
-          courseId: course.id,
-          returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${frontendUrl}/payment/cancel`,
-          metadata: {
-            courseType: 'free',
-            enrollmentType: 'free'
+        const response = await paymentSessionService.createSession(
+          {
+            courseId: course.id,
+            returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${frontendUrl}/payment/cancel`,
+            metadata: {
+              courseType: "free",
+              enrollmentType: "free",
+              courseId: course.id, // Backup courseId in metadata
+              course_id: course.id, // Alternative key for backend compatibility
+            },
           },
-        }, token || undefined);
+          token || undefined
+        );
 
         if (response.success && response.session) {
           // The payment session will handle the enrollment
@@ -913,27 +1073,31 @@ export const useQuickPayment = () => {
         amount: total,
       });
     },
-    [user, validateCoupon, isCheckoutEmpty, getCheckoutTotal, getCheckoutCurrency, checkoutItems]
+    [
+      user,
+      validateCoupon,
+      isCheckoutEmpty,
+      getCheckoutTotal,
+      getCheckoutCurrency,
+      checkoutItems,
+    ]
   );
 
-  const handleProceedToPayment = useCallback(
-    async () => {
-      if (!user) {
-        toast.error("Please sign in to proceed to payment");
-        router.push("/sign-in");
-        return;
-      }
+  const handleProceedToPayment = useCallback(async () => {
+    if (!user) {
+      toast.error("Please sign in to proceed to payment");
+      router.push("/sign-in");
+      return;
+    }
 
-      if (isCheckoutEmpty()) {
-        toast.error("No items in cart");
-        return;
-      }
+    if (isCheckoutEmpty()) {
+      toast.error("No items in cart");
+      return;
+    }
 
-      setCurrentStep("payment");
-      setShowPaymentModal(true);
-    },
-    [user, router, isCheckoutEmpty, setCurrentStep, setShowPaymentModal]
-  );
+    setCurrentStep("payment");
+    setShowPaymentModal(true);
+  }, [user, router, isCheckoutEmpty, setCurrentStep, setShowPaymentModal]);
 
   const formatPrice = useCallback(
     (amount: number, currency: string = "USD") => {

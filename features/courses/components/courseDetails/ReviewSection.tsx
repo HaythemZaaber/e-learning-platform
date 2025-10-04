@@ -1,4 +1,16 @@
-import { Star, ThumbsUp, Filter, Search, MoreVertical, Flag } from "lucide-react";
+import {
+  Star,
+  ThumbsUp,
+  Filter,
+  Search,
+  MoreVertical,
+  Flag,
+  Edit,
+  Trash2,
+  Plus,
+  MessageSquare,
+  CheckCircle,
+} from "lucide-react";
 import Image from "next/image";
 import { Course } from "@/types/courseTypes";
 import { Button } from "@/components/ui/button";
@@ -15,6 +27,10 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { useCourseRatings } from "../../hooks/useCourseRatings";
+import { StudentReviewForm } from "../reviews/StudentReviewForm";
+import { DeleteReviewModal } from "../reviews/DeleteReviewModal";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ReviewSectionProps {
   course: Course | null;
@@ -23,10 +39,34 @@ interface ReviewSectionProps {
 export function ReviewSection({ course }: ReviewSectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<"recent" | "helpful" | "rating">("helpful");
+  const [sortBy, setSortBy] = useState<"recent" | "helpful" | "rating">(
+    "helpful"
+  );
   const [showMore, setShowMore] = useState(false);
   const [helpfulReviews, setHelpfulReviews] = useState<Set<string>>(new Set());
-  const [reportedReviews, setReportedReviews] = useState<Set<string>>(new Set());
+  const [reportedReviews, setReportedReviews] = useState<Set<string>>(
+    new Set()
+  );
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    reviewId: string;
+    rating: number;
+    comment?: string;
+  } | null>(null);
+
+  const { user, isAuthenticated } = useAuth();
+  const {
+    ratings,
+    userRating,
+    ratingsLoading,
+    createRating,
+    updateRating,
+    deleteRating,
+    isSubmitting,
+    refetchRatings,
+    refetchUserRating,
+  } = useCourseRatings(course?.id || "", { limit: 10 });
 
   if (!course) {
     return (
@@ -41,11 +81,18 @@ export function ReviewSection({ course }: ReviewSectionProps) {
     );
   }
 
-  const reviews = course.reviews || [];
-  const avgRating = course.avgRating || 0;
-  const totalRatings = course.totalRatings || 0;
+  // Use data from the new rating system
+  const reviews = ratings || [];
 
-  // Calculate rating distribution
+  // Calculate ratings from reviews data
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum: number, review: any) => sum + review.rating, 0) /
+        reviews.length
+      : course.avgRating || 0;
+  const totalRatings = reviews.length || course.totalRatings || 0;
+
+  // Calculate rating distribution from reviews
   const ratingDistribution = useMemo(() => {
     const distribution = [
       { stars: 5, count: 0, percentage: 0 },
@@ -55,15 +102,16 @@ export function ReviewSection({ course }: ReviewSectionProps) {
       { stars: 1, count: 0, percentage: 0 },
     ];
 
-    reviews.forEach(review => {
+    reviews.forEach((review: any) => {
       const index = 5 - review.rating;
       if (index >= 0 && index < 5) {
         distribution[index].count++;
       }
     });
 
-    distribution.forEach(item => {
-      item.percentage = totalRatings > 0 ? Math.round((item.count / totalRatings) * 100) : 0;
+    distribution.forEach((item) => {
+      item.percentage =
+        totalRatings > 0 ? Math.round((item.count / totalRatings) * 100) : 0;
     });
 
     return distribution;
@@ -71,21 +119,32 @@ export function ReviewSection({ course }: ReviewSectionProps) {
 
   // Filter and sort reviews
   const filteredAndSortedReviews = useMemo(() => {
-    let filtered = reviews.filter(review => {
-      const matchesSearch = !searchTerm || 
+    let filtered = reviews.filter((review: any) => {
+      const matchesSearch =
+        !searchTerm ||
         review.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.userName?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        review.user?.firstName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        review.user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesRating = !filterRating || review.rating === filterRating;
-      
+
       return matchesSearch && matchesRating;
     });
 
-    // Sort reviews
-    filtered.sort((a, b) => {
+    // Sort reviews - put user's review first if it exists
+    filtered.sort((a: any, b: any) => {
+      // If user has a review, put it first
+      if (userRating && a.id === userRating.id) return -1;
+      if (userRating && b.id === userRating.id) return 1;
+
       switch (sortBy) {
         case "recent":
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
         case "helpful":
           return (b.helpfulCount || 0) - (a.helpfulCount || 0);
         case "rating":
@@ -96,9 +155,11 @@ export function ReviewSection({ course }: ReviewSectionProps) {
     });
 
     return filtered;
-  }, [reviews, searchTerm, filterRating, sortBy]);
+  }, [reviews, searchTerm, filterRating, sortBy, userRating]);
 
-  const displayedReviews = showMore ? filteredAndSortedReviews : filteredAndSortedReviews.slice(0, 3);
+  const displayedReviews = showMore
+    ? filteredAndSortedReviews
+    : filteredAndSortedReviews.slice(0, 3);
 
   const handleMarkHelpful = (reviewId: string) => {
     if (helpfulReviews.has(reviewId)) {
@@ -119,6 +180,42 @@ export function ReviewSection({ course }: ReviewSectionProps) {
       setReportedReviews(new Set([...reportedReviews, reviewId]));
       toast.success("Review reported. Thank you for your feedback.");
     }
+  };
+
+  const handleEditReview = (reviewId: string) => {
+    setEditingReview(reviewId);
+    setShowReviewForm(true);
+  };
+
+  const handleDeleteReview = (reviewId: string) => {
+    const review = reviews.find((r: any) => r.id === reviewId);
+    if (review) {
+      setDeleteConfirm({
+        reviewId,
+        rating: review.rating,
+        comment: review.comment,
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirm) {
+      await deleteRating(deleteConfirm.reviewId);
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleWriteReview = () => {
+    setEditingReview(null);
+    setShowReviewForm(true);
+  };
+
+  const handleReviewSuccess = () => {
+    setShowReviewForm(false);
+    setEditingReview(null);
+    // Refetch all data to update the UI immediately
+    refetchRatings();
+    refetchUserRating();
   };
 
   const renderStars = (rating: number, size: "sm" | "md" | "lg" = "md") => {
@@ -147,7 +244,40 @@ export function ReviewSection({ course }: ReviewSectionProps) {
 
   return (
     <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-bold mb-6">Student Reviews</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold">Student Reviews</h2>
+        {isAuthenticated && (
+          <div className="flex items-center gap-3">
+            {!userRating ? (
+              <Button
+                onClick={handleWriteReview}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Write Review
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-700"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  You've reviewed this course
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditReview(userRating.id)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Rating Overview */}
       <div className="grid md:grid-cols-2 gap-8 mb-8">
@@ -167,7 +297,9 @@ export function ReviewSection({ course }: ReviewSectionProps) {
           {ratingDistribution.map((item) => (
             <button
               key={item.stars}
-              onClick={() => setFilterRating(filterRating === item.stars ? null : item.stars)}
+              onClick={() =>
+                setFilterRating(filterRating === item.stars ? null : item.stars)
+              }
               className={cn(
                 "w-full flex items-center gap-3 p-2 rounded-lg transition-colors",
                 filterRating === item.stars ? "bg-blue-50" : "hover:bg-gray-50"
@@ -202,7 +334,12 @@ export function ReviewSection({ course }: ReviewSectionProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
               <Filter className="w-4 h-4 mr-2" />
-              Sort by: {sortBy === "recent" ? "Most Recent" : sortBy === "helpful" ? "Most Helpful" : "Highest Rated"}
+              Sort by:{" "}
+              {sortBy === "recent"
+                ? "Most Recent"
+                : sortBy === "helpful"
+                ? "Most Helpful"
+                : "Highest Rated"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -232,13 +369,13 @@ export function ReviewSection({ course }: ReviewSectionProps) {
       {/* Reviews List */}
       {displayedReviews.length > 0 ? (
         <div className="space-y-6">
-          {displayedReviews.map((review) => {
+          {displayedReviews.map((review: any) => {
             const isHelpful = helpfulReviews.has(review.id);
             const isReported = reportedReviews.has(review.id);
-            
+
             return (
-              <div 
-                key={review.id} 
+              <div
+                key={review.id}
                 className={cn(
                   "border-b pb-6 last:border-0",
                   isReported && "opacity-50"
@@ -247,17 +384,19 @@ export function ReviewSection({ course }: ReviewSectionProps) {
                 <div className="flex items-start gap-4">
                   {/* User Avatar */}
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                    {review.userAvatar ? (
+                    {review.user?.profileImage ? (
                       <Image
-                        src={review.userAvatar}
-                        alt={review.userName || "User"}
+                        src={review.user.profileImage}
+                        alt={review.user.firstName || "User"}
                         width={48}
                         height={48}
                         className="object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-500 font-semibold">
-                        {(review.userName || "U").charAt(0).toUpperCase()}
+                        {(review.user?.firstName || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                     )}
                   </div>
@@ -267,14 +406,17 @@ export function ReviewSection({ course }: ReviewSectionProps) {
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-semibold text-gray-900">
-                          {review.userName || "Anonymous"}
+                          {review.user?.firstName && review.user?.lastName
+                            ? `${review.user.firstName} ${review.user.lastName}`
+                            : "Anonymous"}
                         </h4>
                         <div className="flex items-center gap-3 mt-1">
                           {renderStars(review.rating, "sm")}
                           <span className="text-sm text-gray-500">
-                            {review.createdAt && 
-                              formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })
-                            }
+                            {review.createdAt &&
+                              formatDistanceToNow(new Date(review.createdAt), {
+                                addSuffix: true,
+                              })}
                           </span>
                           {review.verified && (
                             <Badge variant="secondary" className="text-xs">
@@ -287,18 +429,41 @@ export function ReviewSection({ course }: ReviewSectionProps) {
                       {/* More Options */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => handleReportReview(review.id)}
-                            className="text-red-600"
-                          >
-                            <Flag className="mr-2 h-4 w-4" />
-                            Report Review
-                          </DropdownMenuItem>
+                          {userRating && userRating.id === review.id ? (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleEditReview(review.id)}
+                                className="text-blue-600"
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Review
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteReview(review.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Review
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => handleReportReview(review.id)}
+                              className="text-red-600"
+                            >
+                              <Flag className="mr-2 h-4 w-4" />
+                              Report Review
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -308,10 +473,131 @@ export function ReviewSection({ course }: ReviewSectionProps) {
                       {review.comment}
                     </p>
 
+                    {/* Detailed Ratings - Compact Display */}
+                    {(review.courseQuality ||
+                      review.instructorRating ||
+                      review.difficultyRating ||
+                      review.valueForMoney) && (
+                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-3">
+                        {review.courseQuality && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600 bg-blue-50 px-1.5 sm:px-2 py-1 rounded-full border border-blue-100">
+                            <span className="font-medium text-blue-700 hidden sm:inline">
+                              Quality:
+                            </span>
+                            <span className="font-medium text-blue-700 sm:hidden">
+                              Q:
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <div
+                                  key={star}
+                                  className={`w-2 h-2 ${
+                                    star <= review.courseQuality
+                                      ? "text-blue-500"
+                                      : "text-gray-300"
+                                  }`}
+                                >
+                                  ★
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-blue-600 font-medium">
+                              {review.courseQuality}/5
+                            </span>
+                          </div>
+                        )}
+
+                        {review.instructorRating && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600 bg-purple-50 px-1.5 sm:px-2 py-1 rounded-full border border-purple-100">
+                            <span className="font-medium text-purple-700 hidden sm:inline">
+                              Instructor:
+                            </span>
+                            <span className="font-medium text-purple-700 sm:hidden">
+                              I:
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <div
+                                  key={star}
+                                  className={`w-2 h-2 ${
+                                    star <= review.instructorRating
+                                      ? "text-purple-500"
+                                      : "text-gray-300"
+                                  }`}
+                                >
+                                  ★
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-purple-600 font-medium">
+                              {review.instructorRating}/5
+                            </span>
+                          </div>
+                        )}
+
+                        {review.difficultyRating && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600 bg-orange-50 px-1.5 sm:px-2 py-1 rounded-full border border-orange-100">
+                            <span className="font-medium text-orange-700 hidden sm:inline">
+                              Difficulty:
+                            </span>
+                            <span className="font-medium text-orange-700 sm:hidden">
+                              D:
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <div
+                                  key={star}
+                                  className={`w-2 h-2 ${
+                                    star <= review.difficultyRating
+                                      ? "text-orange-500"
+                                      : "text-gray-300"
+                                  }`}
+                                >
+                                  ★
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-orange-600 font-medium">
+                              {review.difficultyRating}/5
+                            </span>
+                          </div>
+                        )}
+
+                        {review.valueForMoney && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600 bg-green-50 px-1.5 sm:px-2 py-1 rounded-full border border-green-100">
+                            <span className="font-medium text-green-700 hidden sm:inline">
+                              Value:
+                            </span>
+                            <span className="font-medium text-green-700 sm:hidden">
+                              V:
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <div
+                                  key={star}
+                                  className={`w-2 h-2 ${
+                                    star <= review.valueForMoney
+                                      ? "text-green-500"
+                                      : "text-gray-300"
+                                  }`}
+                                >
+                                  ★
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-green-600 font-medium">
+                              {review.valueForMoney}/5
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Review Metadata */}
                     {review.createdAt && (
                       <div className="mt-3 text-xs text-gray-500">
-                        Reviewed on {new Date(review.createdAt).toLocaleDateString()}
+                        Reviewed on{" "}
+                        {new Date(review.createdAt).toLocaleDateString()}
                       </div>
                     )}
 
@@ -321,19 +607,22 @@ export function ReviewSection({ course }: ReviewSectionProps) {
                         onClick={() => handleMarkHelpful(review.id)}
                         className={cn(
                           "text-sm flex items-center gap-1 transition-colors",
-                          isHelpful 
-                            ? "text-blue-600 font-semibold" 
+                          isHelpful
+                            ? "text-blue-600 font-semibold"
                             : "text-gray-500 hover:text-gray-700"
                         )}
                         disabled={isReported}
                       >
-                        <ThumbsUp className={cn(
-                          "w-4 h-4",
-                          isHelpful && "fill-current"
-                        )} />
+                        <ThumbsUp
+                          className={cn("w-4 h-4", isHelpful && "fill-current")}
+                        />
                         <span>
-                          Helpful {((review.helpfulCount || 0) + (isHelpful ? 1 : 0)) > 0 && 
-                            `(${(review.helpfulCount || 0) + (isHelpful ? 1 : 0)})`}
+                          Helpful{" "}
+                          {(review.helpfulCount || 0) + (isHelpful ? 1 : 0) >
+                            0 &&
+                            `(${
+                              (review.helpfulCount || 0) + (isHelpful ? 1 : 0)
+                            })`}
                         </span>
                       </button>
                     </div>
@@ -349,12 +638,12 @@ export function ReviewSection({ course }: ReviewSectionProps) {
             <Star className="w-16 h-16 mx-auto" />
           </div>
           <p className="text-gray-600 font-medium mb-2">
-            {searchTerm || filterRating 
-              ? "No reviews match your criteria" 
+            {searchTerm || filterRating
+              ? "No reviews match your criteria"
               : "No reviews yet"}
           </p>
           <p className="text-sm text-gray-500">
-            {searchTerm || filterRating 
+            {searchTerm || filterRating
               ? "Try adjusting your filters"
               : "Be the first to review this course!"}
           </p>
@@ -377,13 +666,12 @@ export function ReviewSection({ course }: ReviewSectionProps) {
       {/* Show More/Less Button */}
       {filteredAndSortedReviews.length > 3 && (
         <div className="mt-6 text-center">
-          <Button
-            variant="outline"
-            onClick={() => setShowMore(!showMore)}
-          >
-            {showMore 
-              ? `Show Less` 
-              : `Show More Reviews (${filteredAndSortedReviews.length - 3} more)`}
+          <Button variant="outline" onClick={() => setShowMore(!showMore)}>
+            {showMore
+              ? `Show Less`
+              : `Show More Reviews (${
+                  filteredAndSortedReviews.length - 3
+                } more)`}
           </Button>
         </div>
       )}
@@ -397,7 +685,9 @@ export function ReviewSection({ course }: ReviewSectionProps) {
               <div className="text-gray-600">Most Common Rating</div>
               <div className="font-semibold text-gray-900 flex items-center gap-1 mt-1">
                 {renderStars(
-                  ratingDistribution.reduce((a, b) => a.count > b.count ? a : b).stars,
+                  ratingDistribution.reduce((a, b) =>
+                    a.count > b.count ? a : b
+                  ).stars,
                   "sm"
                 )}
               </div>
@@ -417,11 +707,42 @@ export function ReviewSection({ course }: ReviewSectionProps) {
             <div>
               <div className="text-gray-600">Would Recommend</div>
               <div className="font-semibold text-gray-900 mt-1">
-                {Math.round((ratingDistribution[0].count + ratingDistribution[1].count) / totalRatings * 100)}%
+                {Math.round(
+                  ((ratingDistribution[0].count + ratingDistribution[1].count) /
+                    totalRatings) *
+                    100
+                )}
+                %
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Student Review Form Modal */}
+      {showReviewForm && (
+        <StudentReviewForm
+          courseId={course.id}
+          isOpen={showReviewForm}
+          onClose={() => {
+            setShowReviewForm(false);
+            setEditingReview(null);
+          }}
+          existingRating={editingReview ? userRating : null}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
+
+      {/* Delete Review Confirmation Modal */}
+      {deleteConfirm && (
+        <DeleteReviewModal
+          isOpen={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isSubmitting}
+          reviewRating={deleteConfirm.rating}
+          reviewComment={deleteConfirm.comment}
+        />
       )}
     </div>
   );

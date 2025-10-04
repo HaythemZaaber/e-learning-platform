@@ -225,7 +225,7 @@ export function PriceCard({
       "hover:shadow-2xl"
     )}>
       {/* Discount Banner - Only show for non-enrolled users */}
-      {!isEnrolled && isDiscounted && (
+      {!isEnrolled && !!isDiscounted && (
         <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2.5 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -326,7 +326,7 @@ export function PriceCard({
                 <span className="text-3xl font-bold text-gray-900">
                   ${course.price?.toFixed(2) || '0.00'}
                 </span>
-                {isDiscounted && course.originalPrice && (
+                {!!isDiscounted && !!course.originalPrice && (
                   <span className="text-lg text-gray-400 line-through">
                     ${course.originalPrice.toFixed(2)}
                   </span>

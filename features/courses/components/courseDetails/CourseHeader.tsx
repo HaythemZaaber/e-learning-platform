@@ -198,7 +198,7 @@ export function CourseHeader({ course }: { course: Course | null }) {
                     Free Course
                   </Badge>
                 )}
-                {getBestseller()  && (
+                {!!getBestseller()  && (
                   <Badge className="bg-orange-500 text-white border-0 px-3 py-1">
                     <Award className="w-3 h-3 mr-1" />
                     Bestseller
@@ -289,15 +289,15 @@ export function CourseHeader({ course }: { course: Course | null }) {
                     >
                       {course.instructor?.firstName} {course.instructor?.lastName}
                     </button>
-                    {course.instructor?.rating && (
+                    {!!course.instructor?.rating && (
                       <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{course.instructor.rating}</span>
-                        {course.instructor.totalCourses && (
-                          <span>• {course.instructor.totalCourses} courses</span>
+                        <span>{course.instructor?.rating}</span>
+                        {course.instructor?.totalCourses && (
+                          <span>• {course.instructor?.totalCourses} courses</span>
                         )}
-                        {course.instructor.totalStudentsTaught && (
-                          <span>• {formatNumber(course.instructor.totalStudentsTaught)} students</span>
+                        {course.instructor?.totalStudentsTaught && (
+                          <span>• {formatNumber(course.instructor?.totalStudentsTaught)} students</span>
                         )}
                       </div>
                     )}

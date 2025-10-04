@@ -1,7 +1,7 @@
 // features/payments/services/paymentService.ts
 // Comprehensive payment services for the e-learning platform
 
-import { 
+import {
   PaymentSession,
   CreatePaymentSessionRequest,
   PaymentSessionResponse,
@@ -28,7 +28,7 @@ import {
   PaymentWebhookEvent,
   formatCurrency,
   calculateDiscount,
-  calculateFinalAmount
+  calculateFinalAmount,
 } from "@/types/paymentTypes";
 
 // ============================================================================
@@ -64,7 +64,7 @@ const handleApiResponse = async <T>(response: Response): Promise<T> => {
       errorData.details
     );
   }
-  
+
   return response.json();
 };
 
@@ -83,11 +83,14 @@ export const paymentSessionService = {
   /**
    * Create a new payment session for a course
    */
-  async createSession(request: CreatePaymentSessionRequest, token?: string): Promise<PaymentSessionResponse> {
+  async createSession(
+    request: CreatePaymentSessionRequest,
+    token?: string
+  ): Promise<PaymentSessionResponse> {
     try {
       // Remove userId from request body since it will be extracted from the token
       const { userId, ...requestBody } = request;
-      
+
       const response = await fetch(`${API_BASE_URL}/payments/sessions`, {
         method: "POST",
         headers: getAuthHeaders(token),
@@ -95,7 +98,7 @@ export const paymentSessionService = {
       });
 
       const data = await handleApiResponse<PaymentSessionApiResponse>(response);
-      
+
       return {
         success: data.success,
         session: data.session,
@@ -106,7 +109,10 @@ export const paymentSessionService = {
       console.error("Error creating payment session:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to create payment session",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create payment session",
       };
     }
   },
@@ -114,11 +120,17 @@ export const paymentSessionService = {
   /**
    * Get payment session by ID
    */
-  async getSession(sessionId: string, token?: string): Promise<PaymentSession | null> {
+  async getSession(
+    sessionId: string,
+    token?: string
+  ): Promise<PaymentSession | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/sessions/${sessionId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/${sessionId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<PaymentSessionApiResponse>(response);
       return data.session || null;
@@ -132,11 +144,17 @@ export const paymentSessionService = {
    * 🔧 CRITICAL: Get payment session by Stripe session ID
    * This method fixes the infinite loop issue on the success page
    */
-  async getSessionByStripeId(stripeSessionId: string, token?: string): Promise<PaymentSession | null> {
+  async getSessionByStripeId(
+    stripeSessionId: string,
+    token?: string
+  ): Promise<PaymentSession | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/sessions/stripe/${stripeSessionId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/stripe/${stripeSessionId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<PaymentSessionApiResponse>(response);
       return data.session || null;
@@ -149,13 +167,20 @@ export const paymentSessionService = {
   /**
    * Update payment session status
    */
-  async updateSession(sessionId: string, updates: Partial<PaymentSession>, token?: string): Promise<boolean> {
+  async updateSession(
+    sessionId: string,
+    updates: Partial<PaymentSession>,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(updates),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/${sessionId}`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify(updates),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -170,10 +195,13 @@ export const paymentSessionService = {
    */
   async cancelSession(sessionId: string, token?: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/sessions/${sessionId}/cancel`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/${sessionId}/cancel`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -186,13 +214,21 @@ export const paymentSessionService = {
   /**
    * Get user's payment sessions
    */
-  async getUserSessions(userId: string, token?: string): Promise<PaymentSession[]> {
+  async getUserSessions(
+    userId: string,
+    token?: string
+  ): Promise<PaymentSession[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/sessions/user/${userId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/user/${userId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
-      const data = await handleApiResponse<{ sessions: PaymentSession[] }>(response);
+      const data = await handleApiResponse<{ sessions: PaymentSession[] }>(
+        response
+      );
       return data.sessions || [];
     } catch (error) {
       console.error("Error fetching user payment sessions:", error);
@@ -209,19 +245,25 @@ export const couponService = {
   /**
    * Validate a coupon code
    */
-  async validateCoupon(request: ValidateCouponRequest, token?: string): Promise<CouponValidationResponse> {
+  async validateCoupon(
+    request: ValidateCouponRequest,
+    token?: string
+  ): Promise<CouponValidationResponse> {
     try {
       // Remove userId from request body since it will be extracted from the token
       const { userId, ...requestBody } = request;
-      
-      const response = await fetch(`${API_BASE_URL}/payments/coupons/validate`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(requestBody),
-      });
+
+      const response = await fetch(
+        `${API_BASE_URL}/payments/coupons/validate`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify(requestBody),
+        }
+      );
 
       const data = await handleApiResponse<CouponApiResponse>(response);
-      
+
       return {
         isValid: data.isValid || false,
         coupon: data.coupon,
@@ -236,7 +278,8 @@ export const couponService = {
         isValid: false,
         discountAmount: 0,
         finalAmount: request.amount,
-        error: error instanceof Error ? error.message : "Failed to validate coupon",
+        error:
+          error instanceof Error ? error.message : "Failed to validate coupon",
       };
     }
   },
@@ -284,7 +327,12 @@ export const enrollmentService = {
   /**
    * Create enrollment for a course
    */
-  async createEnrollment(courseId: string, userId: string, paymentSessionId?: string, token?: string): Promise<Enrollment | null> {
+  async createEnrollment(
+    courseId: string,
+    userId: string,
+    paymentSessionId?: string,
+    token?: string
+  ): Promise<Enrollment | null> {
     try {
       // Remove userId from request body since it will be extracted from the token
       const response = await fetch(`${API_BASE_URL}/payments/enrollments`, {
@@ -307,13 +355,21 @@ export const enrollmentService = {
   /**
    * Get user's enrollments
    */
-  async getUserEnrollments(userId: string, token?: string): Promise<Enrollment[]> {
+  async getUserEnrollments(
+    userId: string,
+    token?: string
+  ): Promise<Enrollment[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/enrollments/user/${userId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/enrollments/user/${userId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
-      const data = await handleApiResponse<{ enrollments: Enrollment[] }>(response);
+      const data = await handleApiResponse<{ enrollments: Enrollment[] }>(
+        response
+      );
       return data.enrollments || [];
     } catch (error) {
       console.error("Error fetching user enrollments:", error);
@@ -324,11 +380,26 @@ export const enrollmentService = {
   /**
    * Get enrollment by course ID
    */
-  async getEnrollmentByCourse(courseId: string, token?: string): Promise<Enrollment | null> {
+  async getEnrollmentByCourse(
+    courseId: string,
+    token?: string
+  ): Promise<Enrollment | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/enrollments/course/${courseId}`, {
-        headers: getAuthHeaders(token),
-      });
+      // Debug: Check if courseId is valid
+      if (!courseId || courseId === "undefined") {
+        console.error(
+          "Invalid courseId provided to getEnrollmentByCourse:",
+          courseId
+        );
+        return null;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/payments/enrollments/course/${courseId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse(response);
       return data as Enrollment;
@@ -341,13 +412,20 @@ export const enrollmentService = {
   /**
    * Update enrollment
    */
-  async updateEnrollment(enrollmentId: string, updates: Partial<Enrollment>, token?: string): Promise<boolean> {
+  async updateEnrollment(
+    enrollmentId: string,
+    updates: Partial<Enrollment>,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/enrollments/${enrollmentId}`, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(updates),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/enrollments/${enrollmentId}`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify(updates),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -360,12 +438,18 @@ export const enrollmentService = {
   /**
    * Cancel enrollment
    */
-  async cancelEnrollment(enrollmentId: string, token?: string): Promise<boolean> {
+  async cancelEnrollment(
+    enrollmentId: string,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/enrollments/${enrollmentId}/cancel`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/enrollments/${enrollmentId}/cancel`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -384,7 +468,10 @@ export const checkoutService = {
   /**
    * Create checkout session
    */
-  async createCheckoutSession(request: CreateCheckoutSessionRequest, token?: string): Promise<CheckoutSession | null> {
+  async createCheckoutSession(
+    request: CreateCheckoutSessionRequest,
+    token?: string
+  ): Promise<CheckoutSession | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/checkout/sessions`, {
         method: "POST",
@@ -403,11 +490,17 @@ export const checkoutService = {
   /**
    * Get checkout session by ID
    */
-  async getCheckoutSession(sessionId: string, token?: string): Promise<CheckoutSession | null> {
+  async getCheckoutSession(
+    sessionId: string,
+    token?: string
+  ): Promise<CheckoutSession | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/checkout/sessions/${sessionId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/checkout/sessions/${sessionId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<CheckoutApiResponse>(response);
       return data.checkoutSession || null;
@@ -420,12 +513,18 @@ export const checkoutService = {
   /**
    * Complete checkout session
    */
-  async completeCheckoutSession(sessionId: string, token?: string): Promise<boolean> {
+  async completeCheckoutSession(
+    sessionId: string,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/checkout/sessions/${sessionId}/complete`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/checkout/sessions/${sessionId}/complete`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -444,13 +543,21 @@ export const paymentMethodService = {
   /**
    * Get user's payment methods
    */
-  async getUserPaymentMethods(userId: string, token?: string): Promise<PaymentMethod[]> {
+  async getUserPaymentMethods(
+    userId: string,
+    token?: string
+  ): Promise<PaymentMethod[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/methods/user/${userId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/methods/user/${userId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
-      const data = await handleApiResponse<{ paymentMethods: PaymentMethod[] }>(response);
+      const data = await handleApiResponse<{ paymentMethods: PaymentMethod[] }>(
+        response
+      );
       return data.paymentMethods || [];
     } catch (error) {
       console.error("Error fetching payment methods:", error);
@@ -461,7 +568,10 @@ export const paymentMethodService = {
   /**
    * Add payment method
    */
-  async addPaymentMethod(request: CreatePaymentMethodRequest, token?: string): Promise<PaymentMethod | null> {
+  async addPaymentMethod(
+    request: CreatePaymentMethodRequest,
+    token?: string
+  ): Promise<PaymentMethod | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/payments/methods`, {
         method: "POST",
@@ -469,7 +579,9 @@ export const paymentMethodService = {
         body: JSON.stringify(request),
       });
 
-      const data = await handleApiResponse<{ paymentMethod: PaymentMethod }>(response);
+      const data = await handleApiResponse<{ paymentMethod: PaymentMethod }>(
+        response
+      );
       return data.paymentMethod || null;
     } catch (error) {
       console.error("Error adding payment method:", error);
@@ -480,12 +592,18 @@ export const paymentMethodService = {
   /**
    * Remove payment method
    */
-  async removePaymentMethod(methodId: string, token?: string): Promise<boolean> {
+  async removePaymentMethod(
+    methodId: string,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/methods/${methodId}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/methods/${methodId}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -498,12 +616,18 @@ export const paymentMethodService = {
   /**
    * Set default payment method
    */
-  async setDefaultPaymentMethod(methodId: string, token?: string): Promise<boolean> {
+  async setDefaultPaymentMethod(
+    methodId: string,
+    token?: string
+  ): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/methods/${methodId}/default`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/methods/${methodId}/default`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<ApiResponse>(response);
       return data.success;
@@ -522,7 +646,10 @@ export const refundService = {
   /**
    * Create refund
    */
-  async createRefund(request: RefundRequest, token?: string): Promise<Refund | null> {
+  async createRefund(
+    request: RefundRequest,
+    token?: string
+  ): Promise<Refund | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/payments/refunds`, {
         method: "POST",
@@ -543,9 +670,12 @@ export const refundService = {
    */
   async getRefund(refundId: string, token?: string): Promise<Refund | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/refunds/${refundId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/refunds/${refundId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<{ refund: Refund }>(response);
       return data.refund || null;
@@ -558,11 +688,17 @@ export const refundService = {
   /**
    * Get refunds for payment session
    */
-  async getRefundsByPaymentSession(paymentSessionId: string, token?: string): Promise<Refund[]> {
+  async getRefundsByPaymentSession(
+    paymentSessionId: string,
+    token?: string
+  ): Promise<Refund[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/refunds/session/${paymentSessionId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/refunds/session/${paymentSessionId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
       const data = await handleApiResponse<{ refunds: Refund[] }>(response);
       return data.refunds || [];
@@ -581,17 +717,26 @@ export const analyticsService = {
   /**
    * Get payment analytics
    */
-  async getPaymentAnalytics(userId?: string, dateRange?: string, token?: string): Promise<PaymentAnalytics | null> {
+  async getPaymentAnalytics(
+    userId?: string,
+    dateRange?: string,
+    token?: string
+  ): Promise<PaymentAnalytics | null> {
     try {
       const params = new URLSearchParams();
       if (userId) params.append("userId", userId);
       if (dateRange) params.append("dateRange", dateRange);
 
-      const response = await fetch(`${API_BASE_URL}/payments/analytics?${params}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/analytics?${params}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
-      const data = await handleApiResponse<{ analytics: PaymentAnalytics }>(response);
+      const data = await handleApiResponse<{ analytics: PaymentAnalytics }>(
+        response
+      );
       return data.analytics || null;
     } catch (error) {
       console.error("Error fetching payment analytics:", error);
@@ -608,19 +753,29 @@ export const stripeService = {
   /**
    * Create Stripe payment intent
    */
-  async createPaymentIntent(amount: number, currency: string, metadata?: Record<string, any>, token?: string): Promise<StripePaymentIntent | null> {
+  async createPaymentIntent(
+    amount: number,
+    currency: string,
+    metadata?: Record<string, any>,
+    token?: string
+  ): Promise<StripePaymentIntent | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/stripe/payment-intent`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          amount,
-          currency,
-          metadata,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/stripe/payment-intent`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify({
+            amount,
+            currency,
+            metadata,
+          }),
+        }
+      );
 
-      const data = await handleApiResponse<{ paymentIntent: StripePaymentIntent }>(response);
+      const data = await handleApiResponse<{
+        paymentIntent: StripePaymentIntent;
+      }>(response);
       return data.paymentIntent || null;
     } catch (error) {
       console.error("Error creating Stripe payment intent:", error);
@@ -639,18 +794,23 @@ export const stripeService = {
     token?: string
   ): Promise<StripeSession | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/stripe/checkout-session`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          items,
-          successUrl,
-          cancelUrl,
-          metadata,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/stripe/checkout-session`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify({
+            items,
+            successUrl,
+            cancelUrl,
+            metadata,
+          }),
+        }
+      );
 
-      const data = await handleApiResponse<{ session: StripeSession }>(response);
+      const data = await handleApiResponse<{ session: StripeSession }>(
+        response
+      );
       return data.session || null;
     } catch (error) {
       console.error("Error creating Stripe checkout session:", error);
@@ -661,19 +821,29 @@ export const stripeService = {
   /**
    * Create or retrieve Stripe customer
    */
-  async createCustomer(email: string, name?: string, metadata?: Record<string, any>, token?: string): Promise<StripeCustomer | null> {
+  async createCustomer(
+    email: string,
+    name?: string,
+    metadata?: Record<string, any>,
+    token?: string
+  ): Promise<StripeCustomer | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/stripe/customers`, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          email,
-          name,
-          metadata,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/stripe/customers`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+          body: JSON.stringify({
+            email,
+            name,
+            metadata,
+          }),
+        }
+      );
 
-      const data = await handleApiResponse<{ customer: StripeCustomer }>(response);
+      const data = await handleApiResponse<{ customer: StripeCustomer }>(
+        response
+      );
       return data.customer || null;
     } catch (error) {
       console.error("Error creating Stripe customer:", error);
@@ -684,13 +854,21 @@ export const stripeService = {
   /**
    * Get Stripe customer
    */
-  async getCustomer(customerId: string, token?: string): Promise<StripeCustomer | null> {
+  async getCustomer(
+    customerId: string,
+    token?: string
+  ): Promise<StripeCustomer | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/stripe/customers/${customerId}`, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/stripe/customers/${customerId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
 
-      const data = await handleApiResponse<{ customer: StripeCustomer }>(response);
+      const data = await handleApiResponse<{ customer: StripeCustomer }>(
+        response
+      );
       return data.customer || null;
     } catch (error) {
       console.error("Error fetching Stripe customer:", error);
@@ -741,21 +919,34 @@ export const paymentUtils = {
   /**
    * Calculate discount amount
    */
-  calculateDiscountAmount: (originalAmount: number, discountType: string, discountValue: number): number => {
-    return calculateDiscount(originalAmount, discountType as any, discountValue);
+  calculateDiscountAmount: (
+    originalAmount: number,
+    discountType: string,
+    discountValue: number
+  ): number => {
+    return calculateDiscount(
+      originalAmount,
+      discountType as any,
+      discountValue
+    );
   },
 
   /**
    * Calculate final amount after discount
    */
-  calculateFinalAmountAfterDiscount: (originalAmount: number, discountAmount: number): number => {
+  calculateFinalAmountAfterDiscount: (
+    originalAmount: number,
+    discountAmount: number
+  ): number => {
     return calculateFinalAmount(originalAmount, discountAmount);
   },
 
   /**
    * Validate payment form data
    */
-  validatePaymentForm: (formData: any): { isValid: boolean; errors: string[] } => {
+  validatePaymentForm: (
+    formData: any
+  ): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
     if (!formData.email || !formData.email.includes("@")) {
@@ -766,7 +957,10 @@ export const paymentUtils = {
       errors.push("Name is required (minimum 2 characters)");
     }
 
-    if (!formData.cardNumber || formData.cardNumber.replace(/\s/g, "").length < 13) {
+    if (
+      !formData.cardNumber ||
+      formData.cardNumber.replace(/\s/g, "").length < 13
+    ) {
       errors.push("Valid card number is required");
     }
 
@@ -819,4 +1013,3 @@ export default {
   webhookService,
   paymentUtils,
 };
-

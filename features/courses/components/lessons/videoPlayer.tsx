@@ -48,7 +48,11 @@ interface VideoPlayerProps {
   courseId?: string; // Add courseId for cache updates
   onNext?: () => void;
   onPrevious?: () => void;
-  onProgress?: (progress: number, currentTime: number, duration: number) => void;
+  onProgress?: (
+    progress: number,
+    currentTime: number,
+    duration: number
+  ) => void;
   initialTime?: number; // Start time in seconds
 }
 
@@ -88,7 +92,7 @@ export function VideoPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [quality, setQuality] = useState("auto");
   const [showSubtitles, setShowSubtitles] = useState(false);
-  
+
   // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -102,39 +106,42 @@ export function VideoPlayer({
   // Sync progress to backend at intervals
   const syncProgress = useCallback(() => {
     if (!onProgress || !duration || duration === 0 || !videoRef.current) return;
-    
+
     const current = videoRef.current.currentTime;
     const progress = (current / duration) * 100;
-    
+
     // Only sync if progress changed significantly (at least 1%)
     if (Math.abs(progress - lastProgressSyncRef.current) >= 1) {
       onProgress(progress, current, duration);
       lastProgressSyncRef.current = progress;
-      
-      console.log('📊 Progress synced:', {
-        progress: progress.toFixed(1) + '%',
-        currentTime: current.toFixed(0) + 's',
-        duration: duration.toFixed(0) + 's'
+
+      console.log("📊 Progress synced:", {
+        progress: progress.toFixed(1) + "%",
+        currentTime: current.toFixed(0) + "s",
+        duration: duration.toFixed(0) + "s",
       });
     }
   }, [onProgress, duration]);
 
   // Seek to specific timestamp
-  const seekTo = useCallback((timestamp: number) => {
-    if (videoRef.current && duration > 0) {
-      const clampedTime = Math.max(0, Math.min(timestamp, duration));
-      videoRef.current.currentTime = clampedTime;
-      setCurrentTime(clampedTime);
-      
-      console.log('🎯 Seeking to:', formatTime(clampedTime));
-    }
-  }, [duration]);
+  const seekTo = useCallback(
+    (timestamp: number) => {
+      if (videoRef.current && duration > 0) {
+        const clampedTime = Math.max(0, Math.min(timestamp, duration));
+        videoRef.current.currentTime = clampedTime;
+        setCurrentTime(clampedTime);
+
+        console.log("🎯 Seeking to:", formatTime(clampedTime));
+      }
+    },
+    [duration]
+  );
 
   // Expose seek function to parent component
   useEffect(() => {
     // Create a global function that can be called from parent
     (window as any).seekVideoTo = seekTo;
-    
+
     return () => {
       delete (window as any).seekVideoTo;
     };
@@ -151,7 +158,7 @@ export function VideoPlayer({
         progressSyncIntervalRef.current = null;
       }
     }
-    
+
     return () => {
       if (progressSyncIntervalRef.current) {
         clearInterval(progressSyncIntervalRef.current);
@@ -166,7 +173,7 @@ export function VideoPlayer({
         clearTimeout(controlsTimeoutRef.current);
       }
       setShowControls(true);
-      
+
       if (isPlaying) {
         controlsTimeoutRef.current = setTimeout(() => {
           setShowControls(false);
@@ -201,41 +208,41 @@ export function VideoPlayer({
   // Video event handlers
   const handleLoadedMetadata = useCallback(async () => {
     if (!videoRef.current) return;
-    
+
     const videoDuration = videoRef.current.duration;
     setDuration(videoDuration);
     setIsLoading(false);
     setVideoError(false);
-    
+
     // Detect and update video duration if not already done
     if (videoDuration > 0 && !durationDetectedRef.current && src && courseId) {
       durationDetectedRef.current = true;
-      
+
       // Try to update the lecture duration with the video element duration
       try {
         await updateLectureDuration(currentLecture.id, videoDuration, courseId);
-        console.log('✅ Video duration updated:', {
+        console.log("✅ Video duration updated:", {
           lectureId: currentLecture.id,
-          duration: `${Math.floor(videoDuration / 60)}m ${videoDuration % 60}s`
+          duration: `${Math.floor(videoDuration / 60)}m ${videoDuration % 60}s`,
         });
       } catch (updateError) {
-        console.log('ℹ️ Could not update lecture duration:', updateError);
+        console.log("ℹ️ Could not update lecture duration:", updateError);
       }
     }
-    
+
     // Set initial time if provided and not already set
     if (initialTime > 0 && !hasSetInitialTime.current && videoDuration > 0) {
       const startTime = Math.min(initialTime, videoDuration - 1);
       videoRef.current.currentTime = startTime;
       setCurrentTime(startTime);
-      
+
       // Also update progress percentage to match the initial time
       const initialProgress = (startTime / videoDuration) * 100;
       setProgressPercentage(initialProgress);
-      
+
       hasSetInitialTime.current = true;
     }
-    
+
     // Restore volume from localStorage
     const savedVolume = localStorage.getItem("videoPlayerVolume");
     if (savedVolume) {
@@ -243,7 +250,7 @@ export function VideoPlayer({
       videoRef.current.volume = volume;
       setVolume(volume);
     }
-    
+
     // Restore playback rate
     const savedRate = localStorage.getItem("videoPlayerRate");
     if (savedRate) {
@@ -255,22 +262,24 @@ export function VideoPlayer({
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
-    
+
     const current = videoRef.current.currentTime;
     const total = videoRef.current.duration;
-    
+
     // Only update local state, no progress callbacks
     setCurrentTime(current);
-    
+
     // Update progress percentage for UI only
     if (total > 0) {
       const progress = (current / total) * 100;
       setProgressPercentage(progress);
     }
-    
+
     // Update buffered amount for UI
     if (videoRef.current.buffered.length > 0) {
-      const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
+      const bufferedEnd = videoRef.current.buffered.end(
+        videoRef.current.buffered.length - 1
+      );
       setBuffered((bufferedEnd / total) * 100);
     }
   }, []);
@@ -288,12 +297,12 @@ export function VideoPlayer({
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
-    
+
     // Report 100% completion
     if (onProgress) {
       onProgress(100, duration, duration);
     }
-    
+
     // Auto-play next if available
     if (onNext) {
       toast.success("Lecture completed! Moving to next...", {
@@ -308,18 +317,21 @@ export function VideoPlayer({
     }
   }, [duration, onProgress, onNext]);
 
-  const handleVideoError = useCallback((e: any) => {
-    console.error("Video error:", e);
-    setVideoError(true);
-    setIsLoading(false);
-    setIsPlaying(false);
-    
-    if (!src) {
-      setErrorMessage("No video source provided");
-    } else {
-      setErrorMessage("Failed to load video");
-    }
-  }, [src]);
+  const handleVideoError = useCallback(
+    (e: any) => {
+      console.error("Video error:", e);
+      setVideoError(true);
+      setIsLoading(false);
+      setIsPlaying(false);
+
+      if (!src) {
+        setErrorMessage("No video source provided");
+      } else {
+        setErrorMessage("Failed to load video");
+      }
+    },
+    [src]
+  );
 
   const handleCanPlay = useCallback(() => {
     setIsLoading(false);
@@ -350,42 +362,51 @@ export function VideoPlayer({
     }
   }, [isPlaying, videoError]);
 
-  const skip = useCallback((seconds: number) => {
-    if (!videoRef.current || videoError) return;
-    
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    videoRef.current.currentTime = newTime;
-    
-    toast(`${seconds > 0 ? 'Forward' : 'Backward'} ${Math.abs(seconds)} seconds`, {
-      duration: 1000,
-    });
-  }, [currentTime, duration, videoError]);
+  const skip = useCallback(
+    (seconds: number) => {
+      if (!videoRef.current || videoError) return;
 
-  const handleSeek = useCallback((value: number[]) => {
-    if (!videoRef.current || videoError) return;
-    
-    const newTime = (value[0] / 100) * duration;
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-    
-    // Sync progress immediately after seeking
-    syncProgress();
-  }, [duration, videoError, syncProgress]);
+      const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+      videoRef.current.currentTime = newTime;
+
+      toast(
+        `${seconds > 0 ? "Forward" : "Backward"} ${Math.abs(seconds)} seconds`,
+        {
+          duration: 1000,
+        }
+      );
+    },
+    [currentTime, duration, videoError]
+  );
+
+  const handleSeek = useCallback(
+    (value: number[]) => {
+      if (!videoRef.current || videoError) return;
+
+      const newTime = (value[0] / 100) * duration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+
+      // Sync progress immediately after seeking
+      syncProgress();
+    },
+    [duration, videoError, syncProgress]
+  );
 
   const handleVolumeChange = useCallback((value: number[]) => {
     if (!videoRef.current) return;
-    
+
     const newVolume = value[0] / 100;
     videoRef.current.volume = newVolume;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-    
+
     localStorage.setItem("videoPlayerVolume", newVolume.toString());
   }, []);
 
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
-    
+
     if (isMuted) {
       videoRef.current.volume = volume || 0.5;
       setIsMuted(false);
@@ -395,19 +416,22 @@ export function VideoPlayer({
     }
   }, [isMuted, volume]);
 
-  const changePlaybackRate = useCallback((rate: number) => {
-    if (!videoRef.current || videoError) return;
-    
-    videoRef.current.playbackRate = rate;
-    setPlaybackRate(rate);
-    localStorage.setItem("videoPlayerRate", rate.toString());
-    
-    toast(`Playback speed: ${rate}x`, { duration: 1000 });
-  }, [videoError]);
+  const changePlaybackRate = useCallback(
+    (rate: number) => {
+      if (!videoRef.current || videoError) return;
+
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+      localStorage.setItem("videoPlayerRate", rate.toString());
+
+      toast(`Playback speed: ${rate}x`, { duration: 1000 });
+    },
+    [videoError]
+  );
 
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current) return;
-    
+
     try {
       if (!isFullscreen) {
         await containerRef.current.requestFullscreen();
@@ -423,7 +447,7 @@ export function VideoPlayer({
 
   const togglePiP = useCallback(async () => {
     if (!videoRef.current) return;
-    
+
     try {
       if (!isPiP) {
         await videoRef.current.requestPictureInPicture();
@@ -440,13 +464,13 @@ export function VideoPlayer({
 
   const restartVideo = useCallback(() => {
     if (!videoRef.current) return;
-    
+
     videoRef.current.currentTime = 0;
     setCurrentTime(0);
     if (!isPlaying) {
       videoRef.current.play();
     }
-    
+
     toast("Video restarted", { duration: 1000 });
   }, [isPlaying]);
 
@@ -454,9 +478,11 @@ export function VideoPlayer({
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.floor(time % 60);
-    
+
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
     }
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, []);
@@ -465,7 +491,10 @@ export function VideoPlayer({
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!videoRef.current || videoError) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -507,14 +536,21 @@ export function VideoPlayer({
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [videoError, togglePlay, skip, toggleMute, toggleFullscreen, restartVideo]);
+  }, [
+    videoError,
+    togglePlay,
+    skip,
+    toggleMute,
+    toggleFullscreen,
+    restartVideo,
+  ]);
 
   // Cleanup
   useEffect(() => {
     return () => {
       // Final progress sync on unmount
       syncProgress();
-      
+
       if (progressSyncIntervalRef.current) {
         clearInterval(progressSyncIntervalRef.current);
       }
@@ -524,7 +560,9 @@ export function VideoPlayer({
     };
   }, [syncProgress]);
 
-  const videoSrc = src || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const videoSrc =
+    src ||
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
   return (
     <div className="bg-black rounded-lg overflow-hidden">
@@ -533,19 +571,24 @@ export function VideoPlayer({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-white font-semibold">{currentLecture.title}</h2>
-            <div className="flex items-center gap-3 mt-1">
+            {/* <div className="flex items-center gap-3 mt-1">
               <span className="text-gray-400 text-sm">
-                Duration: {(() => {
+                Duration:{" "}
+                {(() => {
                   const duration = parseInt(currentLecture.duration) || 0;
-                  const hours = Math.floor(duration / 3600);
-                  const minutes = Math.floor((duration % 3600) / 60);
-                  const seconds = duration % 60;
-                  
+                  // Convert minutes to seconds for calculation
+                  const durationInSeconds = duration * 60;
+                  const hours = Math.floor(durationInSeconds / 3600);
+                  const minutes = Math.floor((durationInSeconds % 3600) / 60);
+                  const seconds = durationInSeconds % 60;
+
                   if (hours > 0) {
                     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
                   }
                   if (minutes > 0) {
-                    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                    return seconds > 0
+                      ? `${minutes}m ${seconds}s`
+                      : `${minutes}m`;
                   }
                   return `${seconds}s`;
                 })()}
@@ -555,9 +598,9 @@ export function VideoPlayer({
                   {Math.round(progressPercentage)}% watched
                 </Badge>
               )}
-            </div>
+            </div> */}
           </div>
-          
+
           <div className="flex items-center gap-2">
             {onPrevious && (
               <Button
@@ -653,19 +696,23 @@ export function VideoPlayer({
                 "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300",
                 showControls ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
-              style={{ pointerEvents: showControls ? 'auto' : 'none' }}
+              style={{ pointerEvents: showControls ? "auto" : "none" }}
             >
               {/* Progress Bar */}
               <div className="absolute bottom-16 left-0 right-0 px-4">
                 <div className="relative">
                   {/* Buffered indicator */}
-                  <div 
+                  <div
                     className="absolute top-1/2 -translate-y-1/2 left-0 h-1 bg-gray-600 rounded-full pointer-events-none"
                     style={{ width: `${buffered}%` }}
                   />
-                  
+
                   <Slider
-                    value={[duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0]}
+                    value={[
+                      duration > 0
+                        ? Math.min(100, (currentTime / duration) * 100)
+                        : 0,
+                    ]}
                     onValueChange={handleSeek}
                     max={100}
                     step={0.1}

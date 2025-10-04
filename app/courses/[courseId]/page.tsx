@@ -224,7 +224,7 @@ const MobilePriceBanner = ({
                 <span className="text-2xl font-bold text-gray-900">
                   ${course.price?.toFixed(2) || '0.00'}
                 </span>
-                {isDiscounted && (
+                {!!isDiscounted && (
                   <span className="text-sm text-gray-500 line-through">
                     ${course.originalPrice?.toFixed(2)}
                   </span>

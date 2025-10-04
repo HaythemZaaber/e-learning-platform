@@ -14,7 +14,7 @@ interface LectureNavigationProps {
   currentLectureId: string;
   onLectureSelect: (lecture: CourseLecture) => void;
   isFreeCourse?: boolean;
-  canAccessContent?: boolean;
+canAccessContent?: boolean;
   progress?: {
     completedLectures: number;
     totalLectures: number;

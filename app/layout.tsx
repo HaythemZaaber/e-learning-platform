@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased duration-300`}>
-        <ClerkProvider  touchSession={false} >
+        <ClerkProvider touchSession={false}>
           <ApolloProviderWrapper>
             <ReactQueryProvider>
               <ClientLayout>{children}</ClientLayout>

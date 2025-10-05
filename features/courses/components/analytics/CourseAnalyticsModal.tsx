@@ -575,9 +575,9 @@ export const CourseAnalyticsModal = ({
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="hover:text-white">
                 <RefreshCw
-                  className={cn("h-4 w-4 mr-2", loading && "animate-spin")}
+                  className={cn("h-4 w-4 mr-2", loading && "animate-spin hover:text-white")}
                 />
                 Refresh
               </Button>
@@ -586,6 +586,7 @@ export const CourseAnalyticsModal = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFullscreen(!isFullscreen)}
+                className="hover:text-white"
               >
                 {isFullscreen ? (
                   <Minimize2 className="h-4 w-4" />
@@ -594,12 +595,8 @@ export const CourseAnalyticsModal = ({
                 )}
               </Button>
 
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
 
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} className="hover:text-white">
                 <X className="h-4 w-4" />
               </Button>
             </div>

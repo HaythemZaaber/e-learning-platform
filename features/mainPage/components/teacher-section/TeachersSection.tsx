@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ArrowRight, Filter, Users, Star, Clock, GraduationCap, Award, DollarSign } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  Filter,
+  Users,
+  Star,
+  Clock,
+  GraduationCap,
+  Award,
+  DollarSign,
+} from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { TeacherCard } from "./components/TeacherCard";
 import { AnimatePresence } from "framer-motion";
@@ -27,7 +37,7 @@ import {
 import Image from "next/image";
 
 // GraphQL hooks
-import { useInstructorsData } from "@/features/instructors/hooks/useInstructorsGraphQL";
+import { useInstructorsPageData } from "@/features/instructors/hooks/useInstructorsGraphQL";
 import { useInstructorsStore } from "@/stores/instructors.store";
 
 // Loading and error components
@@ -48,31 +58,98 @@ export default function TeachersHeroSection() {
     triggerOnce: false,
   });
 
-  // GraphQL data
+  // GraphQL data - use same query as instructors page
   const {
-    featuredInstructors,
-    heroStats,
+    instructors,
+    availableTodayInstructors,
     transformedInstructors,
+    pagination,
     loading,
     error,
-  } = useInstructorsData();
+  } = useInstructorsPageData(undefined, 1, 6, "featured");
 
   // Store actions and transformed data
-  const { 
-    toggleSavedInstructor, 
-    isInstructorSaved,
-    getFilteredInstructors
-  } = useInstructorsStore();
+  const { toggleSavedInstructor, isInstructorSaved, getFilteredInstructors } =
+    useInstructorsStore();
+
+  // Get instructors to display (use transformedInstructors if available, otherwise use raw instructors)
+  const displayInstructors = useMemo(() => {
+    if (transformedInstructors.length > 0) {
+      return transformedInstructors;
+    }
+
+    // Fallback to raw instructors data if transformedInstructors is empty
+    if (instructors.length > 0) {
+      return instructors.map((instructor) => ({
+        id: instructor.user.id,
+        name: `${instructor.user.firstName} ${instructor.user.lastName}`,
+        title: instructor.title || "Instructor",
+        avatar: instructor.user.profileImage || "/placeholder.svg",
+        coverImage: "/placeholder.svg?height=600&width=1200",
+        bio: instructor.bio || "",
+        shortBio: instructor.shortBio || "",
+        rating: instructor.teachingRating || 0,
+        reviewsCount: Math.floor(instructor.totalStudents * 0.1),
+        studentsCount: instructor.totalStudents,
+        coursesCount: instructor.totalCourses,
+        responseTime: `${instructor.responseTime || 24} hours`,
+        completionRate: instructor.courseCompletionRate || 0,
+        languages: ["English"],
+        experience: instructor.experience || 0,
+        education: instructor.qualifications || [],
+        certifications: instructor.qualifications || [],
+        philosophy: instructor.teachingStyle || "",
+        categories: instructor.teachingCategories || [],
+        skills: instructor.expertise.map((exp) => ({
+          name: exp,
+          proficiency: "Expert",
+        })),
+        location: "Remote",
+        socialLinks: {
+          linkedin: instructor.linkedinProfile,
+          website: instructor.personalWebsite,
+        },
+        isOnline: false,
+        isVerified: instructor.isVerified,
+        priceRange: {
+          min: Math.min(
+            instructor.individualSessionRate || 50,
+            instructor.groupSessionRate || 200
+          ),
+          max: Math.max(
+            instructor.individualSessionRate || 50,
+            instructor.groupSessionRate || 200
+          ),
+        },
+        liveSessionsEnabled: instructor.isAcceptingStudents || false,
+        groupSessionsEnabled: instructor.groupSessionRate > 0,
+        nextAvailableSlot: undefined,
+        weeklyBookings: 0,
+        responseTimeHours: instructor.responseTime || 24,
+        contentEngagement: {
+          totalViews: instructor.totalStudents * 10,
+          totalLikes: instructor.totalStudents,
+          avgEngagementRate: 5.5,
+        },
+        reels: [],
+        stories: [],
+        storyHighlights: [],
+        recordedCourses: [],
+      }));
+    }
+
+    return [];
+  }, [transformedInstructors, instructors]);
 
   // Auto-rotate featured instructor
   useEffect(() => {
-    if (transformedInstructors.length === 0) return;
-    
+    if (displayInstructors.length === 0) return;
+
     const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % transformedInstructors.length);
+      setActiveIndex((prev) => (prev + 1) % displayInstructors.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [transformedInstructors.length]);
+  }, [displayInstructors.length]);
 
   const handleSave = (id: string) => {
     toggleSavedInstructor(id);
@@ -81,7 +158,7 @@ export default function TeachersHeroSection() {
     );
   };
 
-  const filteredInstructors = transformedInstructors.filter((instructor) => {
+  const filteredInstructors = displayInstructors.filter((instructor) => {
     switch (filter) {
       case "online":
         return instructor.isOnline;
@@ -94,7 +171,7 @@ export default function TeachersHeroSection() {
     }
   });
 
-  const featuredInstructor = transformedInstructors[activeIndex];
+  const featuredInstructor = displayInstructors[activeIndex];
 
   // Loading states
   const isLoading = loading;
@@ -188,14 +265,14 @@ export default function TeachersHeroSection() {
                         )}
                       </div>
                     </div>
-                                        <div className="flex flex-col justify-center p-4">
+                    <div className="flex flex-col justify-center p-4">
                       <h3 className="text-xl font-bold mb-1">
                         {featuredInstructor.name}
                       </h3>
                       <p className="text-base text-indigo-600 mb-2">
                         {featuredInstructor.title}
                       </p>
-                      
+
                       {/* Rating and Key Stats in one row */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center">
@@ -218,7 +295,7 @@ export default function TeachersHeroSection() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <p className="text-sm text-gray-700 mb-3 line-clamp-2">
                         {featuredInstructor.shortBio}
                       </p>
@@ -227,13 +304,22 @@ export default function TeachersHeroSection() {
                       {featuredInstructor.skills?.length > 0 && (
                         <div className="mb-3">
                           <div className="flex flex-wrap gap-1">
-                            {featuredInstructor.skills.slice(0, 3).map((skill, index) => (
-                              <Badge key={index} variant="outline" className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5">
-                                {skill.name}
-                              </Badge>
-                            ))}
+                            {featuredInstructor.skills
+                              .slice(0, 3)
+                              .map((skill, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
+                                >
+                                  {skill.name}
+                                </Badge>
+                              ))}
                             {featuredInstructor.skills.length > 3 && (
-                              <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-gray-500 px-2 py-0.5"
+                              >
                                 +{featuredInstructor.skills.length - 3}
                               </Badge>
                             )}
@@ -245,13 +331,22 @@ export default function TeachersHeroSection() {
                       {featuredInstructor.categories?.length > 0 && (
                         <div className="mb-3">
                           <div className="flex flex-wrap gap-1">
-                            {featuredInstructor.categories.slice(0, 2).map((category, index) => (
-                              <Badge key={index} variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5">
-                                {category}
-                              </Badge>
-                            ))}
+                            {featuredInstructor.categories
+                              .slice(0, 2)
+                              .map((category, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
+                                >
+                                  {category}
+                                </Badge>
+                              ))}
                             {featuredInstructor.categories.length > 2 && (
-                              <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-gray-500 px-2 py-0.5"
+                              >
                                 +{featuredInstructor.categories.length - 2}
                               </Badge>
                             )}
@@ -268,28 +363,36 @@ export default function TeachersHeroSection() {
                               <span className="font-medium">Session Rates</span>
                             </div>
                             <div className="text-purple-600">
-                              ${featuredInstructor.priceRange?.min || 50} - ${featuredInstructor.priceRange?.max || 200}
+                              ${featuredInstructor.priceRange?.min || 50} - $
+                              {featuredInstructor.priceRange?.max || 200}
                             </div>
                           </div>
                         </div>
                       )}
 
                       {/* Next Available Slot - compact */}
-                      {featuredInstructor.liveSessionsEnabled && featuredInstructor.nextAvailableSlot && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-green-700">
-                              <Clock className="h-4 w-4" />
-                              <span>Next: {featuredInstructor.nextAvailableSlot.time}</span>
+                      {featuredInstructor.liveSessionsEnabled &&
+                        featuredInstructor.nextAvailableSlot && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2 text-green-700">
+                                <Clock className="h-4 w-4" />
+                                <span>
+                                  Next:{" "}
+                                  {featuredInstructor.nextAvailableSlot.time}
+                                </span>
+                              </div>
+                              <span className="font-medium text-green-700">
+                                ${featuredInstructor.nextAvailableSlot.price}
+                              </span>
                             </div>
-                            <span className="font-medium text-green-700">
-                              ${featuredInstructor.nextAvailableSlot.price}
-                            </span>
                           </div>
-                        </div>
-                      )}
-                      
-                      <Button asChild className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 py-2">
+                        )}
+
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 py-2"
+                      >
                         <Link href={`/instructors/${featuredInstructor.id}`}>
                           View Profile <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
@@ -305,16 +408,18 @@ export default function TeachersHeroSection() {
               description="We're currently setting up our featured instructors. Check back soon!"
             />
           )}
-          
+
           {/* Pagination dots */}
-          {transformedInstructors.length > 0 && (
+          {displayInstructors.length > 0 && (
             <div className="flex justify-center mt-6 gap-2">
-              {transformedInstructors.map((_, idx) => (
+              {displayInstructors.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveIndex(idx)}
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    activeIndex === idx ? "w-8 bg-indigo-600" : "w-2 bg-gray-300"
+                    activeIndex === idx
+                      ? "w-8 bg-indigo-600"
+                      : "w-2 bg-gray-300"
                   }`}
                   aria-label={`Select teacher ${idx + 1}`}
                 />

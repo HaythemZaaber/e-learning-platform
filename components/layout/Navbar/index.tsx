@@ -26,6 +26,7 @@ import {
   UserCheck,
   PieChart,
   ShoppingCart,
+  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +46,7 @@ import {
   useUser,
   useAuth,
   SignInButton,
-  SignUpButton, 
+  SignUpButton,
 } from "@clerk/nextjs";
 import { useAuthStore, useAuthSelectors, UserRole } from "@/stores/auth.store";
 import { useCheckoutItemCount } from "@/stores/payment.store";
@@ -95,7 +96,7 @@ const Navbar = ({
     isStudent,
     isParent,
   } = useAuthSelectors();
-  
+
   // Get cart item count
   const cartItemCount = useCheckoutItemCount();
 
@@ -176,7 +177,7 @@ const Navbar = ({
           {
             label: "Become an Instructor",
             href: "/become-instructor",
-            icon: GraduationCap,   
+            icon: GraduationCap,
             description: "Start teaching today",
           },
         ];
@@ -187,31 +188,49 @@ const Navbar = ({
             label: "Dashboard",
             href: "/instructor/dashboard",
             icon: Home,
-            description: "Teaching overview",
+            description: "Teaching & learning overview",
           },
           {
-            label: "Students",
-            href: "/instructor/students",
-            icon: UserCheck,
-            description: "Manage your students",
+            label: "My Learning",
+            href: "/instructor/dashboard/my-learning",
+            icon: BookOpen,
+            description: "Continue your learning journey",
           },
           {
-            label: "Content",
-            href: "/instructor/content",
+            label: "Browse Courses",
+            href: "/instructor/dashboard/courses-browse",
+            icon: BookOpen,
+            description: "Discover new courses to learn",
+          },
+          {
+            label: "Browse Instructors",
+            href: "/instructor/dashboard/instructors-browse",
+            icon: Users,
+            description: "Find expert instructors",
+          },
+          {
+            label: "Learning Resources",
+            href: "/instructor/dashboard/learning-resources",
+            icon: Bookmark,
+            description: "Access educational materials",
+          },
+          {
+            label: "My Teaching",
+            href: "/instructor/dashboard/courses",
             icon: Award,
-            description: "Create and manage content",
-          },
-          {
-            label: "Analytics",
-            href: "/instructor/analytics",
-            icon: PieChart,
-            description: "View performance metrics",
+            description: "Manage your courses",
           },
           {
             label: "Schedule",
-            href: "/instructor/schedule",
+            href: "/instructor/dashboard/schedule",
             icon: Calendar,
-            description: "Manage your availability",
+            description: "Teaching & learning schedule",
+          },
+          {
+            label: "Analytics",
+            href: "/instructor/dashboard/analytics",
+            icon: PieChart,
+            description: "Performance insights",
           },
         ];
 
@@ -309,16 +328,15 @@ const Navbar = ({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link
-        
-        href={`/${userRole?.toLowerCase()}/dashboard`}
-        className="flex items-center"
-      >
-        <User className="mr-2 h-4 w-4" />
-        Dashboard
-      </Link>
-    </DropdownMenuItem>
-    <DropdownMenuItem asChild>
-      <Link
+            href={`/${userRole?.toLowerCase()}/dashboard`}
+            className="flex items-center"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Dashboard
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
             href={`/${userRole?.toLowerCase()}/profile`}
             className="flex items-center"
           >
@@ -395,7 +413,10 @@ const Navbar = ({
                             {item.icon && <item.icon className="h-4 w-4" />}
                             {item.label}
                             {item.badge && (
-                              <Badge variant="secondary" className="ml-1 text-xs bg-yellow-400 text-yellow-900">
+                              <Badge
+                                variant="secondary"
+                                className="ml-1 text-xs bg-yellow-400 text-yellow-900"
+                              >
                                 {item.badge}
                               </Badge>
                             )}
@@ -467,7 +488,11 @@ const Navbar = ({
 
             {/* Notifications */}
             {isAuthenticated && (
-              <Button variant="ghost" size="icon" className="relative hover:text-black hover:bg-primary/10">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:text-black hover:bg-primary/10"
+              >
                 <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
@@ -479,9 +504,9 @@ const Navbar = ({
 
             {/* Store/Cart Icon */}
             {isAuthenticated && isStudent && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="relative hover:text-black hover:bg-primary/10"
                 onClick={() => setIsStoreModalOpen(true)}
               >
@@ -583,7 +608,10 @@ const Navbar = ({
                             {item.icon && <item.icon className="h-4 w-4" />}
                             {item.label}
                             {item.badge && (
-                              <Badge variant="secondary" className="ml-1 text-xs bg-yellow-400 text-yellow-900">
+                              <Badge
+                                variant="secondary"
+                                className="ml-1 text-xs bg-yellow-400 text-yellow-900"
+                              >
                                 {item.badge}
                               </Badge>
                             )}
@@ -646,9 +674,9 @@ const Navbar = ({
       </div>
 
       {/* Store Modal */}
-      <StoreModal 
-        isOpen={isStoreModalOpen} 
-        onClose={() => setIsStoreModalOpen(false)} 
+      <StoreModal
+        isOpen={isStoreModalOpen}
+        onClose={() => setIsStoreModalOpen(false)}
       />
 
       {/* Search Modal */}

@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { instructorProfileService } from '../services/instructorProfileService';
-import { 
-  InstructorDetailsResponse, 
-  InstructorCoursesResponse, 
-  InstructorReviewsResponse, 
-  AvailabilityResponse 
-} from '@/types/instructorTypes';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { instructorProfileService } from "../services/instructorProfileService";
+import {
+  InstructorDetailsResponse,
+  InstructorCoursesResponse,
+  InstructorReviewsResponse,
+  AvailabilityResponse,
+} from "@/types/instructorTypes";
 
 export const useInstructorDetails = (instructorId: string) => {
   const [data, setData] = useState<InstructorDetailsResponse | null>(null);
@@ -19,10 +19,17 @@ export const useInstructorDetails = (instructorId: string) => {
       setLoading(true);
       setError(null);
       const token = await getToken();
-      const result = await instructorProfileService.getInstructorDetails(instructorId, token || undefined);
+      const result = await instructorProfileService.getInstructorDetails(
+        instructorId,
+        token || undefined
+      );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch instructor details');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch instructor details"
+      );
     } finally {
       setLoading(false);
     }
@@ -41,7 +48,7 @@ export const useInstructorDetails = (instructorId: string) => {
 };
 
 export const useInstructorCourses = (
-  instructorId: string, 
+  instructorId: string,
   options: { page?: number; limit?: number; status?: string } = {}
 ) => {
   const [data, setData] = useState<InstructorCoursesResponse | null>(null);
@@ -54,10 +61,18 @@ export const useInstructorCourses = (
       setLoading(true);
       setError(null);
       const token = await getToken();
-      const result = await instructorProfileService.getInstructorCourses(instructorId, options, token || undefined);
+      const result = await instructorProfileService.getInstructorCourses(
+        instructorId,
+        options,
+        token || undefined
+      );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch instructor courses');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch instructor courses"
+      );
     } finally {
       setLoading(false);
     }
@@ -76,7 +91,7 @@ export const useInstructorCourses = (
 };
 
 export const useInstructorReviews = (
-  instructorId: string, 
+  instructorId: string,
   options: { page?: number; limit?: number; rating?: number } = {}
 ) => {
   const [data, setData] = useState<InstructorReviewsResponse | null>(null);
@@ -89,10 +104,18 @@ export const useInstructorReviews = (
       setLoading(true);
       setError(null);
       const token = await getToken();
-      const result = await instructorProfileService.getInstructorReviews(instructorId, options, token || undefined);
+      const result = await instructorProfileService.getInstructorReviews(
+        instructorId,
+        options,
+        token || undefined
+      );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch instructor reviews');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch instructor reviews"
+      );
     } finally {
       setLoading(false);
     }
@@ -111,7 +134,7 @@ export const useInstructorReviews = (
 };
 
 export const useInstructorAvailability = (
-  instructorId: string, 
+  instructorId: string,
   options: { startDate?: string; endDate?: string } = {}
 ) => {
   const [data, setData] = useState<AvailabilityResponse | null>(null);
@@ -124,10 +147,18 @@ export const useInstructorAvailability = (
       setLoading(true);
       setError(null);
       const token = await getToken();
-      const result = await instructorProfileService.getInstructorAvailability(instructorId, options, token || undefined);
+      const result = await instructorProfileService.getInstructorAvailability(
+        instructorId,
+        options,
+        token || undefined
+      );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch instructor availability');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch instructor availability"
+      );
     } finally {
       setLoading(false);
     }
@@ -144,4 +175,3 @@ export const useInstructorAvailability = (
 
   return { data, loading, error, refetch: fetchData };
 };
-

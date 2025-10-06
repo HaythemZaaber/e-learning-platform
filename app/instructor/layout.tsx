@@ -29,7 +29,10 @@ export default function InstructorLayout({
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
-            <DashboardSidebar userRole={UserRole.INSTRUCTOR} isOpen={isSidebarOpen || isHovering} />
+            <DashboardSidebar
+              userRole={UserRole.INSTRUCTOR}
+              isOpen={isSidebarOpen || isHovering}
+            />
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -59,7 +62,7 @@ export default function InstructorLayout({
           </div>
         </main>
       </div>
-      <Footer />
+      {/* Footer removed for focused instructor experience */}
     </div>
   );
 }

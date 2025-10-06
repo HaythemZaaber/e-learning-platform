@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 import {
   InstructorProfile,
   TransformedInstructor,
@@ -9,7 +9,7 @@ import {
   PaginationState,
   SortOption,
   InstructorListFiltersInput,
-} from '@/types/instructorGraphQLTypes';
+} from "@/types/instructorGraphQLTypes";
 
 // =============================================================================
 // INSTRUCTOR STORE INTERFACE
@@ -26,10 +26,10 @@ interface InstructorsState {
   instructorStats: any | null;
   myInstructorStats: any | null;
   searchResults: InstructorProfile[];
-  
+
   // Transformed data for UI compatibility
   transformedInstructors: TransformedInstructor[];
-  
+
   // Loading states
   featuredInstructorsLoading: boolean;
   instructorsLoading: boolean;
@@ -41,7 +41,7 @@ interface InstructorsState {
   myInstructorStatsLoading: boolean;
   searchLoading: boolean;
   isRefreshing: boolean;
-  
+
   // Error handling
   featuredInstructorsError: string | null;
   instructorsError: string | null;
@@ -52,21 +52,21 @@ interface InstructorsState {
   instructorStatsError: string | null;
   myInstructorStatsError: string | null;
   searchError: string | null;
-  
+
   // Filters and search
   filters: FilterState;
   searchQuery: string;
   sortBy: SortOption;
-  viewMode: 'grid' | 'list';
-  
+  viewMode: "grid" | "list";
+
   // Pagination
   pagination: PaginationState;
-  
+
   // UI state
   selectedInstructor: InstructorProfile | null;
   savedInstructors: string[];
   isFilterModalOpen: boolean;
-  
+
   // Actions
   setFeaturedInstructors: (instructors: InstructorProfile[]) => void;
   setInstructors: (instructors: InstructorProfile[]) => void;
@@ -78,7 +78,7 @@ interface InstructorsState {
   setMyInstructorStats: (stats: any | null) => void;
   setSearchResults: (results: InstructorProfile[]) => void;
   setTransformedInstructors: (instructors: TransformedInstructor[]) => void;
-  
+
   // Loading actions
   setFeaturedInstructorsLoading: (loading: boolean) => void;
   setInstructorsLoading: (loading: boolean) => void;
@@ -90,7 +90,7 @@ interface InstructorsState {
   setMyInstructorStatsLoading: (loading: boolean) => void;
   setSearchLoading: (loading: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
-  
+
   // Error actions
   setFeaturedInstructorsError: (error: string | null) => void;
   setInstructorsError: (error: string | null) => void;
@@ -102,19 +102,19 @@ interface InstructorsState {
   setMyInstructorStatsError: (error: string | null) => void;
   setSearchError: (error: string | null) => void;
   clearErrors: () => void;
-  
+
   // Filter actions
   setFilters: (filters: FilterState) => void;
   resetFilters: () => void;
   setSearchQuery: (query: string) => void;
   setSortBy: (sortBy: SortOption) => void;
-  setViewMode: (mode: 'grid' | 'list') => void;
-  
+  setViewMode: (mode: "grid" | "list") => void;
+
   // Pagination actions
   setCurrentPage: (page: number) => void;
   setItemsPerPage: (itemsPerPage: number) => void;
   setPagination: (pagination: PaginationState) => void;
-  
+
   // UI actions
   setSelectedInstructor: (instructor: InstructorProfile | null) => void;
   toggleSavedInstructor: (instructorId: string) => void;
@@ -122,11 +122,13 @@ interface InstructorsState {
   removeSavedInstructor: (instructorId: string) => void;
   isInstructorSaved: (instructorId: string) => boolean;
   setFilterModalOpen: (open: boolean) => void;
-  
+
   // Utility actions
   getFilteredInstructors: () => TransformedInstructor[];
   getInstructorById: (id: string) => InstructorProfile | null;
-  transformInstructorData: (instructor: InstructorProfile) => TransformedInstructor;
+  transformInstructorData: (
+    instructor: InstructorProfile
+  ) => TransformedInstructor;
   resetState: () => void;
 }
 
@@ -135,7 +137,7 @@ interface InstructorsState {
 // =============================================================================
 
 const initialFilterState: FilterState = {
-  searchQuery: '',
+  searchQuery: "",
   selectedCategories: [],
   selectedExperience: [],
   selectedRatings: [],
@@ -170,7 +172,7 @@ const initialState = {
   myInstructorStats: null,
   searchResults: [],
   transformedInstructors: [],
-  
+
   // Loading states
   featuredInstructorsLoading: false,
   instructorsLoading: false,
@@ -182,7 +184,7 @@ const initialState = {
   myInstructorStatsLoading: false,
   searchLoading: false,
   isRefreshing: false,
-  
+
   // Error handling
   featuredInstructorsError: null,
   instructorsError: null,
@@ -193,16 +195,16 @@ const initialState = {
   instructorStatsError: null,
   myInstructorStatsError: null,
   searchError: null,
-  
+
   // Filters and search
   filters: initialFilterState,
-  searchQuery: '',
-  sortBy: 'featured' as SortOption,
-  viewMode: 'grid' as 'grid' | 'list',
-  
+  searchQuery: "",
+  sortBy: "featured" as SortOption,
+  viewMode: "grid" as "grid" | "list",
+
   // Pagination
   pagination: initialPaginationState,
-  
+
   // UI state
   selectedInstructor: null,
   savedInstructors: [],
@@ -213,30 +215,36 @@ const initialState = {
 // UTILITY FUNCTIONS
 // =============================================================================
 
-const transformInstructorData = (instructor: InstructorProfile): TransformedInstructor => {
-  const fullName = [instructor.user.firstName, instructor.user.lastName]
-    .filter(Boolean)
-    .join(' ') || 'Instructor';
+const transformInstructorData = (
+  instructor: InstructorProfile
+): TransformedInstructor => {
+  const fullName =
+    [instructor.user.firstName, instructor.user.lastName]
+      .filter(Boolean)
+      .join(" ") || "Instructor";
 
   // Extract languages properly
-  const languages = Array.isArray(instructor.languagesSpoken) 
-    ? instructor.languagesSpoken.map(lang => 
-        typeof lang === 'string' ? lang : (lang as any).language || 'English'
+  const languages = Array.isArray(instructor.languagesSpoken)
+    ? instructor.languagesSpoken.map((lang) =>
+        typeof lang === "string" ? lang : (lang as any).language || "English"
       )
-    : ['English'];
+    : ["English"];
 
   // Calculate availability and next slot
-  const hasAvailableSlots = instructor.preferredSchedule && 
-    Object.values(instructor.preferredSchedule).some((day: any) => 
-      day.available && day.timeSlots && day.timeSlots.length > 0
+  const hasAvailableSlots =
+    instructor.preferredSchedule &&
+    Object.values(instructor.preferredSchedule).some(
+      (day: any) => day.available && day.timeSlots && day.timeSlots.length > 0
     );
 
-  const nextAvailableSlot = hasAvailableSlots ? {
-    date: new Date().toISOString().split('T')[0],
-    time: '09:00',
-    type: 'individual',
-    price: instructor.individualSessionRate || 50,
-  } : undefined;
+  const nextAvailableSlot = hasAvailableSlots
+    ? {
+        date: new Date().toISOString().split("T")[0],
+        time: "09:00",
+        type: "individual",
+        price: instructor.individualSessionRate || 50,
+      }
+    : undefined;
 
   // Determine if online based on availability
   const isOnline = hasAvailableSlots && Math.random() > 0.7; // Simulate online status
@@ -244,11 +252,11 @@ const transformInstructorData = (instructor: InstructorProfile): TransformedInst
   return {
     id: instructor.user.id,
     name: fullName,
-    title: instructor.title || 'Instructor',
-    avatar: instructor.user.profileImage || '/placeholder.svg',
-    coverImage: '/placeholder.svg?height=600&width=1200',
-    bio: instructor.bio || '',
-    shortBio: instructor.shortBio || '',
+    title: instructor.title || "Instructor",
+    avatar: instructor.user.profileImage || "/placeholder.svg",
+    coverImage: "/placeholder.svg?height=600&width=1200",
+    bio: instructor.bio || "",
+    shortBio: instructor.shortBio || "",
     rating: instructor.teachingRating || 0,
     reviewsCount: Math.floor(instructor.totalStudents * 0.1), // Estimate
     studentsCount: instructor.totalStudents,
@@ -259,10 +267,13 @@ const transformInstructorData = (instructor: InstructorProfile): TransformedInst
     experience: instructor.experience || 0,
     education: instructor.qualifications || [],
     certifications: instructor.qualifications || [],
-    philosophy: instructor.teachingStyle || '',
+    philosophy: instructor.teachingStyle || "",
     categories: instructor.teachingCategories || [],
-    skills: instructor.expertise.map(exp => ({ name: exp, proficiency: 'Expert' })),
-    location: 'Remote', // Default location
+    skills: instructor.expertise.map((exp) => ({
+      name: exp,
+      proficiency: "Expert",
+    })),
+    location: "Remote", // Default location
     socialLinks: {
       linkedin: instructor.linkedinProfile,
       website: instructor.personalWebsite,
@@ -270,8 +281,14 @@ const transformInstructorData = (instructor: InstructorProfile): TransformedInst
     isOnline,
     isVerified: instructor.isVerified,
     priceRange: {
-      min: Math.min(instructor.individualSessionRate || 50, instructor.groupSessionRate || 200),
-      max: Math.max(instructor.individualSessionRate || 50, instructor.groupSessionRate || 200),
+      min: Math.min(
+        instructor.individualSessionRate || 50,
+        instructor.groupSessionRate || 200
+      ),
+      max: Math.max(
+        instructor.individualSessionRate || 50,
+        instructor.groupSessionRate || 200
+      ),
     },
     liveSessionsEnabled: instructor.isAcceptingStudents || false,
     groupSessionsEnabled: instructor.groupSessionRate > 0,
@@ -287,6 +304,12 @@ const transformInstructorData = (instructor: InstructorProfile): TransformedInst
     stories: [],
     storyHighlights: [],
     recordedCourses: [],
+    follow: {
+      totalFollowers: (instructor as any).totalFollowers ?? 0,
+      newFollowersThisWeek: (instructor as any).newFollowersThisWeek ?? 0,
+      newFollowersThisMonth: (instructor as any).newFollowersThisMonth ?? 0,
+      isFollowing: (instructor as any).isFollowing ?? false,
+    },
   };
 };
 
@@ -307,14 +330,18 @@ export const useInstructorsStore = create<InstructorsState>()(
         setFeaturedInstructors: (instructors: InstructorProfile[]) =>
           set((state) => {
             state.featuredInstructors = instructors;
-            state.transformedInstructors = instructors.map(transformInstructorData);
+            state.transformedInstructors = instructors.map(
+              transformInstructorData
+            );
           }),
 
         setInstructors: (instructors: InstructorProfile[]) =>
           set((state) => {
             state.instructors = instructors;
             // Also update transformed instructors for filtering
-            state.transformedInstructors = instructors.map(transformInstructorData);
+            state.transformedInstructors = instructors.map(
+              transformInstructorData
+            );
           }),
 
         setAvailableTodayInstructors: (instructors: InstructorProfile[]) =>
@@ -501,7 +528,7 @@ export const useInstructorsStore = create<InstructorsState>()(
             state.pagination.currentPage = 1;
           }),
 
-        setViewMode: (mode: 'grid' | 'list') =>
+        setViewMode: (mode: "grid" | "list") =>
           set((state) => {
             state.viewMode = mode;
           }),
@@ -576,12 +603,12 @@ export const useInstructorsStore = create<InstructorsState>()(
 
         getFilteredInstructors: () => {
           const { instructors, filters, sortBy } = get();
-          
+
           // If no instructors data, return empty array
           if (!instructors || instructors.length === 0) {
             return [];
           }
-          
+
           let filtered = instructors.map(transformInstructorData);
 
           // Apply search filter
@@ -592,7 +619,9 @@ export const useInstructorsStore = create<InstructorsState>()(
                 instructor.name.toLowerCase().includes(query) ||
                 instructor.title.toLowerCase().includes(query) ||
                 instructor.bio.toLowerCase().includes(query) ||
-                instructor.categories.some(cat => cat.toLowerCase().includes(query))
+                instructor.categories.some((cat) =>
+                  cat.toLowerCase().includes(query)
+                )
             );
           }
 
@@ -607,53 +636,67 @@ export const useInstructorsStore = create<InstructorsState>()(
 
           // Apply rating filter
           if (filters.selectedRatings.length > 0) {
-            const minRating = Math.max(...filters.selectedRatings.map(r => {
-              if (r === 'rating4plus') return 4.0;
-              if (r === 'rating3plus') return 3.5;
-              if (r === 'rating3') return 3.0;
-              return 0;
-            }));
-            filtered = filtered.filter((instructor) => instructor.rating >= minRating);
+            const minRating = Math.max(
+              ...filters.selectedRatings.map((r) => {
+                if (r === "rating4plus") return 4.0;
+                if (r === "rating3plus") return 3.5;
+                if (r === "rating3") return 3.0;
+                return 0;
+              })
+            );
+            filtered = filtered.filter(
+              (instructor) => instructor.rating >= minRating
+            );
           }
 
           // Apply verification filter
-          if (filters.selectedRatings.includes('verified')) {
+          if (filters.selectedRatings.includes("verified")) {
             filtered = filtered.filter((instructor) => instructor.isVerified);
           }
 
           // Apply live sessions filter
           if (filters.offersLiveSessions) {
-            filtered = filtered.filter((instructor) => instructor.liveSessionsEnabled);
+            filtered = filtered.filter(
+              (instructor) => instructor.liveSessionsEnabled
+            );
           }
 
           // Apply available today filter
           if (filters.availableToday) {
-            filtered = filtered.filter((instructor) => instructor.nextAvailableSlot);
+            filtered = filtered.filter(
+              (instructor) => instructor.nextAvailableSlot
+            );
           }
 
           // Apply group sessions filter
           if (filters.groupSessionsAvailable) {
-            filtered = filtered.filter((instructor) => instructor.groupSessionsEnabled);
+            filtered = filtered.filter(
+              (instructor) => instructor.groupSessionsEnabled
+            );
           }
 
           // Apply price range filter
           filtered = filtered.filter((instructor) => {
-            const avgPrice = (instructor.priceRange.min + instructor.priceRange.max) / 2;
-            return avgPrice >= filters.priceRange[0] && avgPrice <= filters.priceRange[1];
+            const avgPrice =
+              (instructor.priceRange.min + instructor.priceRange.max) / 2;
+            return (
+              avgPrice >= filters.priceRange[0] &&
+              avgPrice <= filters.priceRange[1]
+            );
           });
 
           // Apply sorting
           switch (sortBy) {
-            case 'rating':
+            case "rating":
               filtered.sort((a, b) => b.rating - a.rating);
               break;
-            case 'students':
+            case "students":
               filtered.sort((a, b) => b.studentsCount - a.studentsCount);
               break;
-            case 'name':
+            case "name":
               filtered.sort((a, b) => a.name.localeCompare(b.name));
               break;
-            case 'newest':
+            case "newest":
               // Sort by creation date if available
               break;
             default:
@@ -678,7 +721,7 @@ export const useInstructorsStore = create<InstructorsState>()(
         resetState: () => set(initialState),
       })),
       {
-        name: 'instructors-store',
+        name: "instructors-store",
         partialize: (state) => ({
           savedInstructors: state.savedInstructors,
           viewMode: state.viewMode,
@@ -696,7 +739,7 @@ export const useInstructorsStore = create<InstructorsState>()(
 
 export const useInstructorsSelectors = () => {
   const store = useInstructorsStore();
-  
+
   return {
     // Data selectors
     featuredInstructors: store.featuredInstructors,
@@ -709,7 +752,7 @@ export const useInstructorsSelectors = () => {
     myInstructorStats: store.myInstructorStats,
     searchResults: store.searchResults,
     transformedInstructors: store.transformedInstructors,
-    
+
     // Loading selectors
     featuredInstructorsLoading: store.featuredInstructorsLoading,
     instructorsLoading: store.instructorsLoading,
@@ -721,7 +764,7 @@ export const useInstructorsSelectors = () => {
     myInstructorStatsLoading: store.myInstructorStatsLoading,
     searchLoading: store.searchLoading,
     isRefreshing: store.isRefreshing,
-    
+
     // Error selectors
     featuredInstructorsError: store.featuredInstructorsError,
     instructorsError: store.instructorsError,
@@ -732,21 +775,21 @@ export const useInstructorsSelectors = () => {
     instructorStatsError: store.instructorStatsError,
     myInstructorStatsError: store.myInstructorStatsError,
     searchError: store.searchError,
-    
+
     // Filter selectors
     filters: store.filters,
     searchQuery: store.searchQuery,
     sortBy: store.sortBy,
     viewMode: store.viewMode,
-    
+
     // Pagination selectors
     pagination: store.pagination,
-    
+
     // UI selectors
     selectedInstructor: store.selectedInstructor,
     savedInstructors: store.savedInstructors,
     isFilterModalOpen: store.isFilterModalOpen,
-    
+
     // Computed selectors
     filteredInstructors: store.getFilteredInstructors(),
     totalFilterCount: () => {

@@ -52,7 +52,7 @@ import { useAuthStore, useAuthSelectors, UserRole } from "@/stores/auth.store";
 import { useCheckoutItemCount } from "@/stores/payment.store";
 import StoreModal from "@/components/shared/StoreModal";
 import SearchModal from "@/components/shared/SearchModal";
-// import SearchModal from "@/components/shared/SearchModal";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface NavigationItem {
   label: string;
@@ -71,9 +71,9 @@ export interface NavbarProps {
 }
 
 const Navbar = ({
-  notificationCount = 0,
-  onAiAssistantToggle = () => {},
-  isDashboard = false,
+  notificationCount,
+  onAiAssistantToggle,
+  isDashboard,
 }: NavbarProps) => {
   const [isSticky, setIsSticky] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -487,20 +487,7 @@ const Navbar = ({
             </Button>
 
             {/* Notifications */}
-            {isAuthenticated && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative hover:text-black hover:bg-primary/10"
-              >
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </span>
-                )}
-              </Button>
-            )}
+            {isAuthenticated && <NotificationDropdown />}
 
             {/* Store/Cart Icon */}
             {isAuthenticated && isStudent && (

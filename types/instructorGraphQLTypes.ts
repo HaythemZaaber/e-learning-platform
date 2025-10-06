@@ -349,20 +349,27 @@ export interface TransformedInstructor {
   stories: any[];
   storyHighlights: any[];
   recordedCourses: any[];
+  // Optional follow metadata when provided by backend
+  follow?: {
+    totalFollowers?: number;
+    newFollowersThisWeek?: number;
+    newFollowersThisMonth?: number;
+    isFollowing?: boolean;
+  };
 }
 
 // =============================================================================
 // UTILITY TYPES
 // =============================================================================
 
-export type SortOption = 
-  | 'featured'
-  | 'rating'
-  | 'students'
-  | 'newest'
-  | 'available-today'
-  | 'most-booked'
-  | 'name';
+export type SortOption =
+  | "featured"
+  | "rating"
+  | "students"
+  | "newest"
+  | "available-today"
+  | "most-booked"
+  | "name";
 
 export interface FilterState {
   searchQuery: string;

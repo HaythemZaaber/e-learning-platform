@@ -91,6 +91,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         icon: MessageSquare,
         badge: "3",
       },
+      {
+        name: "Notifications",
+        href: "/instructor/notifications",
+        icon: Bell,
+        badge: null,
+      },
     ],
     quick: [
       {
@@ -199,6 +205,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         href: "/student/messages",
         icon: MessageSquare,
         badge: "1",
+      },
+      {
+        name: "Notifications",
+        href: "/student/notifications",
+        icon: Bell,
+        badge: null,
       },
     ],
     quick: [
@@ -361,6 +373,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         name: "Settings",
         href: "/admin/settings",
         icon: Settings,
+        badge: null,
+      },
+      {
+        name: "Notifications",
+        href: "/admin/notifications",
+        icon: Bell,
         badge: null,
       },
     ],

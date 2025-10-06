@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { TransformedInstructor } from "@/types/instructorGraphQLTypes";
+import { FollowButton } from "@/components/shared/FollowButton";
 
 interface EnhancedInstructorCardProps {
   instructor: TransformedInstructor;
@@ -63,8 +64,10 @@ export function InstructorCard({
 
   // Calculate availability status
   const getAvailabilityStatus = () => {
-    if (isOnline) return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
-    if (nextAvailableSlot) return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
+    if (isOnline)
+      return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
+    if (nextAvailableSlot)
+      return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
     return { status: "Available Soon", color: "bg-gray-500", icon: "⏰" };
   };
 
@@ -115,15 +118,12 @@ export function InstructorCard({
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{title}</p>
                 </div>
-                <Button
-                  variant="ghost"
+                <FollowButton
+                  instructorId={id}
                   size="icon"
-                  className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  title="Follow instructor"
-                >
-                  <Heart className="h-5 w-5" />
-                  <span className="sr-only">Follow instructor</span>
-                </Button>
+                  variant="ghost"
+                  initialIsFollowing={instructor.follow?.isFollowing}
+                />
               </div>
 
               {/* Rating and Key Stats */}
@@ -140,6 +140,12 @@ export function InstructorCard({
                     <Users className="h-4 w-4 mr-1" />
                     {studentsCount.toLocaleString()}
                   </div>
+                  {typeof instructor.follow?.totalFollowers === "number" && (
+                    <div className="flex items-center text-muted-foreground">
+                      <Heart className="h-4 w-4 mr-1" />
+                      {instructor.follow.totalFollowers.toLocaleString()}
+                    </div>
+                  )}
                   <div className="flex items-center text-muted-foreground">
                     <GraduationCap className="h-4 w-4 mr-1" />
                     {coursesCount}
@@ -157,24 +163,26 @@ export function InstructorCard({
 
               {/* Skills and Categories */}
               <div className="mt-4 flex flex-wrap gap-2">
-                {skills && skills.slice(0, 3).map((skill, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
-                  >
-                    {skill.name}
-                  </Badge>
-                ))}
-                {categories && categories.slice(0, 2).map((category, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
-                  >
-                    {category}
-                  </Badge>
-                ))}
+                {skills &&
+                  skills.slice(0, 3).map((skill, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 px-2 py-0.5"
+                    >
+                      {skill.name}
+                    </Badge>
+                  ))}
+                {categories &&
+                  categories.slice(0, 2).map((category, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="text-xs bg-orange-50 border-orange-200 text-orange-700 px-2 py-0.5"
+                    >
+                      {category}
+                    </Badge>
+                  ))}
                 {liveSessionsEnabled && (
                   <Badge className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-0.5">
                     <Play className="h-3 w-3 mr-1" />
@@ -205,7 +213,16 @@ export function InstructorCard({
                 </div>
                 <div className="flex items-center">
                   <Globe className="h-4 w-4 mr-1" />
-                  {languages.slice(0, 2).map(lang => typeof lang === 'string' ? lang : (lang as any).language || (lang as any).name || 'Unknown').join(", ")}
+                  {languages
+                    .slice(0, 2)
+                    .map((lang) =>
+                      typeof lang === "string"
+                        ? lang
+                        : (lang as any).language ||
+                          (lang as any).name ||
+                          "Unknown"
+                    )
+                    .join(", ")}
                 </div>
               </div>
             </div>
@@ -221,7 +238,10 @@ export function InstructorCard({
                   </p>
                 </div>
               )}
-              <Button asChild className="mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700">
+              <Button
+                asChild
+                className="mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
+              >
                 <Link href={`/instructors/${id}`}>View Profile</Link>
               </Button>
             </div>
@@ -246,10 +266,12 @@ export function InstructorCard({
           height={300}
           className="w-full h-56 object-cover"
         />
-        
+
         {/* Status Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          <Badge className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}>
+          <Badge
+            className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}
+          >
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
             {availability.status}
           </Badge>
@@ -267,15 +289,15 @@ export function InstructorCard({
           )}
         </div>
 
-        {/* Save Button */}
+        {/* Follow Button */}
         <div className="absolute top-4 right-4">
-          <Button
-            variant="outline"
+          <FollowButton
+            instructorId={id}
             size="icon"
+            variant="outline"
             className="bg-white/80 backdrop-blur-sm hover:bg-white"
-          >
-            <Heart className="h-4 w-4" />
-          </Button>
+            initialIsFollowing={instructor.follow?.isFollowing}
+          />
         </div>
 
         {/* Reels Indicator */}
@@ -297,9 +319,7 @@ export function InstructorCard({
                 {name}
               </h3>
             </Link>
-            <p className="text-sm text-indigo-600 line-clamp-1">
-              {title}
-            </p>
+            <p className="text-sm text-indigo-600 line-clamp-1">{title}</p>
           </div>
 
           {/* Rating and Key Stats in one row */}
@@ -325,6 +345,12 @@ export function InstructorCard({
                 <Users className="h-3 w-3 mr-1" />
                 {studentsCount.toLocaleString()}
               </div>
+              {typeof instructor.follow?.totalFollowers === "number" && (
+                <div className="flex items-center">
+                  <Heart className="h-3 w-3 mr-1" />
+                  {instructor.follow.totalFollowers.toLocaleString()}
+                </div>
+              )}
               <div className="flex items-center">
                 <GraduationCap className="h-3 w-3 mr-1" />
                 {coursesCount}
@@ -351,7 +377,10 @@ export function InstructorCard({
                   </Badge>
                 ))}
                 {skills.length > 2 && (
-                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-gray-500 px-2 py-0.5"
+                  >
                     +{skills.length - 2}
                   </Badge>
                 )}
@@ -403,7 +432,10 @@ export function InstructorCard({
                   </Badge>
                 ))}
                 {categories.length > 2 && (
-                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-gray-500 px-2 py-0.5"
+                  >
                     +{categories.length - 2}
                   </Badge>
                 )}
@@ -416,8 +448,12 @@ export function InstructorCard({
             <div>
               <div className="flex flex-wrap gap-1">
                 {languages.slice(0, 2).map((lang, index) => {
-                  const languageText = typeof lang === 'string' ? lang : 
-                    (lang as any).language || (lang as any).name || 'Unknown';
+                  const languageText =
+                    typeof lang === "string"
+                      ? lang
+                      : (lang as any).language ||
+                        (lang as any).name ||
+                        "Unknown";
                   return (
                     <Badge
                       key={`${languageText}-${index}`}
@@ -430,7 +466,10 @@ export function InstructorCard({
                   );
                 })}
                 {languages.length > 2 && (
-                  <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-gray-500 px-2 py-0.5"
+                  >
                     +{languages.length - 2}
                   </Badge>
                 )}
@@ -441,8 +480,12 @@ export function InstructorCard({
           {/* Completion Rate */}
           {completionRate > 0 && (
             <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
-              <span className="text-xs text-blue-700">Course Completion Rate</span>
-              <span className="text-sm font-semibold text-blue-700">{completionRate}%</span>
+              <span className="text-xs text-blue-700">
+                Course Completion Rate
+              </span>
+              <span className="text-sm font-semibold text-blue-700">
+                {completionRate}%
+              </span>
             </div>
           )}
         </div>
@@ -460,7 +503,10 @@ export function InstructorCard({
           </div>
 
           <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 py-2">
-            <Link href={`/instructors/${id}`} className="flex items-center gap-3 w-full justify-center">
+            <Link
+              href={`/instructors/${id}`}
+              className="flex items-center gap-3 w-full justify-center"
+            >
               View Profile <Calendar className="ml-2 h-4 w-4" />
             </Link>
           </Button>

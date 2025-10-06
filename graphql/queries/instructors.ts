@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 // =============================================================================
 // LANDING PAGE QUERIES
@@ -39,6 +39,10 @@ export const GET_FEATURED_INSTRUCTORS = gql`
         studentSatisfaction
         isAcceptingStudents
         maxStudentsPerCourse
+        totalFollowers
+        newFollowersThisWeek
+        newFollowersThisMonth
+        isFollowing
         preferredSchedule
         availableTimeSlots
         isVerified
@@ -103,7 +107,12 @@ export const GET_INSTRUCTORS_LIST = gql`
     $limit: Int
     $sortBy: String
   ) {
-    getInstructorsList(filters: $filters, page: $page, limit: $limit, sortBy: $sortBy) {
+    getInstructorsList(
+      filters: $filters
+      page: $page
+      limit: $limit
+      sortBy: $sortBy
+    ) {
       instructors {
         id
         userId
@@ -136,6 +145,10 @@ export const GET_INSTRUCTORS_LIST = gql`
         studentSatisfaction
         isAcceptingStudents
         maxStudentsPerCourse
+        totalFollowers
+        newFollowersThisWeek
+        newFollowersThisMonth
+        isFollowing
         preferredSchedule
         availableTimeSlots
         isVerified
@@ -214,6 +227,10 @@ export const GET_AVAILABLE_TODAY_INSTRUCTORS = gql`
       studentSatisfaction
       isAcceptingStudents
       maxStudentsPerCourse
+      totalFollowers
+      newFollowersThisWeek
+      newFollowersThisMonth
+      isFollowing
       preferredSchedule
       availableTimeSlots
       isVerified
@@ -289,6 +306,10 @@ export const GET_INSTRUCTOR_PROFILE = gql`
       studentSatisfaction
       isAcceptingStudents
       maxStudentsPerCourse
+      totalFollowers
+      newFollowersThisWeek
+      newFollowersThisMonth
+      isFollowing
       preferredSchedule
       availableTimeSlots
       isVerified
@@ -360,6 +381,10 @@ export const GET_MY_INSTRUCTOR_PROFILE = gql`
       studentSatisfaction
       isAcceptingStudents
       maxStudentsPerCourse
+      totalFollowers
+      newFollowersThisWeek
+      newFollowersThisMonth
+      isFollowing
       preferredSchedule
       availableTimeSlots
       isVerified
@@ -436,6 +461,10 @@ export const GET_INSTRUCTOR_STATS = gql`
         studentSatisfaction
         isAcceptingStudents
         maxStudentsPerCourse
+        totalFollowers
+        newFollowersThisWeek
+        newFollowersThisMonth
+        isFollowing
         preferredSchedule
         availableTimeSlots
         isVerified
@@ -544,6 +573,10 @@ export const GET_MY_INSTRUCTOR_STATS = gql`
         studentSatisfaction
         isAcceptingStudents
         maxStudentsPerCourse
+        totalFollowers
+        newFollowersThisWeek
+        newFollowersThisMonth
+        isFollowing
         preferredSchedule
         availableTimeSlots
         isVerified
@@ -654,6 +687,10 @@ export const SEARCH_INSTRUCTORS = gql`
         studentSatisfaction
         isAcceptingStudents
         maxStudentsPerCourse
+        totalFollowers
+        newFollowersThisWeek
+        newFollowersThisMonth
+        isFollowing
         preferredSchedule
         availableTimeSlots
         isVerified
@@ -729,6 +766,10 @@ export const INSTRUCTOR_PROFILE_FRAGMENT = gql`
     studentSatisfaction
     isAcceptingStudents
     maxStudentsPerCourse
+    totalFollowers
+    newFollowersThisWeek
+    newFollowersThisMonth
+    isFollowing
     preferredSchedule
     availableTimeSlots
     isVerified

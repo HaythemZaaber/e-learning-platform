@@ -3,7 +3,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import {
   Star,
   Users,
@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FollowButton } from "@/components/shared/FollowButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -115,6 +116,21 @@ export default function InstructorPage({ params }: InstructorPageProps) {
     totalCourses: number;
   } | null>(null);
 
+  // Followers count state kept at top-level to avoid hook order changes
+  const [liveFollowers, setLiveFollowers] = useState<number>(0);
+
+  // Listen to follow toggle events for this instructor and update count
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e?.detail?.instructorId !== instructorId) return;
+      const nowFollowing = !!e.detail.isFollowing;
+      setLiveFollowers((prev) => Math.max(0, prev + (nowFollowing ? 1 : -1)));
+    };
+    window.addEventListener("instructor-follow-toggled", handler as any);
+    return () =>
+      window.removeEventListener("instructor-follow-toggled", handler as any);
+  }, [instructorId]);
+
   // Use the custom hook to listen for summary updates
   useInstructorSummaryUpdate(instructorId, (data) => {
     if (
@@ -177,6 +193,16 @@ export default function InstructorPage({ params }: InstructorPageProps) {
   );
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
 
+  // Initialize followers count once when data is ready
+  useEffect(() => {
+    if (!instructorData) return;
+    const initialFollowers =
+      (instructorData as any)?.follow?.totalFollowers ??
+      (instructorData?.summary as any)?.totalFollowers ??
+      0;
+    setLiveFollowers(initialFollowers);
+  }, [instructorData]);
+
   // Show skeleton while loading
   if (detailsLoading) {
     return <InstructorPageSkeleton />;
@@ -199,6 +225,9 @@ export default function InstructorPage({ params }: InstructorPageProps) {
 
   // Use dynamic summary if available, otherwise fall back to original summary
   const displaySummary = dynamicSummary || summary;
+
+  const initialIsFollowing: boolean =
+    (instructorData as any)?.follow?.isFollowing ?? false;
 
   // Calculate engagement metrics
   const engagementRate = 0; // Will be calculated from real data
@@ -400,6 +429,17 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                       </div>
                       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 shadow-sm">
                         <div className="flex items-center justify-center gap-1 mb-1">
+                          <Heart className="h-6 w-6 text-pink-500" />
+                          <span className="font-bold text-xl">
+                            {liveFollowers.toLocaleString()}
+                          </span>
+                        </div>
+                        <span className="text-lg font-semibold text-gray-500">
+                          followers
+                        </span>
+                      </div>
+                      {/* <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 shadow-sm">
+                        <div className="flex items-center justify-center gap-1 mb-1">
                           <Shield className="h-6 w-6 text-purple-500" />
                           <span className="font-bold text-xl">
                             {trustScore}
@@ -408,7 +448,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                         <span className="text-lg font-semibold text-gray-500">
                           trust score
                         </span>
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Enhanced Tags */}
@@ -509,14 +549,13 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                   Message Now
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
+                  <FollowButton
+                    instructorId={instructor.id}
                     size="lg"
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                  >
-                    <Heart className="h-4 w-4 mr-2" />
-                    Follow
-                  </Button>
+                    variant="solid"
+                    className="flex-1"
+                    initialIsFollowing={initialIsFollowing}
+                  />
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button

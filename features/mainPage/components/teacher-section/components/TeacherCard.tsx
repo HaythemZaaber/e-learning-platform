@@ -16,11 +16,13 @@ import {
   MessageCircle,
   CheckCircle,
   Zap,
+  Heart,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { TransformedInstructor } from "@/types/instructorGraphQLTypes";
 import Link from "next/link";
+import { FollowButton } from "@/components/shared/FollowButton";
 
 interface TeacherCardProps {
   instructor: TransformedInstructor;
@@ -56,8 +58,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
 
   // Calculate availability status
   const getAvailabilityStatus = () => {
-    if (isOnline) return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
-    if (nextAvailableSlot) return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
+    if (isOnline)
+      return { status: "Online Now", color: "bg-green-500", icon: "🟢" };
+    if (nextAvailableSlot)
+      return { status: "Available Today", color: "bg-blue-500", icon: "📅" };
     return { status: "Available Soon", color: "bg-gray-500", icon: "⏰" };
   };
 
@@ -74,20 +78,18 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
           className="w-full h-56 object-cover"
         />
         <div className="absolute top-4 right-4 flex gap-2">
-          <Button
-            variant="outline"
+          <FollowButton
+            instructorId={id}
             size="icon"
-            className="bg-white/80 backdrop-blur-sm hover:bg-white"
-            onClick={() => onSave(id)}
-          >
-            <Bookmark
-              size={18}
-              className={isSaved ? "fill-pink-600 text-pink-600" : ""}
-            />
-          </Button>
+            variant="outline"
+            className="bg-white/80 backdrop-blur-sm hover:bg-white cursor-pointer"
+            initialIsFollowing={instructor.follow?.isFollowing}
+          />
         </div>
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          <Badge className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}>
+          <Badge
+            className={`${availability.color} hover:${availability.color} text-white text-xs flex items-center gap-1`}
+          >
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
             {availability.status}
           </Badge>
@@ -134,6 +136,12 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
               <Users className="h-3 w-3 mr-1" />
               {studentsCount.toLocaleString()}
             </div>
+            {typeof instructor.follow?.totalFollowers === "number" && (
+              <div className="flex items-center">
+                <Heart className="h-3 w-3 mr-1" />
+                {instructor.follow.totalFollowers.toLocaleString()}
+              </div>
+            )}
             <div className="flex items-center">
               <GraduationCap className="h-3 w-3 mr-1" />
               {coursesCount}
@@ -158,7 +166,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
                 </Badge>
               ))}
               {skills.length > 2 && (
-                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-gray-500 px-2 py-0.5"
+                >
                   +{skills.length - 2}
                 </Badge>
               )}
@@ -201,8 +212,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
           <div className="mb-3">
             <div className="flex flex-wrap gap-1">
               {languages.slice(0, 2).map((lang, index) => {
-                const languageText = typeof lang === 'string' ? lang : 
-                  (lang as any).language || (lang as any).name || 'Unknown';
+                const languageText =
+                  typeof lang === "string"
+                    ? lang
+                    : (lang as any).language || (lang as any).name || "Unknown";
                 return (
                   <Badge
                     key={`${languageText}-${index}`}
@@ -215,7 +228,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
                 );
               })}
               {languages.length > 2 && (
-                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-gray-500 px-2 py-0.5"
+                >
                   +{languages.length - 2}
                 </Badge>
               )}
@@ -237,7 +253,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
                 </Badge>
               ))}
               {categories.length > 3 && (
-                <Badge variant="outline" className="text-xs text-gray-500 px-2 py-0.5">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-gray-500 px-2 py-0.5"
+                >
                   +{categories.length - 3}
                 </Badge>
               )}
@@ -246,7 +265,10 @@ export function TeacherCard({ instructor, isSaved, onSave }: TeacherCardProps) {
         )}
 
         <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 mt-2 py-2">
-          <Link href={`/instructors/${id}`} className="flex items-center gap-3 w-full justify-center">
+          <Link
+            href={`/instructors/${id}`}
+            className="flex items-center gap-3 w-full justify-center"
+          >
             View Profile <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>

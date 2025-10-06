@@ -74,75 +74,101 @@ export default function InstructorsPage() {
     filters,
   } = useInstructorsStore();
 
- 
-
   // Get filtered and sorted instructors
   const sortedInstructors = useMemo(() => {
     // Use filtered instructors from store if available, otherwise use GraphQL data
     const filteredInstructors = getFilteredInstructors();
-    const instructorsToUse = filteredInstructors.length > 0 ? filteredInstructors : transformedInstructors;
-    
+    const instructorsToUse =
+      filteredInstructors.length > 0
+        ? filteredInstructors
+        : transformedInstructors;
+
     // Debug: Log data sources for troubleshooting
-    console.log('Data sources:', {
+    console.log("Data sources:", {
       filteredInstructorsLength: filteredInstructors.length,
       transformedInstructorsLength: transformedInstructors.length,
       rawInstructorsLength: instructors.length,
       usingFiltered: filteredInstructors.length > 0,
-      usingTransformed: filteredInstructors.length === 0 && transformedInstructors.length > 0,
-      usingRaw: filteredInstructors.length === 0 && transformedInstructors.length === 0 && instructors.length > 0
+      usingTransformed:
+        filteredInstructors.length === 0 && transformedInstructors.length > 0,
+      usingRaw:
+        filteredInstructors.length === 0 &&
+        transformedInstructors.length === 0 &&
+        instructors.length > 0,
     });
-    
+
     // If still no data, use the raw instructors data as fallback
-    const finalInstructors = instructorsToUse.length > 0 ? instructorsToUse : 
-      (instructors.length > 0 ? instructors.map(instructor => ({
-        id: instructor.user.id,
-  
-        name: `${instructor.user.firstName} ${instructor.user.lastName}`,
-        title: instructor.title || 'Instructor',
-        avatar: instructor.user.profileImage || '/placeholder.svg',
-        coverImage: '/placeholder.svg?height=600&width=1200',
-        bio: instructor.bio || '',
-        shortBio: instructor.shortBio || '',
-        rating: instructor.teachingRating || 0,
-        reviewsCount: Math.floor(instructor.totalStudents * 0.1),
-        studentsCount: instructor.totalStudents,
-        coursesCount: instructor.totalCourses,
-        responseTime: `${instructor.responseTime || 24} hours`,
-        completionRate: instructor.courseCompletionRate || 0,
-        languages: ['English'],
-        experience: instructor.experience || 0,
-        education: instructor.qualifications || [],
-        certifications: instructor.qualifications || [],
-        philosophy: instructor.teachingStyle || '',
-        categories: instructor.teachingCategories || [],
-        skills: instructor.expertise.map(exp => ({ name: exp, proficiency: 'Expert' })),
-        location: 'Remote',
-        socialLinks: {
-          linkedin: instructor.linkedinProfile,
-          website: instructor.personalWebsite,
-        },
-        isOnline: false,
-        isVerified: instructor.isVerified,
-        priceRange: {
-          min: Math.min(instructor.individualSessionRate || 50, instructor.groupSessionRate || 200),
-          max: Math.max(instructor.individualSessionRate || 50, instructor.groupSessionRate || 200),
-        },
-        liveSessionsEnabled: instructor.isAcceptingStudents || false,
-        groupSessionsEnabled: instructor.groupSessionRate > 0,
-        nextAvailableSlot: undefined,
-        weeklyBookings: 0,
-        responseTimeHours: instructor.responseTime || 24,
-        contentEngagement: {
-          totalViews: instructor.totalStudents * 10,
-          totalLikes: instructor.totalStudents,
-          avgEngagementRate: 5.5,
-        },
-        reels: [],
-        stories: [],
-        storyHighlights: [],
-        recordedCourses: [],
-      })) : []);
-    
+    const finalInstructors =
+      instructorsToUse.length > 0
+        ? instructorsToUse
+        : instructors.length > 0
+        ? instructors.map((instructor) => ({
+            id: instructor.user.id,
+
+            name: `${instructor.user.firstName} ${instructor.user.lastName}`,
+            title: instructor.title || "Instructor",
+            avatar: instructor.user.profileImage || "/placeholder.svg",
+            coverImage: "/placeholder.svg?height=600&width=1200",
+            bio: instructor.bio || "",
+            shortBio: instructor.shortBio || "",
+            rating: instructor.teachingRating || 0,
+            reviewsCount: Math.floor(instructor.totalStudents * 0.1),
+            studentsCount: instructor.totalStudents,
+            coursesCount: instructor.totalCourses,
+            responseTime: `${instructor.responseTime || 24} hours`,
+            completionRate: instructor.courseCompletionRate || 0,
+            languages: ["English"],
+            experience: instructor.experience || 0,
+            education: instructor.qualifications || [],
+            certifications: instructor.qualifications || [],
+            philosophy: instructor.teachingStyle || "",
+            categories: instructor.teachingCategories || [],
+            skills: instructor.expertise.map((exp) => ({
+              name: exp,
+              proficiency: "Expert",
+            })),
+            location: "Remote",
+            socialLinks: {
+              linkedin: instructor.linkedinProfile,
+              website: instructor.personalWebsite,
+            },
+            isOnline: false,
+            isVerified: instructor.isVerified,
+            priceRange: {
+              min: Math.min(
+                instructor.individualSessionRate || 50,
+                instructor.groupSessionRate || 200
+              ),
+              max: Math.max(
+                instructor.individualSessionRate || 50,
+                instructor.groupSessionRate || 200
+              ),
+            },
+            liveSessionsEnabled: instructor.isAcceptingStudents || false,
+            groupSessionsEnabled: instructor.groupSessionRate > 0,
+            nextAvailableSlot: undefined,
+            weeklyBookings: 0,
+            responseTimeHours: instructor.responseTime || 24,
+            contentEngagement: {
+              totalViews: instructor.totalStudents * 10,
+              totalLikes: instructor.totalStudents,
+              avgEngagementRate: 5.5,
+            },
+            reels: [],
+            stories: [],
+            storyHighlights: [],
+            recordedCourses: [],
+            follow: {
+              totalFollowers: (instructor as any).totalFollowers ?? 0,
+              newFollowersThisWeek:
+                (instructor as any).newFollowersThisWeek ?? 0,
+              newFollowersThisMonth:
+                (instructor as any).newFollowersThisMonth ?? 0,
+              isFollowing: (instructor as any).isFollowing ?? false,
+            },
+          }))
+        : [];
+
     return [...finalInstructors].sort((a, b) => {
       switch (sortBy) {
         case "rating":
@@ -161,7 +187,13 @@ export default function InstructorsPage() {
           return 0; // Featured order
       }
     });
-  }, [getFilteredInstructors, sortBy, filters, transformedInstructors, instructors]);
+  }, [
+    getFilteredInstructors,
+    sortBy,
+    filters,
+    transformedInstructors,
+    instructors,
+  ]);
 
   console.log("sortedInstructors", sortedInstructors[0]);
 
@@ -198,9 +230,11 @@ export default function InstructorsPage() {
   const liveSessionsCount = sortedInstructors.filter(
     (i) => i.liveSessionsEnabled
   ).length;
-  const avgRating = sortedInstructors.length > 0 
-    ? sortedInstructors.reduce((sum, i) => sum + i.rating, 0) / sortedInstructors.length
-    : 0;
+  const avgRating =
+    sortedInstructors.length > 0
+      ? sortedInstructors.reduce((sum, i) => sum + i.rating, 0) /
+        sortedInstructors.length
+      : 0;
   const totalStudents = sortedInstructors.reduce(
     (sum, i) => sum + i.studentsCount,
     0
@@ -256,7 +290,10 @@ export default function InstructorsPage() {
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-white/20 shadow-lg text-center">
+                <div
+                  key={index}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-white/20 shadow-lg text-center"
+                >
                   <div className="animate-pulse">
                     <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-200 rounded-xl mb-4"></div>
                     <div className="h-8 bg-gray-200 rounded mb-1"></div>
@@ -356,7 +393,8 @@ export default function InstructorsPage() {
                       {sortedInstructors.length}
                     </span>{" "}
                     instructors
-                    {currentPage > 1 && ` • Page ${currentPage} of ${totalPages}`}
+                    {currentPage > 1 &&
+                      ` • Page ${currentPage} of ${totalPages}`}
                   </div>
 
                   <div className="flex items-center gap-4">
@@ -464,7 +502,10 @@ export default function InstructorsPage() {
                 title="No Instructors Found"
                 description="No instructors match your current filter criteria. Try adjusting your filters or search terms."
                 action={
-                  <Button onClick={() => window.location.reload()} variant="outline">
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                  >
                     Reset Filters
                   </Button>
                 }

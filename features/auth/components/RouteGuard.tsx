@@ -160,6 +160,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
                            pathname === "/checkout/processing" ||
                            pathname.startsWith("/payment/") ||
                            pathname.startsWith("/sessions/") ||
+                           pathname === "/notifications" ||
                            pathname === "/404";
       
       if (!isPublicRoute) {

@@ -4,6 +4,7 @@ import ClientLayout from "./ClientLayout";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ApolloProviderWrapper } from "@/lib/apollo-provider";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
+import { WebSocketProvider } from "@/providers/WebSocketProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -21,7 +22,9 @@ export default function RootLayout({
         <ClerkProvider touchSession={false}>
           <ApolloProviderWrapper>
             <ReactQueryProvider>
-              <ClientLayout>{children}</ClientLayout>
+              <WebSocketProvider>
+                <ClientLayout>{children}</ClientLayout>
+              </WebSocketProvider>
             </ReactQueryProvider>
           </ApolloProviderWrapper>
         </ClerkProvider>

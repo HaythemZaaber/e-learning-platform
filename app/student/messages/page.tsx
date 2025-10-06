@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, Loader2, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { MessageThread } from "@/components/chat/MessageThread";
 import { useChatStore } from "@/stores/chat.store";
@@ -11,7 +10,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { toast } from "sonner";
 import { Message } from "@/types/chatTypes";
 
-export default function InstructorMessagesPage() {
+export default function StudentMessagesPage() {
   const { user, getToken } = useAuth();
   const { socket } = useWebSocket();
   const [initializing, setInitializing] = useState(true);
@@ -226,29 +225,21 @@ export default function InstructorMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className=" pb-0 bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
+        <div className="mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Messages</h1>
-              <p className="text-gray-600 mt-1">
-                Communicate with your students
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </Button>
+              <p className="text-gray-600 mt-1">Chat with your instructors</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-100px)]">
+      <div className=" mx-auto py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-80px)]">
           {/* Conversations List */}
           <div className="lg:col-span-1">
             {conversationsLoading ? (

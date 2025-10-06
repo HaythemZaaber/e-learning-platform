@@ -112,7 +112,7 @@ export function DashboardSidebar({
         </div>
 
         {/* Quick Access */}
-        {navigation.quick.length > 0 && (
+        { navigation?.quick && navigation?.quick?.length > 0 && (
           <div className="px-3 mb-6">
             <Collapsible
               open={isQuickAccessOpen}
@@ -128,7 +128,7 @@ export function DashboardSidebar({
                 />
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 mt-2">
-                {navigation.quick.map((item) => {
+                {navigation?.quick?.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
@@ -152,7 +152,7 @@ export function DashboardSidebar({
         )}
 
         {/* Tools & Features */}
-        {navigation.tools.length > 0 && (
+        {navigation?.tools && navigation?.tools?.length > 0 && (
           <div className="px-3 mb-6">
             <Collapsible open={isToolsOpen} onOpenChange={setIsToolsOpen}>
               <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
@@ -165,7 +165,7 @@ export function DashboardSidebar({
                 />
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 mt-2">
-                {navigation.tools.map((item) => {
+                {navigation?.tools?.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link

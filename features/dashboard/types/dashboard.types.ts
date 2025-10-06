@@ -14,8 +14,8 @@ export interface NavigationItem {
 
 export interface NavigationSection {
   main: NavigationItem[];
-  quick: NavigationItem[];
-  tools: NavigationItem[];
+  quick?: NavigationItem[];
+  tools?: NavigationItem[];
 }
 
 export interface RoleInfo {

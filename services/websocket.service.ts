@@ -306,6 +306,10 @@ class WebSocketService {
       this.socket.emit(event, data);
     }
   }
+
+  getSocket(): Socket | null {
+    return this.socket;
+  }
 }
 
 export const websocketService = new WebSocketService();

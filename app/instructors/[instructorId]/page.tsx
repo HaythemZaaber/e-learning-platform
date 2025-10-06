@@ -67,6 +67,7 @@ import { ReviewsSection } from "@/features/instructors/components/instructorPage
 import { InstructorPageSkeleton } from "@/features/instructors/components/instructorPage/InstructorPageSkeleton";
 import { SessionBookingModal } from "@/features/sessions/components/student/SessionBookingModal";
 import { CreateFirstOfferingModal } from "@/features/sessions/components/instructor/CreateFirstOfferingModal";
+import { ChatModal } from "@/components/chat/ChatModal";
 import {
   useInstructorDetails,
   useInstructorCourses,
@@ -192,6 +193,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
     null
   );
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   // Initialize followers count once when data is ready
   useEffect(() => {
@@ -544,6 +546,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                  onClick={() => setIsChatModalOpen(true)}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Now
@@ -1852,6 +1855,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                 <Button
                   variant="outline"
                   className="w-full justify-start gap-3 h-auto p-4 border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  onClick={() => setIsChatModalOpen(true)}
                 >
                   <MessageCircle className="h-5 w-5 text-blue-600" />
                   <div className="text-left">
@@ -1949,6 +1953,15 @@ export default function InstructorPage({ params }: InstructorPageProps) {
         isOpen={isCreateOfferingModalOpen}
         onClose={() => setIsCreateOfferingModalOpen(false)}
         onSuccess={handleCreateOfferingSuccess}
+      />
+
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        recipientId={instructor.id}
+        recipientName={`${instructor.firstName} ${instructor.lastName}`}
+        recipientImage={instructor.profileImage}
       />
     </div>
   );

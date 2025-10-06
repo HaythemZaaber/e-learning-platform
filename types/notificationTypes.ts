@@ -26,6 +26,10 @@ export enum NotificationType {
   // Follow System
   NEW_FOLLOWER = "NEW_FOLLOWER",
   UNFOLLOWED = "UNFOLLOWED",
+
+  // Chat System
+  NEW_MESSAGE = "NEW_MESSAGE",
+  MESSAGE_READ = "MESSAGE_READ",
 }
 
 export enum NotificationPriority {

@@ -82,7 +82,7 @@ export const ROUTE_PERMISSIONS: RouteConfig[] = [
   { path: "/sign-up", allowedRoles: [], requireAuth: false },
   { path: "/sso-callback", allowedRoles: [], requireAuth: false },
   { path: "/unauthorized", allowedRoles: [], requireAuth: false },
-  
+
   // Payment routes (public)
   { path: "/payment", allowedRoles: [], requireAuth: false },
 ];
@@ -115,23 +115,36 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   useEffect(() => {
     // Don't do anything until the store is hydrated and loading is complete
     if (!isHydrated || isLoading) {
-      console.log('RouteGuard: Waiting for hydration/loading to complete', {
+      console.log("RouteGuard: Waiting for hydration/loading to complete", {
         isHydrated,
         isLoading,
-        pathname
+        pathname,
       });
       return;
     }
 
     // Debug logging
-    console.log('RouteGuard Debug:', {
+    console.log("RouteGuard Debug:", {
       pathname,
       isAuthenticated,
       userRole: user?.role,
       userId: user?.id,
       isLoading,
-      isHydrated
+      isHydrated,
     });
+
+    // Special handling for main page "/" - redirect authenticated instructors to their dashboard
+    if (
+      pathname === "/" &&
+      isAuthenticated &&
+      user?.role === UserRole.INSTRUCTOR
+    ) {
+      console.log(
+        "RouteGuard: Instructor accessing main page, redirecting to dashboard"
+      );
+      router.push("/instructor/dashboard");
+      return;
+    }
 
     // Find matching route configuration
     const routeConfig = ROUTE_PERMISSIONS.find(
@@ -141,35 +154,46 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     // If no specific route config found, check if it's a public route
     if (!routeConfig) {
       // Check if it's a known public route or auth route
-      const isPublicRoute = pathname === "/" || 
-                           pathname.startsWith("/sign-in") || 
-                           pathname.startsWith("/sign-up") || 
-                           pathname.startsWith("/sso-callback") ||
-                           pathname === "/unauthorized" ||
-                           pathname === "/become-instructor" ||
-                           pathname === "/how-it-works" ||
-                           pathname === "/instructors" ||
-                           pathname === "/courses" ||
-                           pathname === "/become-instructor/verification" ||
-                           pathname === "/checkout" ||
-                           pathname === "/checkout/success" ||
-                           pathname === "/checkout/failure" ||
-                           pathname === "/checkout/cancel" ||
-                           pathname === "/checkout/error" ||
-                           pathname === "/checkout/pending" ||
-                           pathname === "/checkout/processing" ||
-                           pathname.startsWith("/payment/") ||
-                           pathname.startsWith("/sessions/") ||
-                           pathname === "/notifications" ||
-                           pathname === "/404";
-      
+      const isPublicRoute =
+        pathname === "/" ||
+        pathname.startsWith("/sign-in") ||
+        pathname.startsWith("/sign-up") ||
+        pathname.startsWith("/sso-callback") ||
+        pathname === "/unauthorized" ||
+        pathname === "/become-instructor" ||
+        pathname === "/how-it-works" ||
+        pathname === "/instructors" ||
+        pathname === "/courses" ||
+        pathname === "/become-instructor/verification" ||
+        pathname === "/checkout" ||
+        pathname === "/checkout/success" ||
+        pathname === "/checkout/failure" ||
+        pathname === "/checkout/cancel" ||
+        pathname === "/checkout/error" ||
+        pathname === "/checkout/pending" ||
+        pathname === "/checkout/processing" ||
+        pathname.startsWith("/payment/") ||
+        pathname.startsWith("/sessions/") ||
+        pathname === "/notifications" ||
+        pathname === "/404";
+
       if (!isPublicRoute) {
         // This is an unknown route - redirect to 404
         console.warn(`Unknown route accessed: ${pathname}`);
-        console.log('Available public routes:', [
-          "/", "/sign-in", "/sign-up", "/sso-callback", "/unauthorized",
-          "/become-instructor", "/how-it-works", "/instructors", "/courses",
-          "/checkout", "/payment", "/404", "/sessions/"
+        console.log("Available public routes:", [
+          "/",
+          "/sign-in",
+          "/sign-up",
+          "/sso-callback",
+          "/unauthorized",
+          "/become-instructor",
+          "/how-it-works",
+          "/instructors",
+          "/courses",
+          "/checkout",
+          "/payment",
+          "/404",
+          "/sessions/",
         ]);
         router.push("/404");
         return;
@@ -179,7 +203,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
     // Check authentication requirement
     if (routeConfig.requireAuth && !isAuthenticated) {
-      console.log(`Authentication required for ${pathname}, redirecting to ${routeConfig.redirectTo}`);
+      console.log(
+        `Authentication required for ${pathname}, redirecting to ${routeConfig.redirectTo}`
+      );
       router.push(routeConfig.redirectTo || "/sign-in");
       return;
     }
@@ -196,8 +222,12 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       !routeConfig.allowedRoles.includes(user.role)
     ) {
       // User doesn't have permission for this route
-      console.log(`Access denied for ${pathname}. User role: ${user.role}, Required roles: ${routeConfig.allowedRoles.join(', ')}`);
-      
+      console.log(
+        `Access denied for ${pathname}. User role: ${
+          user.role
+        }, Required roles: ${routeConfig.allowedRoles.join(", ")}`
+      );
+
       // Redirect based on user role
       const redirectPath = getDefaultDashboardPath(user.role);
       router.push(redirectPath);
@@ -221,5 +251,3 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
 
   return <>{children}</>;
 };
-
-

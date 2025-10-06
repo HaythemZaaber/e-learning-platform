@@ -130,24 +130,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         icon: User,
       },
     ],
-    tools: [
-      {
-        name: "AI Assistant",
-        href: "/instructor/dashboard/ai-assistant",
-        icon: Zap,
-        badge: "Beta",
-      },
-      {
-        name: "Course Builder",
-        href: "/instructor/dashboard/course-builder",
-        icon: Target,
-      },
-      {
-        name: "Assessment Tools",
-        href: "/instructor/dashboard/assessments",
-        icon: Award,
-      },
-    ],
+  
   },
 
   [UserRole.STUDENT]: {
@@ -213,41 +196,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
     ],
-    quick: [
-      {
-        name: "Favorites",
-        href: "/student/favorites",
-        icon: Heart,
-      },
-      {
-        name: "Certificates",
-        href: "/student/certificates",
-        icon: Award,
-      },
-      {
-        name: "Study Groups",
-        href: "/student/groups",
-        icon: Users,
-      },
-    ],
-    tools: [
-      {
-        name: "Study Planner",
-        href: "/student/planner",
-        icon: Target,
-        badge: "New",
-      },
-      {
-        name: "AI Tutor",
-        href: "/student/ai-tutor",
-        icon: Zap,
-      },
-      {
-        name: "Practice Tests",
-        href: "/student/practice",
-        icon: Shield,
-      },
-    ],
+   
   },
 
   [UserRole.PARENT]: {
@@ -382,40 +331,7 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
     ],
-    quick: [
-      {
-        name: "Pending Reviews",
-        href: "/admin/applications?status=SUBMITTED",
-        icon: Clock,
-      },
-      {
-        name: "Recent Activity",
-        href: "/admin/activity",
-        icon: Bell,
-      },
-      {
-        name: "System Health",
-        href: "/admin/health",
-        icon: Shield,
-      },
-    ],
-    tools: [
-      {
-        name: "User Management",
-        href: "/admin/users",
-        icon: Users,
-      },
-      {
-        name: "Content Moderation",
-        href: "/admin/moderation",
-        icon: Shield,
-      },
-      {
-        name: "System Logs",
-        href: "/admin/logs",
-        icon: FileText,
-      },
-    ],
+  
   },
 };
 

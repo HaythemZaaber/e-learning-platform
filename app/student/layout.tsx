@@ -120,7 +120,7 @@ export default function StudentLayout({
           </div>
         </main>
       </div>
-      <Footer />
+     
     </div>
   );
 }

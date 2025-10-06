@@ -17,6 +17,7 @@ interface NotificationState {
   error: string | null;
 
   // WebSocket connection
+  socket: any | null;
   connectionStatus: WebSocketConnectionStatus;
 
   // Pagination
@@ -61,6 +62,7 @@ export const useNotificationStore = create<NotificationState>()(
         unreadCount: 0,
         isLoading: false,
         error: null,
+        socket: null,
         connectionStatus: {
           connected: false,
           reconnectAttempts: 0,
@@ -242,7 +244,8 @@ export const useNotificationStore = create<NotificationState>()(
             );
 
             await websocketService.connect(token);
-            set({ isLoading: false });
+            const socket = websocketService.getSocket();
+            set({ socket, isLoading: false });
           } catch (error) {
             console.error("Failed to connect WebSocket:", error);
             set({
@@ -258,6 +261,7 @@ export const useNotificationStore = create<NotificationState>()(
         disconnectWebSocket: () => {
           websocketService.disconnect();
           set({
+            socket: null,
             connectionStatus: {
               connected: false,
               reconnectAttempts: 0,

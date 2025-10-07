@@ -53,6 +53,12 @@ import { useCheckoutItemCount } from "@/stores/payment.store";
 import StoreModal from "@/components/shared/StoreModal";
 import SearchModal from "@/components/shared/SearchModal";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import {
+  AIChatModal,
+  FloatingChatButton,
+  MinimizedChat,
+} from "@/components/ai-chat/AIChatModal";
+import { useAIChatStore } from "@/stores/aiChat.store";
 
 interface NavigationItem {
   label: string;
@@ -66,15 +72,10 @@ interface NavigationItem {
 
 export interface NavbarProps {
   notificationCount?: number;
-  onAiAssistantToggle?: () => void;
   isDashboard?: boolean;
 }
 
-const Navbar = ({
-  notificationCount,
-  onAiAssistantToggle,
-  isDashboard,
-}: NavbarProps) => {
+const Navbar = ({ notificationCount, isDashboard }: NavbarProps) => {
   const [isSticky, setIsSticky] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
@@ -99,6 +100,16 @@ const Navbar = ({
 
   // Get cart item count
   const cartItemCount = useCheckoutItemCount();
+
+  // AI Chat store
+  const {
+    isOpen: isAIChatOpen,
+    isMinimized: isAIChatMinimized,
+    openChat,
+    closeChat,
+    minimizeChat,
+    maximizeChat,
+  } = useAIChatStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -386,9 +397,21 @@ const Navbar = ({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
           >
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
+            <Link
+              href={
+                userRole === UserRole.INSTRUCTOR
+                  ? "/instructor/dashboard/overview"
+                  : "/"
+              }
+              className="flex items-center gap-2"
+            >
+              {/* <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
                 ED
+              </div> */}
+              <div className="relative flex items-center justify-center">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-110 transition-transform duration-300">
+                  <GraduationCap className="w-7 h-7 text-white animate-pulse" />
+                </div>
               </div>
               <span className="font-bold text-xl text-foreground">
                 EduConnect
@@ -478,10 +501,11 @@ const Navbar = ({
               variant="ghost"
               size="icon"
               className="relative hover:text-black hover:bg-primary/10"
-              onClick={onAiAssistantToggle}
+              onClick={openChat}
+              title="AI Assistant"
             >
               <MessageSquareText className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-[10px] text-white font-bold">
                 AI
               </span>
             </Button>

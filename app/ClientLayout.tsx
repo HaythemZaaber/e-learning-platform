@@ -5,12 +5,18 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Footer from "@/features/mainPage/components/Footer";
 import { Toaster } from "sonner";
-import { AiAssistant } from "@/components/shared/AiAssistant";
 import Navbar from "@/components/layout/navbar";
 import { useAuthStore, useAuthSelectors } from "@/stores/auth.store";
 import { AuthWrapper } from "@/features/auth/components/AuthWrapper";
 import { RouteGuard } from "@/features/auth/components/RouteGuard";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  AIChatModal,
+  FloatingChatButton,
+  MinimizedChat,
+} from "@/components/ai-chat/AIChatModal";
+import { useAIChatStore } from "@/stores/aiChat.store";
+import { AIChatProvider } from "@/providers/AIChatProvider";
 
 // Import the new loader
 import { PageLoader } from "@/components/ui/loaders";
@@ -21,7 +27,6 @@ interface ClientLayoutProps {
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
-  const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Get auth data from the integrated auth hook
@@ -32,6 +37,16 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     isHydrated,
   } = useAuth();
   const { userInitials, userFullName, userRole } = useAuthSelectors();
+
+  // AI Chat store
+  const {
+    isOpen: isAIChatOpen,
+    isMinimized: isAIChatMinimized,
+    openChat,
+    closeChat,
+    minimizeChat,
+    maximizeChat,
+  } = useAIChatStore();
 
   // Determine layout type based on pathname
   const isAuthPage =
@@ -74,7 +89,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   // Show enhanced loading screen while auth is being determined
   if (isLoading || !isHydrated) {
     return (
-      <PageLoader 
+      <PageLoader
         message={!isHydrated ? "Initializing..." : "Verifying your session..."}
       />
     );
@@ -85,31 +100,42 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <RouteGuard>
-      {showNavbar && (
-        <Navbar
-          notificationCount={notificationCount}
-          onAiAssistantToggle={() => setShowAiAssistant(!showAiAssistant)}
-          isDashboard={isDashboardPage}
-        />
-      )}
+      <AIChatProvider>
+        {showNavbar && (
+          <Navbar
+            notificationCount={notificationCount}
+            isDashboard={isDashboardPage}
+          />
+        )}
 
-      {/* AI Assistant - Global (except auth pages) */}
-      {!isAuthPage && (
-        <div className="fixed bottom-4 right-4 z-50">
-          {showAiAssistant && (
-            <AiAssistant onClose={() => setShowAiAssistant(false)} />
-          )}
-        </div>
-      )}
+        {/* Main Content */}
+        <main className="min-h-screen">{children}</main>
 
-      {/* Main Content */}
-      <main className="min-h-screen">{children}</main>
+        {/* AI Chat Components - Global (except auth pages) */}
+        {!isAuthPage && (
+          <>
+            {/* AI Chat Modal */}
+            <AIChatModal
+              isOpen={isAIChatOpen}
+              onClose={closeChat}
+              onToggleMinimize={isAIChatMinimized ? maximizeChat : minimizeChat}
+              isMinimized={isAIChatMinimized}
+            />
 
-      {/* Toast Notifications */}
-      <Toaster position="top-center" richColors />
+            {/* Floating Chat Button */}
+            <FloatingChatButton />
 
-      {/* Footer */}
-      {showFooter && <Footer />}
+            {/* Minimized Chat */}
+            <MinimizedChat />
+          </>
+        )}
+
+        {/* Toast Notifications */}
+        <Toaster position="top-center" richColors />
+
+        {/* Footer */}
+        {showFooter && <Footer />}
+      </AIChatProvider>
     </RouteGuard>
   );
 }

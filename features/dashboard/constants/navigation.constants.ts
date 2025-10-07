@@ -26,6 +26,7 @@ import {
   PieChart,
   Clock,
   User,
+  Film,
 } from "lucide-react";
 
 import {
@@ -74,6 +75,17 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
       {
+        name: "Stories & Reels",
+        href: "/instructor/dashboard/content",
+        icon: Film,
+      },
+      {
+        name: "Messages",
+        href: "/instructor/dashboard/messages",
+        icon: MessageSquare,
+        badge: "3",
+      },
+      {
         name: "Analytics",
         href: "/instructor/dashboard/analytics",
         icon: TrendingUp,
@@ -84,12 +96,6 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         href: "/instructor/dashboard/earnings",
         icon: Wallet,
         badge: null,
-      },
-      {
-        name: "Messages",
-        href: "/instructor/dashboard/messages",
-        icon: MessageSquare,
-        badge: "3",
       },
       {
         name: "Notifications",
@@ -115,11 +121,6 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         icon: Bookmark,
       },
       {
-        name: "Content Studio",
-        href: "/instructor/dashboard/content",
-        icon: FileText,
-      },
-      {
         name: "Reviews",
         href: "/instructor/dashboard/reviews",
         icon: Star,
@@ -130,7 +131,6 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         icon: User,
       },
     ],
-  
   },
 
   [UserRole.STUDENT]: {
@@ -196,7 +196,6 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
     ],
-   
   },
 
   [UserRole.PARENT]: {
@@ -331,7 +330,6 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
     ],
-  
   },
 };
 

@@ -81,6 +81,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import coverImg from "@/public/images/coverImage.jpg";
+import { StoriesBar } from "@/features/stories-reels/components/StoriesBar";
+import { ReelsGrid } from "@/features/stories-reels/components/ReelsGrid";
+import { CreateStoryModal } from "@/features/stories-reels/components/CreateStoryModal";
+import { storiesReelsService } from "@/features/stories-reels/services/storiesReelsService";
+import type { Story, Reel } from "@/types/storiesReelsTypes";
 
 interface InstructorPageProps {
   params: Promise<{ instructorId: string }>;
@@ -194,6 +199,10 @@ export default function InstructorPage({ params }: InstructorPageProps) {
   );
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [isLoadingContent, setIsLoadingContent] = useState(true);
 
   // Initialize followers count once when data is ready
   useEffect(() => {
@@ -204,6 +213,57 @@ export default function InstructorPage({ params }: InstructorPageProps) {
       0;
     setLiveFollowers(initialFollowers);
   }, [instructorData]);
+
+  // Load stories and reels
+  useEffect(() => {
+    const loadContent = async () => {
+      if (!instructorData) return;
+
+      try {
+        setIsLoadingContent(true);
+        const token = await getToken();
+        const feed = await storiesReelsService.getInstructorFeed(
+          instructorId,
+          token || undefined
+        );
+
+        const { instructor: instructorInfo } = instructorData;
+
+        // Ensure instructor info is populated in reels
+        const reelsWithInstructor = feed.reels.map((reel) => ({
+          ...reel,
+          instructor: {
+            id: instructorInfo.id,
+            firstName: instructorInfo.firstName,
+            lastName: instructorInfo.lastName,
+            username: (instructorInfo as any).username || undefined,
+            profileImage: instructorInfo.profileImage || undefined,
+          },
+        }));
+
+        // Ensure instructor info is populated in stories
+        const storiesWithInstructor = feed.stories.map((story) => ({
+          ...story,
+          instructor: {
+            id: instructorInfo.id,
+            firstName: instructorInfo.firstName,
+            lastName: instructorInfo.lastName,
+            username: (instructorInfo as any).username || undefined,
+            profileImage: instructorInfo.profileImage || undefined,
+          },
+        }));
+
+        setStories(storiesWithInstructor);
+        setReels(reelsWithInstructor);
+      } catch (error) {
+        console.error("Failed to load stories and reels:", error);
+      } finally {
+        setIsLoadingContent(false);
+      }
+    };
+
+    loadContent();
+  }, [instructorId, instructorData, getToken]);
 
   // Show skeleton while loading
   if (detailsLoading) {
@@ -613,6 +673,19 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                   </div>
                 </div>
               )}
+
+            {/* Stories Bar */}
+            {!isLoadingContent &&
+              (stories.length > 0 || user?.id === instructorId) && (
+                <div className="mt-6 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <h3 className="text-lg font-semibold mb-4">Stories</h3>
+                  <StoriesBar
+                    stories={stories}
+                    isOwnProfile={user?.id === instructorId}
+                    onCreateClick={() => setIsStoryModalOpen(true)}
+                  />
+                </div>
+              )}
           </div>
         </div>
       </div>
@@ -624,7 +697,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
             {/* Enhanced Navigation */}
             <div className="sticky top-0 bg-white/80 backdrop-blur-md border border-gray-200 rounded-2xl mb-8 shadow-lg">
               <Tabs defaultValue="about" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 bg-white sticky top-15 shadow-sm z-40">
+                <TabsList className="grid w-full grid-cols-6 bg-white sticky top-15 shadow-sm z-40">
                   <TabsTrigger
                     value="about"
                     className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md text-md"
@@ -642,6 +715,12 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                     className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md text-md"
                   >
                     Courses
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="reels"
+                    className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md text-md"
+                  >
+                    Reels
                   </TabsTrigger>
                   <TabsTrigger
                     value="reviews"
@@ -1539,6 +1618,39 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                   )}
                 </TabsContent>
 
+                <TabsContent value="reels" className="space-y-6 mt-6 px-2 pb-2">
+                  <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 pb-4">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <Video className="h-6 w-6 text-pink-600" />
+                        Reels
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {isLoadingContent ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                          <span className="ml-2 text-gray-600">
+                            Loading reels...
+                          </span>
+                        </div>
+                      ) : reels.length > 0 ? (
+                        <ReelsGrid reels={reels} instructorId={instructorId} />
+                      ) : (
+                        <div className="text-center py-12">
+                          <Video className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">
+                            No Reels Yet
+                          </h3>
+                          <p className="text-gray-600">
+                            Check back later for new reels from this instructor!
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
                 <TabsContent
                   value="reviews"
                   className="space-y-6 mt-6 px-2 pb-2"
@@ -1962,6 +2074,28 @@ export default function InstructorPage({ params }: InstructorPageProps) {
         recipientId={instructor.id}
         recipientName={`${instructor.firstName} ${instructor.lastName}`}
         recipientImage={instructor.profileImage}
+      />
+
+      {/* Story Creation Modal */}
+      <CreateStoryModal
+        isOpen={isStoryModalOpen}
+        onClose={() => setIsStoryModalOpen(false)}
+        onSuccess={() => {
+          // Reload stories
+          const loadStories = async () => {
+            try {
+              const token = await getToken();
+              const feed = await storiesReelsService.getInstructorFeed(
+                instructorId,
+                token || undefined
+              );
+              setStories(feed.stories);
+            } catch (error) {
+              console.error("Failed to reload stories:", error);
+            }
+          };
+          loadStories();
+        }}
       />
     </div>
   );

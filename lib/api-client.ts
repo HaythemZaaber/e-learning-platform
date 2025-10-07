@@ -22,20 +22,24 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    const config: RequestInit = {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      ...options,
+    // Build headers properly
+    const headers: Record<string, string> = {
+      ...((options.headers as Record<string, string>) || {}),
     };
 
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`,
-      };
+    // Only add Content-Type if not already set and body is not FormData
+    if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
     }
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const config: RequestInit = {
+      ...options,
+      headers,
+    };
 
     try {
       const response = await fetch(url, config);
@@ -68,16 +72,34 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string, token?: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" }, token);
+  async get<T>(
+    endpoint: string,
+    token?: string,
+    params?: Record<string, any>
+  ): Promise<T> {
+    let url = endpoint;
+    if (params) {
+      const queryString = new URLSearchParams(
+        Object.entries(params).reduce((acc, [key, value]) => {
+          if (value !== undefined && value !== null) {
+            acc[key] = String(value);
+          }
+          return acc;
+        }, {} as Record<string, string>)
+      ).toString();
+      url = `${endpoint}?${queryString}`;
+    }
+    return this.request<T>(url, { method: "GET" }, token);
   }
 
   async post<T>(endpoint: string, data?: any, token?: string): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: "POST",
-        body: data ? JSON.stringify(data) : undefined,
+        body: isFormData ? data : data ? JSON.stringify(data) : undefined,
+        headers: isFormData ? {} : { "Content-Type": "application/json" },
       },
       token
     );

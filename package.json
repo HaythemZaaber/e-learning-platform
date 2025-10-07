@@ -32,6 +32,7 @@
     "@radix-ui/react-tabs": "^1.1.11",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@radix-ui/react-visually-hidden": "^1.2.3",
     "@redux-devtools/extension": "^3.3.0",
     "@stream-io/video-client": "^1.31.0",
     "@stream-io/video-react-sdk": "^1.21.3",

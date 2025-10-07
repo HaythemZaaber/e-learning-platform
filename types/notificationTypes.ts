@@ -30,6 +30,10 @@ export enum NotificationType {
   // Chat System
   NEW_MESSAGE = "NEW_MESSAGE",
   MESSAGE_READ = "MESSAGE_READ",
+
+  // Stories & Reels
+  NEW_STORY = "NEW_STORY",
+  NEW_REEL = "NEW_REEL",
 }
 
 export enum NotificationPriority {

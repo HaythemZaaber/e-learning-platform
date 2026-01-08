@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ApolloProviderWrapper } from "@/lib/apollo-provider";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
 import { WebSocketProvider } from "@/providers/WebSocketProvider";
+import "@/lib/suppress-extension-errors";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -17,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`antialiased duration-300`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`antialiased duration-300`} suppressHydrationWarning>
         <ClerkProvider touchSession={false}>
           <ApolloProviderWrapper>
             <ReactQueryProvider>

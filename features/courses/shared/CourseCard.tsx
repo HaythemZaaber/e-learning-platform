@@ -250,7 +250,12 @@ const StudentPriceDisplay = ({
       {/* Main Price Display */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-baseline gap-2 ">
-          <div className={cn("font-bold text-gray-900 !text-2xl", sizeClasses[size])}>
+          <div
+            className={cn(
+              "font-bold text-gray-900 !text-2xl",
+              sizeClasses[size]
+            )}
+          >
             {currencySymbol}
             {price?.toFixed(2)}
           </div>

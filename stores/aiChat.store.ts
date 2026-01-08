@@ -208,8 +208,15 @@ export const useAIChatStore = create<AIChatState>()(
                 limit
               );
 
+              // Sort history by timestamp in ascending order (oldest first)
+              const sortedHistory = [...history].sort(
+                (a, b) =>
+                  new Date(a.timestamp).getTime() -
+                  new Date(b.timestamp).getTime()
+              );
+
               // Convert history to messages format
-              const messages: ChatMessage[] = history.flatMap((item) => [
+              const messages: ChatMessage[] = sortedHistory.flatMap((item) => [
                 {
                   id: `${item.id}-user`,
                   role: "user" as const,
@@ -225,7 +232,7 @@ export const useAIChatStore = create<AIChatState>()(
               ]);
 
               set({
-                chatHistory: history,
+                chatHistory: sortedHistory,
                 messages:
                   messages.length > 0 ? messages : [getWelcomeMessage()],
                 isLoading: false,
@@ -369,7 +376,6 @@ export const useAIChatStore = create<AIChatState>()(
         name: "ai-chat-store",
         partialize: (state: AIChatState) => ({
           messages: state.messages,
-          isOpen: state.isOpen,
           isMinimized: state.isMinimized,
         }),
       }

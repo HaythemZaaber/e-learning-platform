@@ -997,13 +997,7 @@ export default function InstructorApplicationStatus() {
           color: "text-blue-600",
           bgColor: "bg-blue-50"
         },
-        {
-          label: "Documents Verified",
-          value: "0/0",
-          icon: FileCheck,
-          color: "text-emerald-600", 
-          bgColor: "bg-emerald-50"
-        },
+      
         {
           label: "Days in Review",
           value: "0",
@@ -1068,13 +1062,7 @@ export default function InstructorApplicationStatus() {
       color: "text-blue-600",
       bgColor: "bg-blue-50"
     },
-    {
-      label: "Documents Verified",
-        value: `${verifiedDocuments}/${totalDocuments}`,
-      icon: FileCheck,
-      color: "text-emerald-600", 
-      bgColor: "bg-emerald-50"
-    },
+ 
     {
       label: "Days in Review",
         value: daysInReview.toString(),
@@ -1274,7 +1262,7 @@ export default function InstructorApplicationStatus() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {stats.map((stat, index) => (
             <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
@@ -1322,7 +1310,7 @@ export default function InstructorApplicationStatus() {
                       <h3 className="text-lg font-semibold text-slate-900">{statusInfo.description}</h3>
                       <p className="text-slate-600 mt-2">{applicationData.reviewerNotes}</p>
                       
-                      {applicationData.estimatedReviewTime && (
+                      {/* {applicationData.estimatedReviewTime && (
                         <div className="flex items-center mt-4 p-3 bg-blue-50 rounded-lg">
                           <Timer className="w-5 h-5 text-blue-600 mr-3" />
                           <div>
@@ -1330,7 +1318,7 @@ export default function InstructorApplicationStatus() {
                             <p className="text-sm text-blue-700">{applicationData.estimatedReviewTime}</p>
                           </div>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>

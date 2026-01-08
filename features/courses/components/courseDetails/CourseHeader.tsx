@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Star,
   Clock,
@@ -28,23 +30,31 @@ import { cn } from "@/lib/utils";
 export function CourseHeader({ course }: { course: Course | null }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const { wishlistItems, addToWishlist, removeFromWishlist } = useCoursePreviewStore();
-  
+  const { wishlistItems, addToWishlist, removeFromWishlist } =
+    useCoursePreviewStore();
+
   const isWishlisted = course ? wishlistItems.has(course.id) : false;
 
   // Calculate actual total duration from course sections
   const getActualTotalDuration = () => {
     if (!course?.sections) return { hours: 0, minutes: 0 };
-    
-    const totalSeconds = course.sections.reduce((total: number, section: any) => {
-      const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
-        lectureTotal + (lecture.duration || 0), 0) || 0;
-      return total + sectionDuration;
-    }, 0);
-    
+
+    const totalSeconds = course.sections.reduce(
+      (total: number, section: any) => {
+        const sectionDuration =
+          section.lectures?.reduce(
+            (lectureTotal: number, lecture: any) =>
+              lectureTotal + (lecture.duration || 0),
+            0
+          ) || 0;
+        return total + sectionDuration;
+      },
+      0
+    );
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    
+
     return { hours, minutes };
   };
 
@@ -106,10 +116,12 @@ export function CourseHeader({ course }: { course: Course | null }) {
   };
 
   const getBestseller = () => {
-    const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+    const isFree =
+      course.price === 0 || course.settings?.enrollmentType === "FREE";
     return (
       (course.currentEnrollments || 0) > 5000 ||
-      (!isFree && course.price &&
+      (!isFree &&
+        course.price &&
         course.originalPrice &&
         course.originalPrice < course.price * 0.3)
     );
@@ -142,10 +154,10 @@ export function CourseHeader({ course }: { course: Course | null }) {
     }
   };
 
-  const lastUpdated = course.lastMajorUpdate 
-    ? new Date(course.lastMajorUpdate).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
+  const lastUpdated = course.lastMajorUpdate
+    ? new Date(course.lastMajorUpdate).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
       })
     : null;
 
@@ -174,7 +186,10 @@ export function CourseHeader({ course }: { course: Course | null }) {
                   Home
                 </a>
                 <ChevronRight className="w-4 h-4" />
-                <a href="/courses" className="hover:text-white transition-colors">
+                <a
+                  href="/courses"
+                  className="hover:text-white transition-colors"
+                >
                   Courses
                 </a>
                 {course.category && (
@@ -192,32 +207,42 @@ export function CourseHeader({ course }: { course: Course | null }) {
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                {(course.price === 0 || course.settings?.enrollmentType === "FREE") && (
+                {(course.price === 0 ||
+                  course.settings?.enrollmentType === "FREE") && (
                   <Badge className="bg-green-500 text-white border-0 px-3 py-1">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Free Course
                   </Badge>
                 )}
-                {!!getBestseller()  && (
+                {!!getBestseller() && (
                   <Badge className="bg-orange-500 text-white border-0 px-3 py-1">
                     <Award className="w-3 h-3 mr-1" />
                     Bestseller
                   </Badge>
                 )}
                 {course.isFeatured && (
-                  <Badge variant="secondary" className="bg-purple-500/20 border-purple-400/30 text-purple-200">
+                  <Badge
+                    variant="secondary"
+                    className="bg-purple-500/20 border-purple-400/30 text-purple-200"
+                  >
                     <Sparkles className="w-3 h-3 mr-1" />
                     Featured
                   </Badge>
                 )}
                 {course.isTrending && (
-                  <Badge variant="secondary" className="bg-red-500/20 border-red-400/30 text-red-200">
+                  <Badge
+                    variant="secondary"
+                    className="bg-red-500/20 border-red-400/30 text-red-200"
+                  >
                     <TrendingUp className="w-3 h-3 mr-1" />
                     Trending
                   </Badge>
                 )}
-                {lastUpdated  && (
-                  <Badge variant="secondary" className="bg-green-500/20 border-green-400/30 text-green-200">
+                {lastUpdated && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-500/20 border-green-400/30 text-green-200"
+                  >
                     <Calendar className="w-3 h-3 mr-1" />
                     Updated {lastUpdated}
                   </Badge>
@@ -238,10 +263,16 @@ export function CourseHeader({ course }: { course: Course | null }) {
                   <div className="flex items-center">
                     {renderStars(course.avgRating || 0)}
                   </div>
-                  <span className="font-semibold text-lg">{(course.avgRating || 0).toFixed(1)}</span>
-                  <button 
+                  <span className="font-semibold text-lg">
+                    {(course.avgRating || 0).toFixed(1)}
+                  </span>
+                  <button
                     className="text-blue-300 hover:text-blue-200 transition-colors underline-offset-2 hover:underline"
-                    onClick={() => document.getElementById('review-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    onClick={() =>
+                      document
+                        .getElementById("review-section")
+                        ?.scrollIntoView({ behavior: "smooth" })
+                    }
                   >
                     ({formatNumber(course.totalRatings || 0)} reviews)
                   </button>
@@ -249,15 +280,22 @@ export function CourseHeader({ course }: { course: Course | null }) {
 
                 <div className="flex items-center gap-1 text-slate-300">
                   <Users className="w-4 h-4" />
-                  <span>{formatNumber(course.currentEnrollments || 0)} students</span>
+                  <span>
+                    {formatNumber(course.currentEnrollments || 0)} students
+                  </span>
                 </div>
 
-                {course.completionRate !== null && course.completionRate !== undefined && course.completionRate > 0 && (
-                  <div className="flex items-center gap-1 text-slate-300">
-                    <Shield className="w-4 h-4" />
-                    <span>{course.completionRate?.toFixed(1) || 0}% completion rate</span>
-                  </div>
-                )}
+                {course.completionRate !== null &&
+                  course.completionRate !== undefined &&
+                  course.completionRate > 0 && (
+                    <div className="flex items-center gap-1 text-slate-300">
+                      <Shield className="w-4 h-4" />
+                      <span>
+                        {course.completionRate?.toFixed(1) || 0}% completion
+                        rate
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Instructor */}
@@ -283,21 +321,34 @@ export function CourseHeader({ course }: { course: Course | null }) {
                     </div>
                   )}
                   <div>
-                    <button 
+                    <button
                       className="text-blue-300 hover:text-blue-200 font-medium transition-colors underline-offset-2 hover:underline"
-                      onClick={() => document.getElementById('instructor-section')?.scrollIntoView({ behavior: 'smooth' })}
+                      onClick={() =>
+                        document
+                          .getElementById("instructor-section")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }
                     >
-                      {course.instructor?.firstName} {course.instructor?.lastName}
+                      {course.instructor?.firstName}{" "}
+                      {course.instructor?.lastName}
                     </button>
                     {!!course.instructor?.rating && (
                       <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span>{course.instructor?.rating}</span>
                         {course.instructor?.totalCourses && (
-                          <span>• {course.instructor?.totalCourses} courses</span>
+                          <span>
+                            • {course.instructor?.totalCourses} courses
+                          </span>
                         )}
                         {course.instructor?.totalStudentsTaught && (
-                          <span>• {formatNumber(course.instructor?.totalStudentsTaught)} students</span>
+                          <span>
+                            •{" "}
+                            {formatNumber(
+                              course.instructor?.totalStudentsTaught
+                            )}{" "}
+                            students
+                          </span>
                         )}
                       </div>
                     )}
@@ -315,18 +366,22 @@ export function CourseHeader({ course }: { course: Course | null }) {
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   <span>
-                    {actualDuration.hours > 0 ? `${actualDuration.hours}h ` : ''}{actualDuration.minutes}m
+                    {actualDuration.hours > 0
+                      ? `${actualDuration.hours}h `
+                      : ""}
+                    {actualDuration.minutes}m
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1">
                   <Globe className="w-4 h-4" />
                   <span>{course.language}</span>
-                  {course.subtitleLanguages && course.subtitleLanguages.length > 0 && (
-                    <span className="text-xs">
-                      (+{course.subtitleLanguages.length} subtitles)
-                    </span>
-                  )}
+                  {course.subtitleLanguages &&
+                    course.subtitleLanguages.length > 0 && (
+                      <span className="text-xs">
+                        (+{course.subtitleLanguages.length} subtitles)
+                      </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -355,7 +410,12 @@ export function CourseHeader({ course }: { course: Course | null }) {
                     isWishlisted && "bg-red-500/20 border-red-400/30"
                   )}
                 >
-                  <Heart className={cn("w-4 h-4 mr-2", isWishlisted && "fill-current")} />
+                  <Heart
+                    className={cn(
+                      "w-4 h-4 mr-2",
+                      isWishlisted && "fill-current"
+                    )}
+                  />
                   {isWishlisted ? "Wishlisted" : "Wishlist"}
                 </Button>
                 {course.trailer && (
@@ -402,11 +462,11 @@ export function CourseHeader({ course }: { course: Course | null }) {
 
       {/* Video Modal */}
       {videoModalOpen && course.trailer && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setVideoModalOpen(false)}
         >
-          <div 
+          <div
             className="relative w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >

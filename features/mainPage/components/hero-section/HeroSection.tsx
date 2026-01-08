@@ -4,19 +4,19 @@ import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { 
-  Search, 
-  BookOpen, 
-  Users, 
-  Star, 
-  Clock, 
+import {
+  Search,
+  BookOpen,
+  Users,
+  Star,
+  Clock,
   TrendingUp,
   Play,
   Award,
   Globe,
   Zap,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,9 @@ const HeroSection: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === "undefined") return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         setShowNavbarSearch(!entry.isIntersecting);
@@ -71,7 +74,10 @@ const HeroSection: React.FC = () => {
   }, [setShowNavbarSearch]);
 
   return (
-    <section className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 " ref={observerRef}>
+    <section
+      className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 "
+      ref={observerRef}
+    >
       <div className="container w-[90vw] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}
@@ -84,7 +90,7 @@ const HeroSection: React.FC = () => {
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full text-white text-sm font-medium w-fit shadow-lg"
             >
               <Zap className="h-4 w-4 mr-2 animate-pulse" />
-              Now offering 2000+ new courses!
+              Now offering 5+ new courses!
             </AnimatedWrapper>
 
             <AnimatedWrapper animation={fadeIn}>
@@ -92,14 +98,16 @@ const HeroSection: React.FC = () => {
                 Find Expert Teachers Worldwide for{" "}
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Every Passion
-                </span> and School Subject
+                </span>{" "}
+                and School Subject
               </h1>
             </AnimatedWrapper>
 
             <AnimatedWrapper animation={fadeIn}>
               <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
                 From academic excellence to creative mastery, our AI helps match
-                you with the right mentor—live or on your schedule. Join thousands of students learning from world-class instructors.
+                you with the right mentor—live or on your schedule. Join
+                thousands of students learning from world-class instructors.
               </p>
             </AnimatedWrapper>
 
@@ -111,15 +119,15 @@ const HeroSection: React.FC = () => {
               className="grid grid-cols-3 gap-4 mt-6 "
             >
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">2000+</div>
+                <div className="text-2xl font-bold text-blue-600">5+</div>
                 <div className="text-sm text-gray-600">Courses Available</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">500+</div>
+                <div className="text-2xl font-bold text-purple-600">2+</div>
                 <div className="text-sm text-gray-600">Expert Instructors</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">50K+</div>
+                <div className="text-2xl font-bold text-green-600">5+</div>
                 <div className="text-sm text-gray-600">Happy Students</div>
               </div>
             </AnimatedWrapper>
@@ -132,13 +140,15 @@ const HeroSection: React.FC = () => {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className={`w-8 h-8 rounded-full border-2 border-white bg-gradient-to-r from-blue-${i * 100} to-purple-${i * 100}`}
+                    className={`w-8 h-8 rounded-full border-2 border-white bg-gradient-to-r from-blue-${
+                      i * 100
+                    } to-purple-${i * 100}`}
                   />
                 ))}
               </div>
               <p className="text-sm text-gray-600">
-                <span className="font-bold text-gray-900">10,000+</span>{" "}
-                students joined this month
+                <span className="font-bold text-gray-900">20+</span> students
+                joined this month
               </p>
             </AnimatedWrapper>
           </AnimatedWrapper>

@@ -12,15 +12,9 @@ import {
   Maximize2,
   Sparkles,
   AlertCircle,
+  Bot,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { AIChatDrawer } from "./AIChatDrawer";
-import { ChatHeader, ChatMessages, ChatInput } from "./";
 import { useAIChatStore } from "@/stores/aiChat.store";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -113,17 +107,10 @@ export const FloatingChatButton: React.FC = () => {
         whileTap={{ scale: 0.95 }}
         className="relative"
       >
-        <Button
-          onClick={openChat}
-          size="lg"
-          className="h-16 w-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-700 border-2 border-white/20 backdrop-blur-sm"
-        >
-          <MessageSquareText className="w-7 h-7" />
-        </Button>
-
-        {/* Enhanced Pulse animation */}
+        {/* Enhanced Pulse animation - Behind button */}
         <motion.div
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 -z-10"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600"
+          style={{ zIndex: -2 }}
           animate={{
             scale: [1, 1.3, 1],
             opacity: [0.6, 0, 0.6],
@@ -135,9 +122,10 @@ export const FloatingChatButton: React.FC = () => {
           }}
         />
 
-        {/* Secondary pulse */}
+        {/* Secondary pulse - Behind button */}
         <motion.div
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 -z-20"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600"
+          style={{ zIndex: -3 }}
           animate={{
             scale: [1, 1.5, 1],
             opacity: [0.3, 0, 0.3],
@@ -150,12 +138,24 @@ export const FloatingChatButton: React.FC = () => {
           }}
         />
 
+        {/* Main Button - Above pulses */}
+        <Button
+          onClick={openChat}
+          size="lg"
+          className="relative z-10 h-16 w-16 p-0 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-700 border-2 border-white/20 backdrop-blur-sm"
+        >
+          <Bot
+            className="w-9 h-9 text-white stroke-white fill-none"
+            strokeWidth={2}
+          />
+        </Button>
+
         {/* Enhanced Notification badge for unauthenticated users */}
         {!isAuthenticated && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
+            className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white z-20"
           >
             <span className="text-xs text-white font-bold">!</span>
           </motion.div>

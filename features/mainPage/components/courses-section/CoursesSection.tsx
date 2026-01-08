@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { CoursesSectionProps } from "../../types/coursesTypes";
 import SectionHead from "@/components/shared/SectionHead";

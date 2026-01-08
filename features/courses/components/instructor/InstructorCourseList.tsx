@@ -1714,7 +1714,7 @@ export const InstructorCourseList = ({
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Course Overview
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {courses.length}
@@ -1739,17 +1739,7 @@ export const InstructorCourseList = ({
               </div>
               <div className="text-sm text-gray-600">Total Students</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {courses
-                  .reduce(
-                    (acc: number, course: Course) => acc + (course.views || 0),
-                    0
-                  )
-                  .toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Total Views</div>
-            </div>
+
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
                 {courses.length > 0
@@ -1763,21 +1753,6 @@ export const InstructorCourseList = ({
                   : "N/A"}
               </div>
               <div className="text-sm text-gray-600">Avg Rating</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-600">
-                {courses.length > 0
-                  ? (
-                      courses.reduce(
-                        (acc: number, course: Course) =>
-                          acc + (course.completionRate || 0),
-                        0
-                      ) / courses.length
-                    ).toFixed(1)
-                  : "N/A"}
-                %
-              </div>
-              <div className="text-sm text-gray-600">Avg Completion</div>
             </div>
           </div>
         </div>

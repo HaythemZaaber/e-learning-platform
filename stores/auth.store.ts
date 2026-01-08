@@ -1,4 +1,5 @@
 // stores/auth-store.ts
+import React from "react";
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
@@ -134,11 +135,22 @@ export const useAuthStore = create<AuthStore>()(
             state.setHydrated(true);
           }
         },
+        skipHydration: false,
+        version: 1,
       }
     ),
     { name: "auth-store" }
   )
 );
+
+// Hydration effect hook
+export const useHydrationEffect = () => {
+  const { setHydrated } = useAuthStore();
+
+  React.useEffect(() => {
+    setHydrated(true);
+  }, [setHydrated]);
+};
 
 // Computed selectors
 export const useAuthSelectors = () => {

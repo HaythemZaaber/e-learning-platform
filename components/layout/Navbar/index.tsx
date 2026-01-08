@@ -112,6 +112,9 @@ const Navbar = ({ notificationCount, isDashboard }: NavbarProps) => {
   } = useAIChatStore();
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === "undefined") return;
+
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       setIsSticky(scrollPosition > 50);
@@ -318,60 +321,106 @@ const Navbar = ({ notificationCount, isDashboard }: NavbarProps) => {
   const UserProfileDropdown = () => (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {userInitials}
+        <Button
+          variant="ghost"
+          className="relative h-auto p-0 hover:bg-transparent group"
+        >
+          <div className="flex items-center gap-2 rounded-full pr-2 pl-1 py-1 hover:bg-accent/50 transition-all duration-200">
+            <div className="relative">
+              {/* Avatar with gradient border */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300"></div>
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-semibold shadow-lg ring-2 ring-background group-hover:scale-105 transition-transform duration-200">
+                {userInitials}
+                {/* Online status indicator */}
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"></span>
+              </div>
+            </div>
+            {/* Desktop only: Show name and chevron */}
+            <div className="hidden md:flex items-center gap-1">
+              <div className="flex flex-col items-start max-w-[120px]">
+                <span className="text-sm font-medium text-foreground truncate">
+                  {userFullName?.split(" ")[0] || "User"}
+                </span>
+                <span className="text-xs text-muted-foreground capitalize">
+                  {userRole?.toLowerCase()}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
+            </div>
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm">
-            {userInitials}
+      <DropdownMenuContent className="w-64" align="end" forceMount>
+        {/* Enhanced header with gradient */}
+        <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-t-lg">
+          <div className="relative">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-base font-semibold shadow-lg">
+              {userInitials}
+            </div>
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800"></span>
           </div>
-          <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">{userFullName}</p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {userRole?.toLowerCase()}
+          <div className="flex flex-col flex-1 min-w-0">
+            <p className="font-semibold text-foreground truncate">
+              {userFullName}
             </p>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className="text-xs capitalize bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 mt-1"
+              >
+                {userRole?.toLowerCase()}
+              </Badge>
+            </div>
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link
-            href={`/${userRole?.toLowerCase()}/dashboard`}
-            className="flex items-center"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Dashboard
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href={`/${userRole?.toLowerCase()}/profile`}
-            className="flex items-center"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href={`/${userRole?.toLowerCase()}/settings`}
-            className="flex items-center"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
+        <div className="p-1">
+          <DropdownMenuItem asChild>
+            <Link
+              href={`/${userRole?.toLowerCase()}/dashboard`}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Home className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="font-medium">Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link
+              href={`/${userRole?.toLowerCase()}/profile`}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="font-medium">Profile</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link
+              href={`/${userRole?.toLowerCase()}/settings`}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                <Settings className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              </div>
+              <span className="font-medium">Settings</span>
+            </Link>
+          </DropdownMenuItem>
+        </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-red-600 focus:text-red-600"
-          onClick={() => signOut()}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
-        </DropdownMenuItem>
+        <div className="p-1">
+          <DropdownMenuItem
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 cursor-pointer"
+            onClick={() => signOut()}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+              <LogOut className="h-4 w-4" />
+            </div>
+            <span className="font-medium">Sign Out</span>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -399,7 +448,7 @@ const Navbar = ({ notificationCount, isDashboard }: NavbarProps) => {
           >
             <Link
               href={
-                userRole === UserRole.INSTRUCTOR
+                userRole === UserRole.INSTRUCTOR || userRole === UserRole.ADMIN
                   ? "/instructor/dashboard/overview"
                   : "/"
               }

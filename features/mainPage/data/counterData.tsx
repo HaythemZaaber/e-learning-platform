@@ -1,5 +1,4 @@
-import { Sparkles, TrendingUp, BarChart3, Users } from "lucide-react";
-import { CounterData } from "../types/counterTypes";
+import { BarChart3, Sparkles, Users } from "lucide-react";
 
 export const defaultCounterData = {
   counterOne: [
@@ -11,7 +10,7 @@ export const defaultCounterData = {
       body: [
         {
           text: "Active Learners",
-          num: 5000,
+          num: 10,
           img: "/images/icons/counter-01.png",
           top: true,
           color: "text-blue-600",
@@ -19,7 +18,7 @@ export const defaultCounterData = {
         },
         {
           text: "Available Courses",
-          num: 800,
+          num: 4,
           img: "/images/icons/counter-02.png",
           top: false,
           color: "text-purple-600",
@@ -27,7 +26,7 @@ export const defaultCounterData = {
         },
         {
           text: "Certified Instructors",
-          num: 1200,
+          num: 1,
           img: "/images/icons/counter-03.png",
           top: true,
           color: "text-accent",
@@ -35,7 +34,7 @@ export const defaultCounterData = {
         },
         {
           text: "Expertise Domains",
-          num: 100,
+          num: 30,
           img: "/images/icons/counter-04.png",
           top: false,
           color: "text-green-600",

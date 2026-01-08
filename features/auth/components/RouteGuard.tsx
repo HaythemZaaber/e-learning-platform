@@ -133,16 +133,16 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       isHydrated,
     });
 
-    // Special handling for main page "/" - redirect authenticated instructors to their dashboard
+    // Special handling for main page "/" - redirect authenticated instructors and admins to their dashboard
     if (
       pathname === "/" &&
       isAuthenticated &&
-      user?.role === UserRole.INSTRUCTOR
+      (user?.role === UserRole.INSTRUCTOR || user?.role === UserRole.ADMIN)
     ) {
       console.log(
-        "RouteGuard: Instructor accessing main page, redirecting to dashboard"
+        `RouteGuard: ${user.role} accessing main page, redirecting to dashboard`
       );
-      router.push("/instructor/dashboard");
+      router.push(getDefaultDashboardPath(user.role));
       return;
     }
 
@@ -247,6 +247,15 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
         </div>
       </div>
     );
+  }
+
+  // Prevent flashing the home page: if on "/" and about to redirect, render nothing
+  if (
+    pathname === "/" &&
+    isAuthenticated &&
+    (user?.role === UserRole.INSTRUCTOR || user?.role === UserRole.ADMIN)
+  ) {
+    return null;
   }
 
   return <>{children}</>;

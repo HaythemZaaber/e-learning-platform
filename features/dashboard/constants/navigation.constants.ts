@@ -300,6 +300,12 @@ export const ROLE_NAVIGATION: Record<UserRole, NavigationSection> = {
         badge: null,
       },
       {
+        name: "Testimonials",
+        href: "/admin/testimonials",
+        icon: Star,
+        badge: null,
+      },
+      {
         name: "Courses",
         href: "/admin/courses",
         icon: BookOpen,

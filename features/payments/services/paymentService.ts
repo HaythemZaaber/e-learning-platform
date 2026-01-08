@@ -165,6 +165,77 @@ export const paymentSessionService = {
   },
 
   /**
+   * Get payment session by PayPal order ID
+   */
+  async getSessionByPayPalOrderId(
+    paypalOrderId: string,
+    token?: string
+  ): Promise<PaymentSession | null> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/paypal/${paypalOrderId}`,
+        {
+          headers: getAuthHeaders(token),
+        }
+      );
+
+      const data = await handleApiResponse<PaymentSessionApiResponse>(response);
+      return data.session || null;
+    } catch (error) {
+      console.error(
+        "Error fetching payment session by PayPal order ID:",
+        error
+      );
+      return null;
+    }
+  },
+
+  /**
+   * Verify and update payment session status from Stripe
+   */
+  async verifyPaymentSessionStatus(
+    stripeSessionId: string,
+    token?: string
+  ): Promise<{
+    success: boolean;
+    session?: PaymentSession;
+    updated?: boolean;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/payments/sessions/stripe/${stripeSessionId}/verify`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
+
+      const data = await handleApiResponse<{
+        success: boolean;
+        session?: PaymentSession;
+        updated?: boolean;
+        error?: string;
+      }>(response);
+      return data as {
+        success: boolean;
+        session?: PaymentSession;
+        updated?: boolean;
+        error?: string;
+      };
+    } catch (error) {
+      console.error("Error verifying payment session status:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to verify payment session",
+      };
+    }
+  },
+
+  /**
    * Update payment session status
    */
   async updateSession(
@@ -329,7 +400,6 @@ export const enrollmentService = {
    */
   async createEnrollment(
     courseId: string,
-    userId: string,
     paymentSessionId?: string,
     token?: string
   ): Promise<Enrollment | null> {
@@ -401,10 +471,27 @@ export const enrollmentService = {
         }
       );
 
+      // If enrollment not found (404), return null (this is expected)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // If it's a "not found" error (404), this is expected - enrollment doesn't exist yet
+        if (response.status === 404) {
+          return null;
+        }
+        // For other errors (400, 500, etc.), throw to be caught below
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
       const data = await handleApiResponse(response);
       return data as Enrollment;
     } catch (error) {
-      console.error("Error fetching enrollment:", error);
+      // Only log unexpected errors, not "not found" errors
+      if (
+        error instanceof Error &&
+        !error.message.includes("Enrollment not found")
+      ) {
+        console.error("Error fetching enrollment:", error);
+      }
       return null;
     }
   },
@@ -872,6 +959,44 @@ export const stripeService = {
       return data.customer || null;
     } catch (error) {
       console.error("Error fetching Stripe customer:", error);
+      return null;
+    }
+  },
+};
+
+// ============================================================================
+// PAYPAL INTEGRATION SERVICES
+// ============================================================================
+
+export const paypalService = {
+  /**
+   * Capture a PayPal order
+   */
+  async captureOrder(
+    orderId: string,
+    token?: string
+  ): Promise<{
+    success: boolean;
+    session?: PaymentSession;
+    enrollment?: any;
+  } | null> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/payments/paypal/capture/${orderId}`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(token),
+        }
+      );
+
+      const data = await handleApiResponse<{
+        success: boolean;
+        session?: PaymentSession;
+        enrollment?: any;
+      }>(response);
+      return data || null;
+    } catch (error) {
+      console.error("Error capturing PayPal order:", error);
       return null;
     }
   },

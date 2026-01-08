@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -51,11 +53,11 @@ const sections: NavSection[] = [
     key: "instructor",
     id: "instructor-section",
   },
-  { 
-    label: "Reviews", 
-    icon: <FaStar />, 
-    key: "review", 
-    id: "review-section" 
+  {
+    label: "Reviews",
+    icon: <FaStar />,
+    key: "review",
+    id: "review-section",
   },
 ];
 
@@ -86,29 +88,32 @@ export function CourseNavigation({
   }, []);
 
   // Handle section click with smooth scroll
-  const handleSectionClick = useCallback((key: string, id: string) => {
-    onSectionChange(key);
-    const element = document.getElementById(id);
-    if (element) {
-      const navHeight = navRef.current?.offsetHeight || 0;
-      const additionalOffset = 80; // Account for sticky header
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition =
-        elementPosition + window.pageYOffset - navHeight - additionalOffset;
+  const handleSectionClick = useCallback(
+    (key: string, id: string) => {
+      onSectionChange(key);
+      const element = document.getElementById(id);
+      if (element) {
+        const navHeight = navRef.current?.offsetHeight || 0;
+        const additionalOffset = 80; // Account for sticky header
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - navHeight - additionalOffset;
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  }, [onSectionChange]);
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      }
+    },
+    [onSectionChange]
+  );
 
   // Update active section based on scroll position
   useEffect(() => {
     const handleScroll = () => {
       const navHeight = navRef.current?.offsetHeight || 0;
       const scrollPosition = window.scrollY + navHeight + 100;
-      
+
       // Check if nav is sticky
       if (navRef.current) {
         const navTop = navRef.current.offsetTop;
@@ -153,7 +158,10 @@ export function CourseNavigation({
           left: buttonLeft - 20,
           behavior: "smooth",
         });
-      } else if (buttonLeft + buttonWidth > containerScrollLeft + containerWidth) {
+      } else if (
+        buttonLeft + buttonWidth >
+        containerScrollLeft + containerWidth
+      ) {
         container.scrollTo({
           left: buttonLeft + buttonWidth - containerWidth + 20,
           behavior: "smooth",
@@ -165,7 +173,7 @@ export function CourseNavigation({
   // Calculate section completion based on progress
   const getSectionCompletion = (sectionKey: string) => {
     if (!courseProgress) return false;
-    
+
     // Mock logic - replace with actual progress tracking
     switch (sectionKey) {
       case "overview":
@@ -189,28 +197,26 @@ export function CourseNavigation({
       >
         {/* Progress bar */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-200">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-150"
             style={{ width: `${scrollProgress}%` }}
           />
         </div>
 
-      
-
         <div className="relative border-b">
-          <div 
+          <div
             ref={navContainerRef}
             className="flex overflow-x-auto gap-1 px-4 scrollbar-hide"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {/* Gradient fade indicators */}
             <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
             <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
-            
+
             {sections.map(({ label, icon, key, id }) => {
               const isActive = activeSection === key;
               const isCompleted = getSectionCompletion(key);
-              
+
               return (
                 <Button
                   key={key}
@@ -229,25 +235,29 @@ export function CourseNavigation({
                     {/* {isCompleted && !isActive && (
                       <FaCheckCircle className="text-green-500 w-3 h-3 absolute top-2 right-2" />
                     )} */}
-                    <span className={cn(
-                      "transition-transform duration-200",
-                      isActive && "scale-110"
-                    )}>
+                    <span
+                      className={cn(
+                        "transition-transform duration-200",
+                        isActive && "scale-110"
+                      )}
+                    >
                       {icon}
                     </span>
                     {label}
                   </span>
-                  
+
                   {/* Active indicator */}
                   {isActive && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 animate-pulse" />
                   )}
-                  
+
                   {/* Hover indicator */}
-                  <span className={cn(
-                    "absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 transition-transform duration-200 scale-x-0",
-                    "group-hover:scale-x-100"
-                  )} />
+                  <span
+                    className={cn(
+                      "absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 transition-transform duration-200 scale-x-0",
+                      "group-hover:scale-x-100"
+                    )}
+                  />
                 </Button>
               );
             })}
@@ -277,7 +287,9 @@ export function CourseNavigation({
                 strokeWidth="4"
                 fill="none"
                 strokeDasharray={`${2 * Math.PI * 20}`}
-                strokeDashoffset={`${2 * Math.PI * 20 * (1 - scrollProgress / 100)}`}
+                strokeDashoffset={`${
+                  2 * Math.PI * 20 * (1 - scrollProgress / 100)
+                }`}
                 className="text-blue-600 transition-all duration-150"
               />
             </svg>

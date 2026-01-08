@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuth as useClerkAuth } from "@clerk/nextjs";
 import { usePaymentSession } from "@/features/payments/hooks/usePayment";
-import { useEnrollment } from "@/features/payments/hooks/usePayment";
 import {
   enrollmentService,
   paymentSessionService,
@@ -38,7 +37,6 @@ export default function PaymentSuccessPage() {
   const { user, getToken } = useAuth();
   const { getSession } = usePaymentSession();
   const clerkAuth = useClerkAuth();
-  const { createEnrollment } = useEnrollment();
   const { clearCheckout, resetPaymentSession } = usePaymentStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -129,17 +127,21 @@ export default function PaymentSuccessPage() {
 
   const handleCourseEnrollmentSuccess = useCallback(async () => {
     try {
-      // Get session_id from URL params
-      const sessionIdParam = searchParams.get("session_id");
+      // Get session_id/token and provider from URL params
+      // PayPal uses 'token' parameter, Stripe uses 'session_id'
+      const sessionIdParam =
+        searchParams.get("session_id") || searchParams.get("token");
+      const provider = searchParams.get("provider") || "STRIPE";
+
       if (!sessionIdParam) {
-        toast.error("No session ID found");
+        toast.error("No session ID or token found");
         router.push("/");
         return;
       }
 
       setSessionId(sessionIdParam);
 
-      // Get payment session details using Stripe session ID
+      // Get payment session details using Stripe session ID or PayPal order ID
       const token = await clerkAuth.getToken();
       if (!token) {
         toast.error("Authentication token not found");
@@ -147,42 +149,202 @@ export default function PaymentSuccessPage() {
         return;
       }
 
-      const session = await paymentSessionService.getSessionByStripeId(
-        sessionIdParam,
-        token
-      );
+      let session: any;
+      let paymentSessionId: string | null = null;
+      let courseId: string | null = null;
+
+      if (provider === "PAYPAL") {
+        // For PayPal, capture the order first
+        const captureResult =
+          await paymentSessionService.getSessionByPayPalOrderId?.(
+            sessionIdParam,
+            token
+          );
+        if (!captureResult) {
+          toast.error("PayPal payment session not found");
+          router.push("/");
+          return;
+        }
+
+        console.log("PayPal captureResult:", captureResult);
+
+        // Import paypalService
+        const { paypalService } = await import(
+          "@/features/payments/services/paymentService"
+        );
+        const capture = await paypalService.captureOrder(sessionIdParam, token);
+        console.log("PayPal capture result:", capture);
+
+        if (capture && capture.success) {
+          // capture.session is the PaymentSession from the backend
+          session = capture.session;
+          // Extract paymentSessionId and courseId from the PaymentSession
+          paymentSessionId = session?.id || null;
+          courseId = session?.courseId || session?.course?.id || null;
+          console.log("Extracted from capture session:", {
+            paymentSessionId,
+            courseId,
+          });
+        } else {
+          // Fallback to the initial session result
+          // getSessionByPayPalOrderId returns an object with structure:
+          // { type, session: PaymentSession, course: Course, ... }
+          // So we need to extract the actual PaymentSession from captureResult.session
+          const sessionData = (captureResult as any)?.session || captureResult;
+          session = captureResult; // Keep the full object for display
+          // Extract paymentSessionId from nested session
+          paymentSessionId =
+            sessionData?.id || (captureResult as any)?.session?.id || null;
+          // Try multiple ways to get courseId
+          courseId =
+            sessionData?.courseId ||
+            sessionData?.course?.id ||
+            (captureResult as any)?.course?.id ||
+            null;
+          console.log("Extracted from fallback:", {
+            paymentSessionId,
+            courseId,
+          });
+        }
+      } else {
+        // Stripe payment
+        session = await paymentSessionService.getSessionByStripeId(
+          sessionIdParam,
+          token
+        );
+
+        // getPaymentSessionByStripeId returns: { type, session: PaymentSession, course: Course, ... }
+        // Extract the actual PaymentSession from the nested structure
+        const actualPaymentSession = (session as any)?.session || session;
+        paymentSessionId = actualPaymentSession?.id || null;
+        courseId =
+          actualPaymentSession?.courseId ||
+          (session as any)?.course?.id ||
+          actualPaymentSession?.course?.id ||
+          null;
+        console.log("Stripe session before verify:", {
+          paymentSessionId,
+          courseId,
+          status: actualPaymentSession?.status,
+        });
+
+        // Verify and update payment session status with Stripe
+        // This ensures the payment session is marked as COMPLETED before creating enrollment
+        if (paymentSessionId && actualPaymentSession?.status !== "COMPLETED") {
+          console.log(
+            "Payment session not completed, verifying with Stripe..."
+          );
+          const verifyResult =
+            await paymentSessionService.verifyPaymentSessionStatus(
+              sessionIdParam,
+              token
+            );
+
+          if (verifyResult.success && verifyResult.session) {
+            console.log("Payment session verified and updated:", verifyResult);
+            // Update session with verified data
+            const verifiedSessionData = verifyResult.session;
+            session = {
+              ...session,
+              session: verifiedSessionData,
+              status: verifiedSessionData.status,
+            };
+            // Update paymentSessionId and courseId from verified session
+            paymentSessionId = verifiedSessionData.id;
+            courseId =
+              verifiedSessionData.courseId ||
+              verifiedSessionData.course?.id ||
+              courseId;
+            console.log("After verification:", {
+              paymentSessionId,
+              courseId,
+              status: verifiedSessionData.status,
+            });
+          } else {
+            console.warn(
+              "Failed to verify payment session:",
+              verifyResult.error
+            );
+            // Continue anyway, but log the warning
+          }
+        }
+      }
+
       if (!session) {
         toast.error("Payment session not found");
         router.push("/");
         return;
       }
 
+      // Validate courseId before proceeding
+      if (!courseId || courseId === "") {
+        console.error(
+          "Course ID not found in payment session. Session structure:",
+          {
+            session,
+            courseId,
+            paymentSessionId,
+            hasCourseId:
+              !!(session as any)?.session?.courseId || !!session?.courseId,
+            hasCourse: !!(session as any)?.course || !!session?.course,
+          }
+        );
+        toast.error("Course information not found in payment session");
+        router.push("/");
+        return;
+      }
+
+      // Validate paymentSessionId for paid courses
+      if (!paymentSessionId || paymentSessionId === "") {
+        console.error("Payment session ID not found. Session structure:", {
+          session,
+          paymentSessionId,
+          sessionId: session?.id,
+          nestedSessionId: (session as any)?.session?.id,
+        });
+        toast.error("Payment session ID not found");
+        router.push("/");
+        return;
+      }
+
+      // Final check: ensure payment session status is COMPLETED
+      const finalPaymentSession = (session as any)?.session || session;
+      const paymentStatus = finalPaymentSession?.status || session?.status;
+      if (paymentStatus !== "COMPLETED") {
+        console.error(
+          "Payment session status is not COMPLETED:",
+          paymentStatus
+        );
+        toast.error(
+          "Payment session is not completed. Please wait a moment and try again."
+        );
+        // Don't redirect, just show error and let user retry
+        setIsLoading(false);
+        return;
+      }
+
       setPaymentSession(session);
 
-      const enrollment = await enrollmentService.getEnrollmentByCourse(
-        session.course?.id || "",
+      // Create enrollment (backend is idempotent: returns existing enrollment if already enrolled)
+      console.log("Creating enrollment with:", { courseId, paymentSessionId });
+      const newEnrollment = await enrollmentService.createEnrollment(
+        courseId,
+        paymentSessionId,
         token
       );
-      console.log("enrollment", enrollment);
-      if (enrollment) {
-        setEnrollment(enrollment);
-      } else {
-        const newEnrollment = await createEnrollment(
-          session.course?.id || "",
-          session.id
+
+      if (newEnrollment) {
+        setEnrollment(newEnrollment);
+        toast.success(
+          "Payment completed successfully! You are now enrolled in the course."
         );
-        if (newEnrollment) {
-          setEnrollment(newEnrollment);
-        }
+      } else {
+        toast.error("Failed to confirm enrollment. Please contact support.");
       }
 
       // Clear checkout and reset payment session
       clearCheckout();
       resetPaymentSession();
-
-      toast.success(
-        "Payment completed successfully! You are now enrolled in the course."
-      );
     } catch (error) {
       console.error("Error handling course enrollment success:", error);
       toast.error("There was an issue processing your payment success");
@@ -192,7 +354,7 @@ export default function PaymentSuccessPage() {
   }, [
     searchParams,
     clerkAuth,
-    createEnrollment,
+    user,
     clearCheckout,
     resetPaymentSession,
     router,

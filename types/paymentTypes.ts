@@ -67,6 +67,13 @@ export interface PaymentSession {
   stripeSessionId?: string;
   stripeCustomerId?: string;
 
+  // PayPal-specific fields
+  paypalOrderId?: string;
+  paypalPaymentId?: string;
+
+  // Payment provider
+  provider?: 'STRIPE' | 'PAYPAL';
+
   // Coupon and discount information
   couponCode?: string;
   discountAmount: number;
@@ -90,6 +97,7 @@ export interface CreatePaymentSessionRequest {
   metadata?: Record<string, any>;
   returnUrl?: string; // Matches backend CreatePaymentSessionDto
   cancelUrl?: string; // Matches backend CreatePaymentSessionDto
+  provider?: 'STRIPE' | 'PAYPAL'; // Payment provider
 }
 
 export interface PaymentSessionResponse {

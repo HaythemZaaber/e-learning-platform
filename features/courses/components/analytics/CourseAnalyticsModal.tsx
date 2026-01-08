@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -575,9 +577,17 @@ export const CourseAnalyticsModal = ({
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="hover:text-white">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="hover:text-white"
+              >
                 <RefreshCw
-                  className={cn("h-4 w-4 mr-2", loading && "animate-spin hover:text-white")}
+                  className={cn(
+                    "h-4 w-4 mr-2",
+                    loading && "animate-spin hover:text-white"
+                  )}
                 />
                 Refresh
               </Button>
@@ -595,8 +605,12 @@ export const CourseAnalyticsModal = ({
                 )}
               </Button>
 
-
-              <Button variant="ghost" size="sm" onClick={onClose} className="hover:text-white">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="hover:text-white"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>

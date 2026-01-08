@@ -99,10 +99,18 @@ export class AIChatService {
   // Utility method to check if AI chat is available
   async checkAvailability(): Promise<boolean> {
     try {
+      const token = await this.getAuthToken();
+      if (!token) {
+        // Don't log error if user is not authenticated
+        return false;
+      }
       await this.makeRequest("/ai-chat/help");
       return true;
     } catch (error) {
-      console.error("AI chat service unavailable:", error);
+      // Only log error if it's not a 401 (unauthorized)
+      if (error instanceof Error && !error.message.includes("401")) {
+        console.error("AI chat service unavailable:", error);
+      }
       return false;
     }
   }

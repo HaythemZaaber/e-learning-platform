@@ -3,19 +3,29 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuickPayment, useCoupon, usePaymentSession } from "@/features/payments/hooks/usePayment";
-import { usePaymentStore, useCheckoutItems, useCheckoutSubtotal, useCheckoutTotal, useAppliedCoupon } from "@/stores/payment.store";
+import {
+  useQuickPayment,
+  useCoupon,
+  usePaymentSession,
+} from "@/features/payments/hooks/usePayment";
+import {
+  usePaymentStore,
+  useCheckoutItems,
+  useCheckoutSubtotal,
+  useCheckoutTotal,
+  useAppliedCoupon,
+} from "@/stores/payment.store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  ShoppingCart, 
-  CreditCard, 
-  CheckCircle, 
-  X, 
+import {
+  ShoppingCart,
+  CreditCard,
+  CheckCircle,
+  X,
   ArrowLeft,
   Gift,
   Shield,
@@ -26,7 +36,7 @@ import {
   Trash2,
   Plus,
   Minus,
-  UserCheck
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/types/paymentTypes";
@@ -39,25 +49,30 @@ export default function CheckoutPage() {
   const subtotal = useCheckoutSubtotal();
   const total = useCheckoutTotal();
   const appliedCoupon = useAppliedCoupon();
-  
+
   // Get discount from store method
   const { getCheckoutDiscount } = usePaymentStore();
   const discount = getCheckoutDiscount();
-  
-  const { 
-    handleRemoveFromCart, 
-    handleApplyCoupon, 
+
+  const {
+    handleRemoveFromCart,
+    handleApplyCoupon,
     clearCheckout,
-    formatPrice 
+    formatPrice,
   } = useQuickPayment();
-  
+
   const { validateCoupon, clearCoupon } = useCoupon();
   const { createSession } = usePaymentSession();
 
   const [couponCode, setCouponCode] = useState("");
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [currentStep, setCurrentStep] = useState<"cart" | "payment" | "success">("cart");
+  const [currentStep, setCurrentStep] = useState<
+    "cart" | "payment" | "success"
+  >("cart");
+  const [selectedProvider, setSelectedProvider] = useState<"STRIPE" | "PAYPAL">(
+    "STRIPE"
+  );
 
   // Note: Authentication check is now handled in the render method
   // No automatic redirect - user will see a sign-in prompt instead
@@ -114,11 +129,19 @@ export default function CheckoutPage() {
     try {
       // Create payment session for the first course (simplified for demo)
       const firstCourse = checkoutItems[0];
-      const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-      const session = await createSession({
+      const frontendUrl =
+        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+      // PayPal doesn't support placeholders in return URL - it uses token parameter
+      // Stripe supports {CHECKOUT_SESSION_ID} placeholder
+      const returnUrl = selectedProvider === "PAYPAL"
+        ? `${frontendUrl}/payment/success?provider=PAYPAL`
+        : `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&provider=STRIPE`;
+
+      const result = await createSession({
         courseId: firstCourse.courseId,
         couponCode: appliedCoupon?.code,
-        returnUrl: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        provider: selectedProvider,
+        returnUrl: returnUrl,
         cancelUrl: `${frontendUrl}/payment/cancel`,
         metadata: {
           totalAmount: total,
@@ -126,17 +149,12 @@ export default function CheckoutPage() {
         },
       });
 
-      if (session) {
+      if (result && result.redirectUrl) {
+        // Redirect to payment provider (Stripe Checkout or PayPal)
+        window.location.href = result.redirectUrl;
+      } else if (result && result.session) {
         setCurrentStep("payment");
-        // In a real implementation, you would redirect to Stripe Checkout
-        // or show a payment form
         toast.success("Payment session created! Redirecting to payment...");
-        
-        // Simulate payment success for demo
-        setTimeout(() => {
-          setCurrentStep("success");
-          clearCheckout();
-        }, 2000);
       }
     } catch (error) {
       toast.error("Failed to process payment");
@@ -161,19 +179,22 @@ export default function CheckoutPage() {
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserCheck className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-blue-800 mb-2">Sign In Required</h2>
+            <h2 className="text-2xl font-bold text-blue-800 mb-2">
+              Sign In Required
+            </h2>
             <p className="text-blue-600 mb-6">
-              You need to be signed in to access the checkout and complete your purchase.
+              You need to be signed in to access the checkout and complete your
+              purchase.
             </p>
             <div className="space-y-3">
-              <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700" 
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => router.push("/sign-in")}
               >
                 Sign In to Continue
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={handleContinueShopping}
               >
@@ -193,9 +214,7 @@ export default function CheckoutPage() {
           <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
           <p className="text-gray-600 mb-4">Add some courses to get started</p>
-          <Button onClick={handleContinueShopping}>
-            Browse Courses
-          </Button>
+          <Button onClick={handleContinueShopping}>Browse Courses</Button>
         </div>
       </div>
     );
@@ -209,19 +228,21 @@ export default function CheckoutPage() {
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-green-800 mb-2">Payment Successful!</h2>
+            <h2 className="text-2xl font-bold text-green-800 mb-2">
+              Payment Successful!
+            </h2>
             <p className="text-green-600 mb-6">
               Thank you for your purchase. You can now access your courses.
             </p>
             <div className="space-y-3">
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={() => router.push("/dashboard")}
               >
                 Go to Dashboard
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={handleContinueShopping}
               >
@@ -239,17 +260,13 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-6">
-            <Button 
-              variant="ghost" 
-              onClick={handleBackToCart}
-              className="mb-4"
-            >
+            <Button variant="ghost" onClick={handleBackToCart} className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Cart
             </Button>
             <h1 className="text-3xl font-bold">Payment</h1>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Payment Form Placeholder */}
             <Card>
@@ -265,7 +282,8 @@ export default function CheckoutPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Processing payment...</p>
                     <p className="text-sm text-gray-500 mt-2">
-                      This is a demo. In production, you would see a Stripe payment form here.
+                      This is a demo. In production, you would see a Stripe
+                      payment form here.
                     </p>
                   </div>
                 </div>
@@ -281,7 +299,10 @@ export default function CheckoutPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {checkoutItems.map((item) => (
-                      <div key={item.courseId} className="flex items-center gap-3">
+                      <div
+                        key={item.courseId}
+                        className="flex items-center gap-3"
+                      >
                         <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-sm truncate">
@@ -299,23 +320,39 @@ export default function CheckoutPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   <Separator className="my-4" />
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
-                      <span>{formatPrice(subtotal, checkoutItems[0]?.currency || "USD")}</span>
+                      <span>
+                        {formatPrice(
+                          subtotal,
+                          checkoutItems[0]?.currency || "USD"
+                        )}
+                      </span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Discount</span>
-                        <span>-{formatPrice(discount, checkoutItems[0]?.currency || "USD")}</span>
+                        <span>
+                          -
+                          {formatPrice(
+                            discount,
+                            checkoutItems[0]?.currency || "USD"
+                          )}
+                        </span>
                       </div>
                     )}
                     <div className="flex justify-between font-bold">
                       <span>Total</span>
-                      <span>{formatPrice(total, checkoutItems[0]?.currency || "USD")}</span>
+                      <span>
+                        {formatPrice(
+                          total,
+                          checkoutItems[0]?.currency || "USD"
+                        )}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -345,10 +382,11 @@ export default function CheckoutPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" />
-                Shopping Cart ({checkoutItems.length} {checkoutItems.length === 1 ? 'item' : 'items'})
+                Shopping Cart ({checkoutItems.length}{" "}
+                {checkoutItems.length === 1 ? "item" : "items"})
               </h2>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={clearCheckout}
                 className="text-red-600 hover:text-red-700"
@@ -367,8 +405,8 @@ export default function CheckoutPage() {
                       {/* Course Image */}
                       <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0">
                         {item.course.thumbnail && (
-                          <img 
-                            src={item.course.thumbnail} 
+                          <img
+                            src={item.course.thumbnail}
                             alt={item.course.title}
                             className="w-full h-full object-cover rounded-lg"
                           />
@@ -381,9 +419,10 @@ export default function CheckoutPage() {
                           {item.course.title}
                         </h3>
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {item.course.shortDescription || item.course.description}
+                          {item.course.shortDescription ||
+                            item.course.description}
                         </p>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -404,7 +443,12 @@ export default function CheckoutPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleQuantityChange(item.courseId, item.quantity - 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.courseId,
+                                item.quantity - 1
+                              )
+                            }
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="w-3 h-3" />
@@ -415,7 +459,12 @@ export default function CheckoutPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleQuantityChange(item.courseId, item.quantity + 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.courseId,
+                                item.quantity + 1
+                              )
+                            }
                           >
                             <Plus className="w-3 h-3" />
                           </Button>
@@ -425,16 +474,17 @@ export default function CheckoutPage() {
                       {/* Price and Actions */}
                       <div className="text-right">
                         <div className="mb-2">
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <p className="text-sm text-gray-500 line-through">
-                              {formatPrice(item.originalPrice, item.currency)}
-                            </p>
-                          )}
+                          {item.originalPrice &&
+                            item.originalPrice > item.price && (
+                              <p className="text-sm text-gray-500 line-through">
+                                {formatPrice(item.originalPrice, item.currency)}
+                              </p>
+                            )}
                           <p className="text-lg font-bold">
                             {formatPrice(item.price, item.currency)}
                           </p>
                         </div>
-                        
+
                         <Button
                           variant="ghost"
                           size="sm"
@@ -453,10 +503,7 @@ export default function CheckoutPage() {
 
             {/* Continue Shopping */}
             <div className="text-center">
-              <Button 
-                variant="outline" 
-                onClick={handleContinueShopping}
-              >
+              <Button variant="outline" onClick={handleContinueShopping}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Continue Shopping
               </Button>
@@ -474,7 +521,12 @@ export default function CheckoutPage() {
                   {/* Subtotal */}
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>{formatPrice(subtotal, checkoutItems[0]?.currency || "USD")}</span>
+                    <span>
+                      {formatPrice(
+                        subtotal,
+                        checkoutItems[0]?.currency || "USD"
+                      )}
+                    </span>
                   </div>
 
                   {/* Coupon Section */}
@@ -498,10 +550,12 @@ export default function CheckoutPage() {
                           </Button>
                         </div>
                         <p className="text-xs text-green-700">
-                          {appliedCoupon.discountType === "PERCENTAGE" 
+                          {appliedCoupon.discountType === "PERCENTAGE"
                             ? `${appliedCoupon.discountValue}% off`
-                            : `${formatPrice(appliedCoupon.discountValue * 100, "USD")} off`
-                          }
+                            : `${formatPrice(
+                                appliedCoupon.discountValue * 100,
+                                "USD"
+                              )} off`}
                         </p>
                       </div>
                     ) : (
@@ -529,7 +583,13 @@ export default function CheckoutPage() {
                   {discount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span>
-                      <span>-{formatPrice(discount, checkoutItems[0]?.currency || "USD")}</span>
+                      <span>
+                        -
+                        {formatPrice(
+                          discount,
+                          checkoutItems[0]?.currency || "USD"
+                        )}
+                      </span>
                     </div>
                   )}
 
@@ -538,21 +598,69 @@ export default function CheckoutPage() {
                   {/* Total */}
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>{formatPrice(total, checkoutItems[0]?.currency || "USD")}</span>
+                    <span>
+                      {formatPrice(total, checkoutItems[0]?.currency || "USD")}
+                    </span>
                   </div>
 
                   {/* Security Badge */}
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Shield className="w-4 h-4" />
-                    <span>Secure payment powered by Stripe</span>
+                    <span>
+                      Secure payment powered by{" "}
+                      {selectedProvider === "PAYPAL" ? "PayPal" : "Stripe"}
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Payment Method Selection */}
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-base">Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProvider("STRIPE")}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      selectedProvider === "STRIPE"
+                        ? "border-green-600 bg-green-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <CreditCard className="w-5 h-5 mx-auto mb-1" />
+                    <span className="text-sm font-medium block">
+                      Credit Card
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProvider("PAYPAL")}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      selectedProvider === "PAYPAL"
+                        ? "border-green-600 bg-green-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <svg
+                      className="w-5 h-5 mx-auto mb-1"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.105zm14.146-14.42a.915.915 0 0 0-.762-.51h-3.92c-.524 0-.969.382-1.05.9l-1.12 7.104a.641.641 0 0 0 .633.74h2.606c.524 0 .968-.382 1.05-.9l1.118-7.104a.64.64 0 0 0-.555-.74z" />
+                    </svg>
+                    <span className="text-sm font-medium block">PayPal</span>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Proceed to Payment */}
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               size="lg"
               onClick={handleProceedToPayment}
               disabled={isProcessingPayment || checkoutItems.length === 0}
@@ -564,8 +672,20 @@ export default function CheckoutPage() {
                 </>
               ) : (
                 <>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Proceed to Payment
+                  {selectedProvider === "PAYPAL" ? (
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.105zm14.146-14.42a.915.915 0 0 0-.762-.51h-3.92c-.524 0-.969.382-1.05.9l-1.12 7.104a.641.641 0 0 0 .633.74h2.606c.524 0 .968-.382 1.05-.9l1.118-7.104a.64.64 0 0 0-.555-.74z" />
+                    </svg>
+                  ) : (
+                    <CreditCard className="w-4 h-4 mr-2" />
+                  )}
+                  {selectedProvider === "PAYPAL"
+                    ? "Pay with PayPal"
+                    : "Proceed to Payment"}
                 </>
               )}
             </Button>

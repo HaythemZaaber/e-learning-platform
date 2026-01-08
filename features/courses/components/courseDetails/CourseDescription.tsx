@@ -1,18 +1,20 @@
+"use client";
+
 import { Course } from "@/types/courseTypes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  CheckCircle, 
-  Target, 
-  BookOpen, 
-  Users, 
+import {
+  CheckCircle,
+  Target,
+  BookOpen,
+  Users,
   ChevronDown,
   ChevronUp,
   Sparkles,
   TrendingUp,
   Award,
-  Info
+  Info,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -23,7 +25,9 @@ interface CourseDescriptionProps {
 
 export function CourseDescription({ course }: CourseDescriptionProps) {
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "objectives" | "outcomes">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "objectives" | "outcomes"
+  >("overview");
 
   if (!course) {
     return (
@@ -41,7 +45,9 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
   const description = course.description || "";
   const shortDescription = course.shortDescription || "";
   const isLongDescription = description.length > 500;
-  const displayDescription = showFullDescription ? description : description.slice(0, 500);
+  const displayDescription = showFullDescription
+    ? description
+    : description.slice(0, 500);
 
   const whatYouLearn = course.whatYouLearn || [];
   const objectives = course.objectives || [];
@@ -50,10 +56,26 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
 
   // Key highlights of the course
   const highlights = [
-    course.isBestseller && { label: "Bestseller", icon: <TrendingUp className="w-4 h-4" />, color: "text-orange-600 bg-orange-50" },
-    course.isFeatured && { label: "Featured", icon: <Sparkles className="w-4 h-4" />, color: "text-purple-600 bg-purple-50" },
-    course.hasCertificate && { label: "Certificate", icon: <Award className="w-4 h-4" />, color: "text-green-600 bg-green-50" },
-    course.hasLifetimeAccess && { label: "Lifetime Access", icon: <CheckCircle className="w-4 h-4" />, color: "text-blue-600 bg-blue-50" },
+    course.isBestseller && {
+      label: "Bestseller",
+      icon: <TrendingUp className="w-4 h-4" />,
+      color: "text-orange-600 bg-orange-50",
+    },
+    course.isFeatured && {
+      label: "Featured",
+      icon: <Sparkles className="w-4 h-4" />,
+      color: "text-purple-600 bg-purple-50",
+    },
+    course.hasCertificate && {
+      label: "Certificate",
+      icon: <Award className="w-4 h-4" />,
+      color: "text-green-600 bg-green-50",
+    },
+    course.hasLifetimeAccess && {
+      label: "Lifetime Access",
+      icon: <CheckCircle className="w-4 h-4" />,
+      color: "text-blue-600 bg-blue-50",
+    },
   ].filter(Boolean);
 
   return (
@@ -141,7 +163,7 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
                 {displayDescription}
                 {isLongDescription && !showFullDescription && "..."}
               </div>
-              
+
               {isLongDescription && (
                 <Button
                   variant="ghost"
@@ -212,8 +234,8 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
                 </p>
                 <div className="grid md:grid-cols-2 gap-4">
                   {objectives.map((objective, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -241,7 +263,7 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
             {whatYouLearn.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-3">
                 {whatYouLearn.map((item, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     className="flex items-start gap-3 p-3 border rounded-lg hover:border-blue-300 hover:bg-blue-50/50 transition-all"
                   >
@@ -258,9 +280,13 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
             )}
 
             {/* Additional Course Benefits */}
-            {(course.hasCertificate || course.hasLifetimeAccess || course.downloadableResources) && (
+            {(course.hasCertificate ||
+              course.hasLifetimeAccess ||
+              course.downloadableResources) && (
               <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Additional Benefits</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  Additional Benefits
+                </h4>
                 <div className="space-y-2">
                   {course.hasCertificate && (
                     <div className="flex items-center gap-2 text-gray-700">
@@ -274,12 +300,17 @@ export function CourseDescription({ course }: CourseDescriptionProps) {
                       <span>Lifetime access to course materials</span>
                     </div>
                   )}
-                  {course.downloadableResources && (typeof course.downloadableResources === 'number' ? course.downloadableResources > 0 : Boolean(course.downloadableResources)) && (
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <BookOpen className="w-4 h-4 text-green-600" />
-                      <span>{course.downloadableResources} downloadable resources</span>
-                    </div>
-                  )}
+                  {course.downloadableResources &&
+                    (typeof course.downloadableResources === "number"
+                      ? course.downloadableResources > 0
+                      : Boolean(course.downloadableResources)) && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <BookOpen className="w-4 h-4 text-green-600" />
+                        <span>
+                          {course.downloadableResources} downloadable resources
+                        </span>
+                      </div>
+                    )}
                 </div>
               </div>
             )}

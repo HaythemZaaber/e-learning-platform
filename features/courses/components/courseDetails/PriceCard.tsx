@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -13,10 +15,10 @@ import {
   FaTrophy,
   FaPlayCircle,
 } from "react-icons/fa";
-import { 
-  ShoppingCart, 
-  Zap, 
-  Gift, 
+import {
+  ShoppingCart,
+  Zap,
+  Gift,
   Users,
   Calendar,
   RefreshCw,
@@ -35,16 +37,20 @@ import { useAuth } from "@/hooks/useAuth";
 // Utility function to calculate actual course duration from sections
 const getActualCourseDuration = (course: Course | null) => {
   if (!course?.sections) return { hours: 0, minutes: 0 };
-  
+
   const totalSeconds = course.sections.reduce((total: number, section: any) => {
-    const sectionDuration = section.lectures?.reduce((lectureTotal: number, lecture: any) => 
-      lectureTotal + (lecture.duration || 0), 0) || 0;
+    const sectionDuration =
+      section.lectures?.reduce(
+        (lectureTotal: number, lecture: any) =>
+          lectureTotal + (lecture.duration || 0),
+        0
+      ) || 0;
     return total + sectionDuration;
   }, 0);
-  
+
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  
+
   return { hours, minutes };
 };
 
@@ -54,35 +60,44 @@ interface PriceCardProps {
   isAuthenticated?: boolean;
 }
 
-export function PriceCard({ 
-  course, 
+export function PriceCard({
+  course,
   isEnrolled = false,
-  isAuthenticated = false 
+  isAuthenticated = false,
 }: PriceCardProps) {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
   const { cartItems, addToCart, removeFromCart } = useCoursePreviewStore();
-  const { 
-    handleAddToCart, 
-    handleRemoveFromCart, 
-    handleBuyNow, 
-    handleEnrollFree
+  const {
+    handleAddToCart,
+    handleRemoveFromCart,
+    handleBuyNow,
+    handleEnrollFree,
   } = useQuickPayment();
-  
+
   const isInCart = course ? cartItems.has(course.id) : false;
 
   // Check if course is free
-  const isFree = course?.price === 0 || course?.settings?.enrollmentType === "FREE";
-  
+  const isFree =
+    course?.price === 0 || course?.settings?.enrollmentType === "FREE";
+
   // Calculate discount (only for paid courses)
-  const isDiscounted = !isFree && course?.originalPrice && course?.price && course.originalPrice > course.price;
-  const discountPercentage = isDiscounted && course?.originalPrice && course?.price 
-    ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
-    : 0;
-  const savings = isDiscounted && course?.originalPrice && course?.price
-    ? (course.originalPrice - course.price).toFixed(2)
-    : 0;
+  const isDiscounted =
+    !isFree &&
+    course?.originalPrice &&
+    course?.price &&
+    course.originalPrice > course.price;
+  const discountPercentage =
+    isDiscounted && course?.originalPrice && course?.price
+      ? Math.round(
+          ((course.originalPrice - course.price) / course.originalPrice) * 100
+        )
+      : 0;
+  const savings =
+    isDiscounted && course?.originalPrice && course?.price
+      ? (course.originalPrice - course.price).toFixed(2)
+      : 0;
 
   // Countdown timer for limited-time offers
   useEffect(() => {
@@ -96,9 +111,13 @@ export function PriceCard({
           setTimeLeft(null);
         } else {
           const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          
+          const hours = Math.floor(
+            (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (distance % (1000 * 60 * 60)) / (1000 * 60)
+          );
+
           if (days > 0) {
             setTimeLeft(`${days}d ${hours}h left`);
           } else if (hours > 0) {
@@ -115,7 +134,7 @@ export function PriceCard({
 
   const handleAddToCartClick = async () => {
     if (!course) return;
-    
+
     setIsProcessing(true);
     try {
       if (isInCart) {
@@ -132,13 +151,13 @@ export function PriceCard({
 
   const handleBuyNowClick = async () => {
     if (!course) return;
-    
+
     if (!isAuthenticated) {
       toast.info("Please sign in to purchase this course");
       router.push("/sign-in?redirect=/checkout");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       handleBuyNow(course);
@@ -195,7 +214,10 @@ export function PriceCard({
     {
       icon: <FaDownload className="text-green-500" />,
       text: `${course.downloadableResources || 0} downloadable resources`,
-      included: typeof course.downloadableResources === 'number' ? course.downloadableResources > 0 : Boolean(course.downloadableResources),
+      included:
+        typeof course.downloadableResources === "number"
+          ? course.downloadableResources > 0
+          : Boolean(course.downloadableResources),
     },
     {
       icon: <FaPlayCircle className="text-red-500" />,
@@ -220,17 +242,21 @@ export function PriceCard({
   ];
 
   return (
-    <aside className={cn(
-      "bg-white rounded-xl shadow-lg transition-all max-h-[calc(100vh-8rem)] overflow-y-auto",
-      "hover:shadow-2xl"
-    )}>
+    <aside
+      className={cn(
+        "bg-white rounded-xl shadow-lg transition-all max-h-[calc(100vh-8rem)] overflow-y-auto",
+        "hover:shadow-2xl"
+      )}
+    >
       {/* Discount Banner - Only show for non-enrolled users */}
       {!isEnrolled && !!isDiscounted && (
         <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2.5 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4" />
-              <span className="font-bold text-base">{discountPercentage}% OFF</span>
+              <span className="font-bold text-base">
+                {discountPercentage}% OFF
+              </span>
             </div>
             {timeLeft && (
               <div className="flex items-center gap-1 text-xs">
@@ -240,9 +266,7 @@ export function PriceCard({
             )}
           </div>
           {savings && (
-            <p className="text-xs mt-1 text-white/90">
-              Save ${savings} today!
-            </p>
+            <p className="text-xs mt-1 text-white/90">Save ${savings} today!</p>
           )}
         </div>
       )}
@@ -258,11 +282,15 @@ export function PriceCard({
                   <CheckCircle className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-green-800">Course Access</h2>
-                  <p className="text-sm text-green-700">You have full access to this course</p>
+                  <h2 className="text-xl font-bold text-green-800">
+                    Course Access
+                  </h2>
+                  <p className="text-sm text-green-700">
+                    You have full access to this course
+                  </p>
                 </div>
               </div>
-              
+
               {/* Course Value Information */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="text-center">
@@ -293,14 +321,23 @@ export function PriceCard({
 
             {/* Course Level and Category */}
             <div className="flex items-center gap-3 mb-4">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                {course.level || 'All Levels'}
+              <Badge
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {course.level || "All Levels"}
               </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                {course.category || 'General'}
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200"
+              >
+                {course.category || "General"}
               </Badge>
               {course.hasCertificate && (
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                <Badge
+                  variant="outline"
+                  className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                >
                   <FaCertificate className="w-3 h-3 mr-1" />
                   Certificate
                 </Badge>
@@ -312,10 +349,14 @@ export function PriceCard({
             {/* Original Price Section for Non-Enrolled Users */}
             {isFree ? (
               <div className="text-center">
-                <div className="text-4xl font-bold text-green-600 mb-2">FREE</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">
+                  FREE
+                </div>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-green-700 font-medium">No cost to enroll</span>
+                  <span className="text-green-700 font-medium">
+                    No cost to enroll
+                  </span>
                 </div>
                 <p className="text-sm text-gray-600">
                   Access all course content at no charge
@@ -324,7 +365,7 @@ export function PriceCard({
             ) : (
               <div className="flex items-end gap-3 mb-2">
                 <span className="text-3xl font-bold text-gray-900">
-                  ${course.price?.toFixed(2) || '0.00'}
+                  ${course.price?.toFixed(2) || "0.00"}
                 </span>
                 {!!isDiscounted && !!course.originalPrice && (
                   <span className="text-lg text-gray-400 line-through">
@@ -333,7 +374,7 @@ export function PriceCard({
                 )}
               </div>
             )}
-            {!isFree && course.currency && course.currency !== 'USD' && (
+            {!isFree && course.currency && course.currency !== "USD" && (
               <p className="text-sm text-gray-600">
                 Currency: {course.currency}
               </p>
@@ -351,11 +392,15 @@ export function PriceCard({
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-green-800">You're Enrolled!</h3>
-                  <p className="text-sm text-green-700">Full access to all content</p>
+                  <h3 className="font-semibold text-green-800">
+                    You're Enrolled!
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    Full access to all content
+                  </p>
                 </div>
               </div>
-              
+
               {/* Course Progress (if available) */}
               {course.progress && (
                 <div className="space-y-2">
@@ -366,14 +411,24 @@ export function PriceCard({
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${course.progress.completionPercentage || 0}%` }}
+                      style={{
+                        width: `${course.progress.completionPercentage || 0}%`,
+                      }}
                     ></div>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>{course.progress.completedLectures || 0} of {course.progress.totalLectures || 0} lectures</span>
-                    <span>{course.progress.timeSpent ? `${Math.floor(course.progress.timeSpent / 60)}m` : '0m'} watched</span>
+                    <span>
+                      {course.progress.completedLectures || 0} of{" "}
+                      {course.progress.totalLectures || 0} lectures
+                    </span>
+                    <span>
+                      {course.progress.timeSpent
+                        ? `${Math.floor(course.progress.timeSpent / 60)}m`
+                        : "0m"}{" "}
+                      watched
+                    </span>
                   </div>
                 </div>
               )}
@@ -381,7 +436,7 @@ export function PriceCard({
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button 
+              <Button
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
                 size="lg"
                 onClick={handleStartLearning}
@@ -389,11 +444,11 @@ export function PriceCard({
                 <CheckCircle className="w-5 h-5 mr-2" />
                 Continue Learning
               </Button>
-              
+
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="text-xs"
                   onClick={() => router.push(`/courses/${course.id}/learn`)}
@@ -401,11 +456,13 @@ export function PriceCard({
                   <FaPlayCircle className="w-3 h-3 mr-1" />
                   Course Content
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="text-xs"
-                  onClick={() => router.push(`/courses/${course.id}#review-section`)}
+                  onClick={() =>
+                    router.push(`/courses/${course.id}#review-section`)
+                  }
                 >
                   <Award className="w-3 h-3 mr-1" />
                   Reviews
@@ -440,31 +497,37 @@ export function PriceCard({
             </div>
 
             {/* Certificate Section for Completed Courses */}
-            {course.progress && course.progress.completionPercentage === 100 && course.hasCertificate && (
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <FaCertificate className="w-5 h-5 text-white" />
+            {course.progress &&
+              course.progress.completionPercentage === 100 &&
+              course.hasCertificate && (
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                      <FaCertificate className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-yellow-800">
+                        Course Completed!
+                      </h4>
+                      <p className="text-sm text-yellow-700">
+                        Congratulations on finishing the course
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-yellow-800">Course Completed!</h4>
-                    <p className="text-sm text-yellow-700">Congratulations on finishing the course</p>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                    size="sm"
+                  >
+                    <FaCertificate className="w-4 h-4 mr-2" />
+                    Download Certificate
+                  </Button>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-100"
-                  size="sm"
-                >
-                  <FaCertificate className="w-4 h-4 mr-2" />
-                  Download Certificate
-                </Button>
-              </div>
-            )}
+              )}
           </div>
         ) : isFree ? (
           <div className="space-y-3">
-            <Button 
+            <Button
               className="w-full bg-green-600 hover:bg-green-700"
               size="lg"
               onClick={() => course && handleEnrollFreeClick(course)}
@@ -481,7 +544,7 @@ export function PriceCard({
           </div>
         ) : (
           <div className="space-y-3">
-            <Button 
+            <Button
               className="w-full"
               size="lg"
               onClick={() => course && handleBuyNowClick()}
@@ -489,7 +552,7 @@ export function PriceCard({
             >
               {isProcessing ? "Processing..." : "Buy Now"}
             </Button>
-            <Button 
+            <Button
               variant={isInCart ? "secondary" : "outline"}
               className="w-full"
               onClick={() => course && handleAddToCartClick()}
@@ -500,8 +563,6 @@ export function PriceCard({
             </Button>
           </div>
         )}
-
-       
 
         {/* Gift Option */}
         {!isEnrolled && !isFree && (
@@ -519,18 +580,19 @@ export function PriceCard({
             {isEnrolled ? "Course Features:" : "This course includes:"}
           </h3>
           <ul className="space-y-2.5">
-            {features.filter(f => f.included).map((feature, index) => (
-              <li key={index} className="flex items-start gap-2.5">
-                <span className="mt-0.5 w-4 h-4">{feature.icon}</span>
-                <span className="text-sm text-gray-700">{feature.text}</span>
-              </li>
-            ))}
+            {features
+              .filter((f) => f.included)
+              .map((feature, index) => (
+                <li key={index} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 w-4 h-4">{feature.icon}</span>
+                  <span className="text-sm text-gray-700">{feature.text}</span>
+                </li>
+              ))}
           </ul>
         </div>
 
         {/* Share and Gift Options */}
         {/* <Separator className="my-5" /> */}
-
 
         {/* Payment Methods */}
         {!isEnrolled && (
@@ -539,7 +601,10 @@ export function PriceCard({
               Secured payment via
             </p>
             <div className="flex justify-center gap-3">
-              <FaCreditCard className="text-gray-400 text-xl" title="Credit/Debit Card" />
+              <FaCreditCard
+                className="text-gray-400 text-xl"
+                title="Credit/Debit Card"
+              />
               {/* Add more payment icons as needed */}
             </div>
           </div>

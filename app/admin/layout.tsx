@@ -108,7 +108,7 @@ export default function AdminLayout({
           </div>
         </main>
       </div>
-      <Footer />
+   
     </div>
   );
 }

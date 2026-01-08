@@ -6,7 +6,11 @@ import { useState, useEffect } from "react";
 import Footer from "@/features/mainPage/components/Footer";
 import { Toaster } from "sonner";
 import Navbar from "@/components/layout/navbar";
-import { useAuthStore, useAuthSelectors } from "@/stores/auth.store";
+import {
+  useAuthStore,
+  useAuthSelectors,
+  useHydrationEffect,
+} from "@/stores/auth.store";
 import { AuthWrapper } from "@/features/auth/components/AuthWrapper";
 import { RouteGuard } from "@/features/auth/components/RouteGuard";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +24,8 @@ import { AIChatProvider } from "@/providers/AIChatProvider";
 
 // Import the new loader
 import { PageLoader } from "@/components/ui/loaders";
+import { HydrationBoundary } from "@/components/shared/HydrationBoundary";
+import { HydrationProvider } from "@/components/shared/HydrationProvider";
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -28,6 +34,9 @@ interface ClientLayoutProps {
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Use hydration effect
+  useHydrationEffect();
 
   // Get auth data from the integrated auth hook
   const {
@@ -99,43 +108,49 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const notificationCount = 0; // TODO: Implement real notification system
 
   return (
-    <RouteGuard>
-      <AIChatProvider>
-        {showNavbar && (
-          <Navbar
-            notificationCount={notificationCount}
-            isDashboard={isDashboardPage}
-          />
-        )}
+    <HydrationProvider>
+      <RouteGuard>
+        <AIChatProvider>
+          {showNavbar && (
+            <HydrationBoundary>
+              <Navbar
+                notificationCount={notificationCount}
+                isDashboard={isDashboardPage}
+              />
+            </HydrationBoundary>
+          )}
 
-        {/* Main Content */}
-        <main className="min-h-screen">{children}</main>
+          {/* Main Content */}
+          <main className="min-h-screen">{children}</main>
 
-        {/* AI Chat Components - Global (except auth pages) */}
-        {!isAuthPage && (
-          <>
-            {/* AI Chat Modal */}
-            <AIChatModal
-              isOpen={isAIChatOpen}
-              onClose={closeChat}
-              onToggleMinimize={isAIChatMinimized ? maximizeChat : minimizeChat}
-              isMinimized={isAIChatMinimized}
-            />
+          {/* AI Chat Components - Global (except auth pages) */}
+          {!isAuthPage && (
+            <HydrationBoundary>
+              {/* AI Chat Modal */}
+              <AIChatModal
+                isOpen={isAIChatOpen}
+                onClose={closeChat}
+                onToggleMinimize={
+                  isAIChatMinimized ? maximizeChat : minimizeChat
+                }
+                isMinimized={isAIChatMinimized}
+              />
 
-            {/* Floating Chat Button */}
-            <FloatingChatButton />
+              {/* Floating Chat Button */}
+              <FloatingChatButton />
 
-            {/* Minimized Chat */}
-            <MinimizedChat />
-          </>
-        )}
+              {/* Minimized Chat */}
+              <MinimizedChat />
+            </HydrationBoundary>
+          )}
 
-        {/* Toast Notifications */}
-        <Toaster position="top-center" richColors />
+          {/* Toast Notifications */}
+          <Toaster position="top-center" richColors />
 
-        {/* Footer */}
-        {showFooter && <Footer />}
-      </AIChatProvider>
-    </RouteGuard>
+          {/* Footer */}
+          {showFooter && <Footer />}
+        </AIChatProvider>
+      </RouteGuard>
+    </HydrationProvider>
   );
 }

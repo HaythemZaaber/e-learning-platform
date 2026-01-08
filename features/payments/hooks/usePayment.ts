@@ -56,11 +56,15 @@ export const usePaymentSession = () => {
   const createSession = useCallback(
     async (
       request: CreatePaymentSessionRequest
-    ): Promise<PaymentSession | null> => {
+    ): Promise<{
+      session: PaymentSession | null;
+      redirectUrl?: string;
+      success: boolean;
+    }> => {
       if (!user) {
         toast.error("Please sign in to continue");
         router.push("/sign-in");
-        return null;
+        return { session: null, success: false };
       }
 
       setIsLoading(true);
@@ -89,27 +93,34 @@ export const usePaymentSession = () => {
           setCurrentPaymentSession(response.session);
           addPaymentSession(response.session);
 
-          // If there's a redirect URL (Stripe Checkout), redirect to it
+          // If there's a redirect URL (Stripe Checkout or PayPal), return it without redirecting
+          // Let the component handle the redirect
           if (response.redirectUrl) {
-            window.location.href = response.redirectUrl;
-            return response.session;
+            return {
+              session: response.session,
+              redirectUrl: response.redirectUrl,
+              success: true,
+            };
           }
 
           toast.success("Payment session created successfully");
-          return response.session;
+          return {
+            session: response.session,
+            success: true,
+          };
         } else {
           const errorMessage =
             response.error || "Failed to create payment session";
           setError(errorMessage);
           toast.error(errorMessage);
-          return null;
+          return { session: null, success: false };
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "An error occurred";
         setError(errorMessage);
         toast.error(errorMessage);
-        return null;
+        return { session: null, success: false };
       } finally {
         setIsLoading(false);
         setCreatingSession(false);
@@ -354,7 +365,6 @@ export const useEnrollment = () => {
         const token = await clerkAuth.getToken();
         const enrollment = await enrollmentService.createEnrollment(
           courseId,
-          user.id,
           paymentSessionId,
           token || undefined
         );

@@ -104,12 +104,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const quickActions = [
-    { text: "Recommend courses", icon: "🎯" },
-    { text: "Study tips", icon: "📚" },
-    { text: "Learning path", icon: "🛤️" },
-    { text: "Help me", icon: "❓" },
-  ];
+  // const quickActions = [
+  //   { text: "Recommend courses", icon: "🎯" },
+  //   { text: "Study tips", icon: "📚" },
+  //   { text: "Learning path", icon: "🛤️" },
+  //   { text: "Help me", icon: "❓" },
+  // ];
 
   const handleQuickAction = (action: string) => {
     // Add haptic feedback if available
@@ -123,7 +123,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <div className="border-t border-border/50 bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm p-4 sm:p-6">
       {/* Enhanced Quick Actions */}
-      <div className="mb-4 flex flex-wrap gap-2 max-h-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300/50 scrollbar-track-transparent">
+      {/* <div className="mb-4 flex flex-wrap gap-2 max-h-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300/50 scrollbar-track-transparent">
         {quickActions.map((action, index) => (
           <motion.div
             key={index}
@@ -143,7 +143,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </Button>
           </motion.div>
         ))}
-      </div>
+      </div> */}
 
       {/* Enhanced Input Form */}
       <form onSubmit={handleSubmit} className="relative">

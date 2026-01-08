@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -32,6 +32,7 @@ import { CourseCard } from "@/features/courses/shared/CourseCard";
 import { usePaymentStore } from "@/stores/payment.store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Pagination } from "@/components/shared/Pagination";
 
 // Loading skeleton components
 const CourseCardSkeleton = () => (
@@ -47,6 +48,8 @@ const CourseCardSkeleton = () => (
     </CardContent>
   </Card>
 );
+
+const ITEMS_PER_PAGE = 6;
 
 export default function MyCoursesPage() {
   const router = useRouter();
@@ -72,36 +75,55 @@ export default function MyCoursesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "in-progress" | "not-started">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Get unique categories and levels for filters
   const categories = Array.from(new Set(courses.map(c => c.category).filter(Boolean)));
   const levels = Array.from(new Set(courses.map(c => c.level).filter(Boolean)));
 
   // Filter courses based on search and filters
-  const filteredEnrollments = enrollments.filter(enrollment => {
-    const course = enrollment.course;
-    if (!course) return false;
+  const filteredEnrollments = useMemo(() => {
+    return enrollments.filter(enrollment => {
+      const course = enrollment.course;
+      if (!course) return false;
 
-    // Search filter
-    const matchesSearch = searchTerm === "" || 
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.category.toLowerCase().includes(searchTerm.toLowerCase());
+      // Search filter
+      const matchesSearch = searchTerm === "" || 
+        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.category.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Status filter
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "completed" && enrollment.progress >= 100) ||
-      (statusFilter === "in-progress" && enrollment.progress > 0 && enrollment.progress < 100) ||
-      (statusFilter === "not-started" && enrollment.progress === 0);
+      // Status filter
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "completed" && enrollment.progress >= 100) ||
+        (statusFilter === "in-progress" && enrollment.progress > 0 && enrollment.progress < 100) ||
+        (statusFilter === "not-started" && enrollment.progress === 0);
 
-    // Category filter
-    const matchesCategory = categoryFilter === "all" || course.category === categoryFilter;
+      // Category filter
+      const matchesCategory = categoryFilter === "all" || course.category === categoryFilter;
 
-    // Level filter
-    const matchesLevel = levelFilter === "all" || course.level === levelFilter;
+      // Level filter
+      const matchesLevel = levelFilter === "all" || course.level === levelFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory && matchesLevel;
-  });
+      return matchesSearch && matchesStatus && matchesCategory && matchesLevel;
+    });
+  }, [enrollments, searchTerm, statusFilter, categoryFilter, levelFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredEnrollments.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentEnrollments = filteredEnrollments.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter, levelFilter]);
 
 
 
@@ -414,44 +436,61 @@ export default function MyCoursesPage() {
 
         {/* Courses Grid/List using CourseCard */}
         {!isLoading && !error && filteredEnrollments.length > 0 && (
-          <div className={cn(
-            "grid gap-6",
-            viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
-          )}>
-            <AnimatePresence>
-              {filteredEnrollments.map((enrollment: { id: string; course: any; progress?: number; enrolledAt: string; lastWatchedLecture?: string; totalTimeSpent?: number | undefined; streakDays?: number | undefined; certificateEarned?: boolean; completedLectures?: number; totalLectures?: number }) => {
-                const course = enrollment.course;
-                const progress = enrollment.progress || 0;
-                const isInCart = checkoutItems.some(item => item.courseId === course.id);
-                
-                return (
-                  <CourseCard
-                    key={enrollment.id}
-                    course={course}
-                    isSaved={false} // TODO: Implement saved courses functionality
-                    onToggleSave={handleToggleSave}
-                    viewMode={viewMode}
-                    isEnrolled={true}
-                    progress={progress}
-                    timeSpent={enrollment.totalTimeSpent || 0}
-                    streakDays={enrollment.streakDays || 0}
-                    certificateEarned={enrollment.certificateEarned || false}
-                    lastWatchedLecture={enrollment.lastWatchedLecture}
-                    completedLectures={enrollment.completedLectures || 0}
-                    totalLectures={enrollment.totalLectures || 0}
-                    onContinueLearning={handleContinueLearning}
-                    onPreview={handlePreview}
-                    onShare={handleShare}
-                    onTrackView={handleTrackView}
-                    onAddToCart={handleAddToCart}
-                    onRemoveFromCart={handleRemoveFromCart}
-                    onBuyNow={handleBuyNow}
-                    isInCart={isInCart}
-                  />
-                );
-              })}
-            </AnimatePresence>
-          </div>
+          <>
+            <div className={cn(
+              "grid gap-6",
+              viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+            )}>
+              <AnimatePresence>
+                {currentEnrollments.map((enrollment: { id: string; course: any; progress?: number; enrolledAt: string; lastWatchedLecture?: string; totalTimeSpent?: number | undefined; streakDays?: number | undefined; certificateEarned?: boolean; completedLectures?: number; totalLectures?: number }) => {
+                  const course = enrollment.course;
+                  const progress = enrollment.progress || 0;
+                  const isInCart = checkoutItems.some(item => item.courseId === course.id);
+                  
+                  return (
+                    <CourseCard
+                      key={enrollment.id}
+                      course={course}
+                      isSaved={false} // TODO: Implement saved courses functionality
+                      onToggleSave={handleToggleSave}
+                      viewMode={viewMode}
+                      isEnrolled={true}
+                      progress={progress}
+                      timeSpent={enrollment.totalTimeSpent || 0}
+                      streakDays={enrollment.streakDays || 0}
+                      certificateEarned={enrollment.certificateEarned || false}
+                      lastWatchedLecture={enrollment.lastWatchedLecture}
+                      completedLectures={enrollment.completedLectures || 0}
+                      totalLectures={enrollment.totalLectures || 0}
+                      onContinueLearning={handleContinueLearning}
+                      onPreview={handlePreview}
+                      onShare={handleShare}
+                      onTrackView={handleTrackView}
+                      onAddToCart={handleAddToCart}
+                      onRemoveFromCart={handleRemoveFromCart}
+                      onBuyNow={handleBuyNow}
+                      isInCart={isInCart}
+                    />
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredEnrollments.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={handlePageChange}
+                  showSummary={true}
+                  className="bg-white rounded-lg shadow-sm border border-gray-100 p-4"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

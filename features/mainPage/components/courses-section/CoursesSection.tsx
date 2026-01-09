@@ -40,7 +40,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
   return (
     <section className="py-10 bg-gradient-to-b from-white to-primary/5">
-      <div className="container w-[90vw]">
+      <div className="container mx-auto px-12">
         <SectionHead
           tag="DISCOVER YOUR NEXT SKILL"
           title="Explore Our Courses"

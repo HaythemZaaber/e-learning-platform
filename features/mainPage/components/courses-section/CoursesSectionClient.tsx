@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import { useQuickPayment } from "@/features/payments/hooks/usePayment";
 import { usePaymentStore } from "@/stores/payment.store";
 
 import { toast } from "sonner";
+import { Pagination } from "@/components/shared/Pagination";
 
 interface CoursesSectionClientProps {
   categories: CourseCategory[];
@@ -128,6 +129,8 @@ const colorClasses = {
   },
 };
 
+const ITEMS_PER_PAGE = 6;
+
 export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   categories,
   courses,
@@ -137,9 +140,14 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 }) => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { handleEnrollFree, handleAddToCart, handleRemoveFromCart, handleBuyNow } = useQuickPayment();
-  const { addToCheckout, removeFromCheckout, checkoutItems } = usePaymentStore();
-
+  const {
+    handleEnrollFree,
+    handleAddToCart,
+    handleRemoveFromCart,
+    handleBuyNow,
+  } = useQuickPayment();
+  const { addToCheckout, removeFromCheckout, checkoutItems } =
+    usePaymentStore();
 
   const [savedCourses, setSavedCourses] = useState<string[]>([]);
   const [showFeatured, setShowFeatured] = useState(initialShowFeatured);
@@ -151,25 +159,31 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     useState<CategoryLayoutType>("tabs");
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
+  const coursesSectionRef = useRef<HTMLDivElement>(null);
 
   // Check if user is enrolled in a course
   const isUserEnrolled = (course: any) => {
     if (!course.enrollments || !user?.id) return false;
-    return course.enrollments.some((enrollment: any) => enrollment.userId === user.id);
+    return course.enrollments.some(
+      (enrollment: any) => enrollment.userId === user.id
+    );
   };
 
   // Get enrollment progress data
   const getEnrollmentData = (course: any) => {
     if (!course.enrollments || !user?.id) return null;
-    
+
     // Find the specific enrollment for the current user
-    const userEnrollment = course.enrollments.find((enrollment: any) => enrollment.userId === user.id);
-    
+    const userEnrollment = course.enrollments.find(
+      (enrollment: any) => enrollment.userId === user.id
+    );
+
     if (!userEnrollment) return null;
-    
+
     return {
       progress: userEnrollment.progress || 0,
       timeSpent: userEnrollment.totalTimeSpent || 0,
@@ -184,14 +198,15 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 
   // Action handlers for CourseCard
   const handleEnroll = async (courseId: string) => {
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) {
       toast.error("Course not found");
       return;
     }
 
     try {
-      const isFree = course.price === 0 || course.settings?.enrollmentType === "FREE";
+      const isFree =
+        course.price === 0 || course.settings?.enrollmentType === "FREE";
       if (isFree) {
         await handleEnrollFree(course);
       } else {
@@ -204,7 +219,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   };
 
   const handleAddToCartAction = async (courseId: string) => {
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) {
       toast.error("Course not found");
       return;
@@ -227,7 +242,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   };
 
   const handleBuyNowAction = async (courseId: string) => {
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) {
       toast.error("Course not found");
       return;
@@ -241,7 +256,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
   };
 
   const handlePreview = (courseId: string) => {
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find((c) => c.id === courseId);
     if (!course) {
       toast.error("Course not found");
       return;
@@ -261,7 +276,9 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         url: `${window.location.origin}/courses/${course.id}`,
       });
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/courses/${course.id}`);
+      navigator.clipboard.writeText(
+        `${window.location.origin}/courses/${course.id}`
+      );
       toast.success("Course link copied to clipboard!");
     }
   };
@@ -295,7 +312,10 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
       <div className="relative">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-200 min-w-fit flex-shrink-0">
+            <div
+              key={i}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-200 min-w-fit flex-shrink-0"
+            >
               <div className="h-4 w-4 bg-gray-300 rounded"></div>
               <div className="h-4 w-16 bg-gray-300 rounded"></div>
             </div>
@@ -332,7 +352,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                   <div className="h-5 w-12 bg-gray-300 rounded-full"></div>
                 </div>
               </div>
-              
+
               {/* Content skeleton */}
               <div className="p-5 flex-grow flex flex-col">
                 <div className="flex justify-between items-start mb-3">
@@ -346,13 +366,13 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                     <div className="h-3 w-12 bg-gray-200 rounded ml-1"></div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 mb-3">
                   <div className="h-5 w-3/4 bg-gray-200 rounded"></div>
                   <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
                   <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   {Array.from({ length: 4 }).map((_, j) => (
                     <div key={j} className="flex items-center text-xs">
@@ -364,7 +384,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="space-y-2 mb-3">
                   <div className="flex justify-between">
                     <div className="h-3 w-20 bg-gray-200 rounded"></div>
@@ -373,7 +393,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                   <div className="h-2 bg-gray-200 rounded-full"></div>
                 </div>
               </div>
-              
+
               {/* Footer skeleton */}
               <div className="p-5 pt-0 border-t border-gray-100 flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -434,8 +454,6 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     ] as keyof typeof colorClasses,
   }));
 
-
-
   const selectedCategoryObj = categoriesWithColors.find(
     (cat) => cat.name === selectedCategory
   );
@@ -444,37 +462,61 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
     : categoriesWithColors.slice(0, 6);
 
   // Filter courses based on current state
-  const filteredCourses = (() => {
+  const filteredCourses = useMemo(() => {
     let filtered = courses;
-    
+
     // First filter by category
     if (selectedCategory !== "All") {
       filtered = filtered.filter((course) => {
         // Normalize and compare categories (case-insensitive, trim whitespace)
         const courseCategory = course.category?.toLowerCase().trim();
         const selectedCategoryLower = selectedCategory?.toLowerCase().trim();
-        
-        // Handle different category formats
-        const normalizedCourseCategory = courseCategory?.replace(/-/g, ' ').replace(/\s+/g, ' ');
-        const normalizedSelectedCategory = selectedCategoryLower?.replace(/-/g, ' ').replace(/\s+/g, ' ');
-        
-        const matches = normalizedCourseCategory === normalizedSelectedCategory;
-        
 
-        
+        // Handle different category formats
+        const normalizedCourseCategory = courseCategory
+          ?.replace(/-/g, " ")
+          .replace(/\s+/g, " ");
+        const normalizedSelectedCategory = selectedCategoryLower
+          ?.replace(/-/g, " ")
+          .replace(/\s+/g, " ");
+
+        const matches = normalizedCourseCategory === normalizedSelectedCategory;
+
         return matches;
       });
     }
-    
+
     // Then apply featured/trending filters
     if (showFeatured) {
       filtered = filtered.filter((course) => course.isFeatured);
     } else if (showTrending) {
       filtered = filtered.filter((course) => course.isTrending);
     }
-    
+
     return filtered;
-  })();
+  }, [courses, selectedCategory, showFeatured, showTrending]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentCourses = filteredCourses.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to the top of the courses section instead of the page top
+    if (coursesSectionRef.current) {
+      coursesSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, showFeatured, showTrending]);
 
   // Layout Selector Component
   const LayoutSelector = () => (
@@ -527,7 +569,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
           left: newScrollPosition,
           behavior: "smooth",
         });
-        
+
         // Update the stored position immediately
         scrollPositionRef.current = newScrollPosition;
       }
@@ -551,16 +593,16 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
       if (scrollContainerRef.current && categoryLayout === "tabs") {
         // Restore scroll position without triggering scroll events
         const container = scrollContainerRef.current;
-        container.style.scrollBehavior = 'auto';
+        container.style.scrollBehavior = "auto";
         container.scrollLeft = scrollPositionRef.current;
-        
+
         // Re-enable smooth scrolling after position is set
         setTimeout(() => {
           if (container) {
-            container.style.scrollBehavior = 'smooth';
+            container.style.scrollBehavior = "smooth";
           }
         }, 50);
-        
+
         checkScrollButtons();
       }
     }, [categoryLayout]);
@@ -573,7 +615,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         if (scrollContainerRef.current) {
           const container = scrollContainerRef.current;
           const currentBehavior = container.style.scrollBehavior;
-          container.style.scrollBehavior = 'auto';
+          container.style.scrollBehavior = "auto";
           container.scrollLeft = scrollPositionRef.current;
           container.style.scrollBehavior = currentBehavior;
         }
@@ -630,7 +672,11 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                   ? "bg-accent text-white shadow-lg"
                   : "bg-white/70 hover:bg-white text-gray-700 hover:shadow-md border border-gray-100"
               )}
-              title={selectedCategory === cat.name ? `Click to show all courses` : `Filter by ${cat.name}`}
+              title={
+                selectedCategory === cat.name
+                  ? `Click to show all courses`
+                  : `Filter by ${cat.name}`
+              }
             >
               {cat.icon}
               <span className="font-medium">{cat.name}</span>
@@ -685,7 +731,11 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
                 key={category.id}
                 onClick={() => handleCategoryChange(category.name)}
                 className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-150"
-                title={selectedCategory === category.name ? `Click to show all courses` : `Filter by ${category.name}`}
+                title={
+                  selectedCategory === category.name
+                    ? `Click to show all courses`
+                    : `Filter by ${category.name}`
+                }
               >
                 <div className="flex items-center gap-2 flex-1">
                   {category.icon}
@@ -738,7 +788,11 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               ? `${colors.active} text-white shadow-lg transform -translate-y-1`
               : `${colors.bg} ${colors.border} hover:shadow-md hover:-translate-y-0.5`
           )}
-          title={isSelected ? `Click to show all courses` : `Filter by ${category.name}`}
+          title={
+            isSelected
+              ? `Click to show all courses`
+              : `Filter by ${category.name}`
+          }
         >
           <div className="flex items-center gap-3 mb-2">
             <div
@@ -760,9 +814,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               >
                 {category.name}
               </h5>
-              {isSelected && (
-                <span className="text-xs opacity-75">✕</span>
-              )}
+              {isSelected && <span className="text-xs opacity-75">✕</span>}
             </div>
           </div>
           <p
@@ -816,7 +868,7 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 
   return (
     <>
-      <div className="mt-8 mb-6">
+      <div ref={coursesSectionRef} className="mt-8 mb-6">
         {/* Layout Selector */}
         <LayoutSelector />
 
@@ -835,44 +887,54 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
               size="sm"
               className={cn(
                 "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
-                (!showFeatured && !showTrending) ? "bg-gray-100 text-gray-600" : "bg-white hover:bg-gray-50"
+                !showFeatured && !showTrending
+                  ? "bg-gray-100 text-gray-600"
+                  : "bg-white hover:bg-gray-50"
               )}
               onClick={handleShowAllCourses}
             >
               Show All Courses
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
               className={cn(
                 "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
-                showFeatured ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-white hover:bg-gray-50"
+                showFeatured
+                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                  : "bg-white hover:bg-gray-50"
               )}
               onClick={handleFeaturedToggle}
             >
               <Star
                 className={cn(
                   "h-4 w-4 mr-1",
-                  showFeatured ? "fill-yellow-500 text-yellow-500" : "text-gray-500"
+                  showFeatured
+                    ? "fill-yellow-500 text-yellow-500"
+                    : "text-gray-500"
                 )}
               />
               Featured
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
               className={cn(
                 "text-sm border border-gray-200 whitespace-nowrap transition-all duration-200",
-                showTrending ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-white hover:bg-gray-50"
+                showTrending
+                  ? "bg-orange-50 text-orange-700 border-orange-200"
+                  : "bg-white hover:bg-gray-50"
               )}
               onClick={handleTrendingToggle}
             >
               <TrendingUp
                 className={cn(
                   "h-4 w-4 mr-1",
-                  showTrending ? "fill-orange-500 text-orange-500" : "text-gray-500"
+                  showTrending
+                    ? "fill-orange-500 text-orange-500"
+                    : "text-gray-500"
                 )}
               />
               Trending
@@ -883,17 +945,23 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
 
       {/* Courses Display */}
       <CourseContainer
-        containerKey={selectedCategory + (showFeatured ? "-featured" : "") + (showTrending ? "-trending" : "")}
+        containerKey={
+          selectedCategory +
+          (showFeatured ? "-featured" : "") +
+          (showTrending ? "-trending" : "")
+        }
         isLoaded={!isLoading}
       >
         {isLoading ? (
           <LoadingSkeleton />
         ) : (
-          filteredCourses.map((course) => {
-            const isInCart = checkoutItems.some(item => item.courseId === course.id);
+          currentCourses.map((course) => {
+            const isInCart = checkoutItems.some(
+              (item) => item.courseId === course.id
+            );
             const isEnrolled = isUserEnrolled(course);
             const enrollmentData = getEnrollmentData(course);
-            
+
             return (
               <CourseCardWrapper key={course.id} course={course}>
                 <CourseCard
@@ -926,6 +994,21 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
         )}
       </CourseContainer>
 
+      {/* Pagination */}
+      {!isLoading && filteredCourses.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCourses.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+            showSummary={true}
+            className="bg-white rounded-lg shadow-sm border border-gray-100 p-4"
+          />
+        </div>
+      )}
+
       {/* Empty State */}
       {filteredCourses.length === 0 && (
         <EmptyStateWrapper>
@@ -933,10 +1016,11 @@ export const CoursesSectionClient: React.FC<CoursesSectionClientProps> = ({
             No courses found
           </h3>
           <p className="text-gray-500 mt-2">
-            {showFeatured || showTrending 
-              ? `Try removing the ${showFeatured ? 'Featured' : 'Trending'} filter or selecting a different category`
-              : "Try selecting a different category"
-            }
+            {showFeatured || showTrending
+              ? `Try removing the ${
+                  showFeatured ? "Featured" : "Trending"
+                } filter or selecting a different category`
+              : "Try selecting a different category"}
           </p>
         </EmptyStateWrapper>
       )}

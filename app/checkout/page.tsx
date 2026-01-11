@@ -133,9 +133,10 @@ export default function CheckoutPage() {
         process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
       // PayPal doesn't support placeholders in return URL - it uses token parameter
       // Stripe supports {CHECKOUT_SESSION_ID} placeholder
-      const returnUrl = selectedProvider === "PAYPAL"
-        ? `${frontendUrl}/payment/success?provider=PAYPAL`
-        : `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&provider=STRIPE`;
+      const returnUrl =
+        selectedProvider === "PAYPAL"
+          ? `${frontendUrl}/payment/success?provider=PAYPAL`
+          : `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&provider=STRIPE`;
 
       const result = await createSession({
         courseId: firstCourse.courseId,

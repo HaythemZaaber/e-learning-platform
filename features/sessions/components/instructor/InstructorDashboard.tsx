@@ -1,21 +1,33 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  DollarSign, 
-  Video, 
-  Plus, 
-  Search, 
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import {
+  Calendar,
+  Clock,
+  Users,
+  DollarSign,
+  Video,
+  Plus,
+  Search,
   Filter,
   Play,
   Pause,
@@ -34,24 +46,32 @@ import {
   Timer,
   Star,
   BookOpen,
-  MessageSquare
-} from 'lucide-react';
-import { format, isToday, isTomorrow, isPast, isFuture, differenceInMinutes, parseISO } from 'date-fns';
+  MessageSquare,
+} from "lucide-react";
+import {
+  format,
+  isToday,
+  isTomorrow,
+  isPast,
+  isFuture,
+  differenceInMinutes,
+  parseISO,
+} from "date-fns";
 
 // Import existing components
-import { LiveSessionCard } from './LiveSessionCard';
-import { DashboardOverview } from './DashboardOverview';
-import { SessionOfferings } from './SessionOfferings';
-import { BookingManagement } from './BookingManagement';
-import { SessionsCalendar } from './SessionsCalendar';
-import { AvailabilitySetup } from './AvailabilitySetup';
-import { SessionAnalytics } from './SessionAnalytics';
-import { AIInsightsPanel } from './AIInsightsPanel';
-import { NotificationCenter } from './NotificationCenter';
-import { InstructorSettings } from './InstructorSettings';
+import { LiveSessionCard } from "./LiveSessionCard";
+import { DashboardOverview } from "./DashboardOverview";
+import { SessionOfferings } from "./SessionOfferings";
+import { BookingManagement } from "./BookingManagement";
+import { SessionsCalendar } from "./SessionsCalendar";
+import { AvailabilitySetup } from "./AvailabilitySetup";
+import { SessionAnalytics } from "./SessionAnalytics";
+import { AIInsightsPanel } from "./AIInsightsPanel";
+import { NotificationCenter } from "./NotificationCenter";
+import { InstructorSettings } from "./InstructorSettings";
 
 // Import hooks
-import { 
+import {
   useInstructorLiveSessions,
   useSessionStats,
   useInstructorProfile,
@@ -59,25 +79,75 @@ import {
   useStartLiveSession,
   useEndLiveSession,
   useCancelLiveSession,
-  useUpdateLiveSession
-} from '../../hooks/useLiveSessions';
-import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { SessionStatus, LiveSessionType, SessionFormat } from '../../types/session.types';
+  useUpdateLiveSession,
+} from "../../hooks/useLiveSessions";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { toast } from "sonner";
+import {
+  SessionStatus,
+  LiveSessionType,
+  SessionFormat,
+} from "../../types/session.types";
+
+// Valid tab values
+const VALID_TABS = [
+  "overview",
+  "sessions",
+  "offerings",
+  "bookings",
+  "calendar",
+  "availability",
+  "analytics",
+  "settings",
+];
 
 // Main dashboard component
 export default function InstructorDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('overview');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Initialize tab from URL or default to 'overview'
+  const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Sync tab from URL on mount and when URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    } else {
+      // If no valid tab in URL, default to overview
+      setActiveTab("overview");
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes (user interaction)
+  const handleTabChange = (value: string) => {
+    if (value === activeTab) return; // Prevent unnecessary updates
+
+    setActiveTab(value);
+    // Update URL without page reload
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   // Fetch data using hooks
-  const { data: sessions, isLoading: sessionsLoading, refetch: refetchSessions } = useInstructorLiveSessions(user?.id || '');
+  const {
+    data: sessions,
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+  } = useInstructorLiveSessions(user?.id || "");
   const { data: stats, isLoading: statsLoading } = useSessionStats(user?.id);
-  const { data: profile, isLoading: profileLoading } = useInstructorProfile(user?.id || '');
-  const { data: insights, isLoading: insightsLoading } = useAIInsights(user?.id || '');
+  const { data: profile, isLoading: profileLoading } = useInstructorProfile(
+    user?.id || ""
+  );
+  const { data: insights, isLoading: insightsLoading } = useAIInsights(
+    user?.id || ""
+  );
 
   // Session action mutations
   const startSessionMutation = useStartLiveSession();
@@ -88,33 +158,35 @@ export default function InstructorDashboard() {
   // Handle session actions
   const handleSessionAction = async (action: string, sessionId: string) => {
     setIsLoading(true);
-    
+
     try {
       switch (action) {
-        case 'start':
+        case "start":
           // Start session on backend
-          const result = await startSessionMutation.mutateAsync({ id: sessionId });
-          
+          const result = await startSessionMutation.mutateAsync({
+            id: sessionId,
+          });
+
           // Navigate to video call (assuming success if no error thrown)
           router.push(`/sessions/${sessionId}/video-call`);
           break;
-          
-        case 'end':
+
+        case "end":
           await endSessionMutation.mutateAsync({ id: sessionId });
           break;
-          
-        case 'cancel':
+
+        case "cancel":
           await cancelSessionMutation.mutateAsync({ id: sessionId });
           break;
-          
-        case 'join':
+
+        case "join":
           // Direct join for already started sessions
           router.push(`/sessions/${sessionId}/video-call`);
           break;
       }
     } catch (error) {
-      console.error('Session action error:', error);
-      toast.error('Action failed');
+      console.error("Session action error:", error);
+      toast.error("Action failed");
     } finally {
       setIsLoading(false);
     }
@@ -126,16 +198,17 @@ export default function InstructorDashboard() {
 
   // Group sessions by status
   const sessionsByStatus = useMemo(() => {
-    if (!sessions) return { scheduled: [], inProgress: [], completed: [], cancelled: [] };
-    
+    if (!sessions)
+      return { scheduled: [], inProgress: [], completed: [], cancelled: [] };
+
     const grouped = {
       scheduled: [] as any[],
       inProgress: [] as any[],
       completed: [] as any[],
-      cancelled: [] as any[]
+      cancelled: [] as any[],
     };
 
-    sessions.forEach(session => {
+    sessions.forEach((session) => {
       switch (session.status) {
         case SessionStatus.SCHEDULED:
         case SessionStatus.CONFIRMED:
@@ -156,7 +229,8 @@ export default function InstructorDashboard() {
     return grouped;
   }, [sessions]);
 
-  const isLoadingData = sessionsLoading || statsLoading || profileLoading || insightsLoading;
+  const isLoadingData =
+    sessionsLoading || statsLoading || profileLoading || insightsLoading;
 
   return (
     <div className="space-y-6">
@@ -175,14 +249,20 @@ export default function InstructorDashboard() {
             disabled={isLoading}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="sessions">Sessions</TabsTrigger>
@@ -204,7 +284,7 @@ export default function InstructorDashboard() {
             isLoading={{
               profile: profileLoading,
               stats: statsLoading,
-              insights: insightsLoading
+              insights: insightsLoading,
             }}
           />
         </TabsContent>
@@ -224,12 +304,16 @@ export default function InstructorDashboard() {
                     <LiveSessionCard
                       key={session.id}
                       session={session}
-                      onStart={() => handleSessionAction('start', session.id)}
-                      onEnd={() => handleSessionAction('end', session.id)}
-                      onCancel={() => handleSessionAction('cancel', session.id)}
-                      onEdit={() => handleSessionAction('edit', session.id)}
-                      onManageParticipants={() => handleSessionAction('participants', session.id)}
-                      onViewDetails={() => handleSessionAction('details', session.id)}
+                      onStart={() => handleSessionAction("start", session.id)}
+                      onEnd={() => handleSessionAction("end", session.id)}
+                      onCancel={() => handleSessionAction("cancel", session.id)}
+                      onEdit={() => handleSessionAction("edit", session.id)}
+                      onManageParticipants={() =>
+                        handleSessionAction("participants", session.id)
+                      }
+                      onViewDetails={() =>
+                        handleSessionAction("details", session.id)
+                      }
                     />
                   ))}
                 </div>
@@ -237,7 +321,7 @@ export default function InstructorDashboard() {
             )}
 
             {/* Upcoming Sessions */}
-          {sessionsByStatus.scheduled.length > 0 && (
+            {sessionsByStatus.scheduled.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
@@ -248,12 +332,16 @@ export default function InstructorDashboard() {
                     <LiveSessionCard
                       key={session.id}
                       session={session}
-                      onStart={() => handleSessionAction('start', session.id)}
-                      onEnd={() => handleSessionAction('end', session.id)}
-                      onCancel={() => handleSessionAction('cancel', session.id)}
-                      onEdit={() => handleSessionAction('edit', session.id)}
-                      onManageParticipants={() => handleSessionAction('participants', session.id)}
-                      onViewDetails={() => handleSessionAction('details', session.id)}
+                      onStart={() => handleSessionAction("start", session.id)}
+                      onEnd={() => handleSessionAction("end", session.id)}
+                      onCancel={() => handleSessionAction("cancel", session.id)}
+                      onEdit={() => handleSessionAction("edit", session.id)}
+                      onManageParticipants={() =>
+                        handleSessionAction("participants", session.id)
+                      }
+                      onViewDetails={() =>
+                        handleSessionAction("details", session.id)
+                      }
                     />
                   ))}
                 </div>
@@ -265,14 +353,17 @@ export default function InstructorDashboard() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
-                  Recent Completed Sessions ({sessionsByStatus.completed.length})
+                  Recent Completed Sessions ({sessionsByStatus.completed.length}
+                  )
                 </h3>
                 <div className="grid gap-4 lg:grid-cols-2">
                   {sessionsByStatus.completed.slice(0, 6).map((session) => (
                     <LiveSessionCard
                       key={session.id}
                       session={session}
-                      onViewDetails={() => handleSessionAction('details', session.id)}
+                      onViewDetails={() =>
+                        handleSessionAction("details", session.id)
+                      }
                     />
                   ))}
                 </div>
@@ -280,21 +371,27 @@ export default function InstructorDashboard() {
             )}
 
             {/* Empty State */}
-            {!isLoadingData && sessionsByStatus.scheduled.length === 0 && sessionsByStatus.inProgress.length === 0 && sessionsByStatus.completed.length === 0 && (
-            <Card>
-              <CardContent className="p-12 text-center">
-                  <Video className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No sessions yet</h3>
-                <p className="text-muted-foreground mb-4">
-                    Create your first session offering to start accepting bookings
-                </p>
-                  <Button onClick={() => setActiveTab('offerings')}>
-                  <Plus className="w-4 h-4 mr-2" />
-                    Create Session Offering
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            {!isLoadingData &&
+              sessionsByStatus.scheduled.length === 0 &&
+              sessionsByStatus.inProgress.length === 0 &&
+              sessionsByStatus.completed.length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Video className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      No sessions yet
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first session offering to start accepting
+                      bookings
+                    </p>
+                    <Button onClick={() => handleTabChange("offerings")}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Session Offering
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
           </div>
         </TabsContent>
 
@@ -305,7 +402,7 @@ export default function InstructorDashboard() {
 
         {/* Bookings Tab */}
         <TabsContent value="bookings" className="space-y-6">
-          <BookingManagement instructorId={user?.id || ''} />
+          <BookingManagement instructorId={user?.id || ""} />
         </TabsContent>
 
         {/* Calendar Tab */}

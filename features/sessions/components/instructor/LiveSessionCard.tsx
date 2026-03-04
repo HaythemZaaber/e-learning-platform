@@ -16,8 +16,7 @@ import {
   Edit, 
   Eye,
   UserPlus,
-  BarChart3,
-  ExternalLink
+  BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SessionStatus } from '@/features/sessions/types/session.types';
@@ -85,8 +84,8 @@ export function LiveSessionCard({
   const handleJoinSession = async () => {
     setIsLoading(true);
     try {
-      // Navigate to video call page
-      router.push(`/sessions/${session.id}/video-call`);
+      // Navigate to GetStream video call (instructor context)
+      router.push(`/sessions/${session.id}/video-call?role=instructor`);
     } catch (error) {
       console.error('Failed to join session:', error);
     } finally {
@@ -226,18 +225,11 @@ export function LiveSessionCard({
           </div>
         </div>
 
-        {/* Meeting Link for Quick Access */}
-        {session.meetingLink && isLive && (
-          <div className="pt-2 border-t">
-            <Button 
-              variant="link" 
-              className="p-0 h-auto text-blue-600"
-              onClick={() => window.open(session.meetingLink, '_blank')}
-            >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              Open in new tab
-            </Button>
-          </div>
+        {/* Join info - all joining happens in-app via GetStream */}
+        {isLive && (
+          <p className="pt-2 border-t text-xs text-muted-foreground">
+            Click &quot;Join Live Session&quot; to enter the in-app video call
+          </p>
         )}
       </CardContent>
     </Card>

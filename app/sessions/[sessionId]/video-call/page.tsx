@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { 
   StreamVideoClient, 
   StreamVideo, 
@@ -21,6 +21,7 @@ import {
 } from '@stream-io/video-react-sdk';
 import { useJoinSession } from '@/hooks/useStreamVideo';
 import { useAuth } from '@/hooks/useAuth';
+import { useLiveSession, useEndLiveSession } from '@/features/sessions/hooks/useLiveSessions';
 import { 
   Loader2, 
   Users, 
@@ -28,7 +29,8 @@ import {
   PhoneOff,
   MessageSquare,
   Wifi,
-  AlertCircle
+  AlertCircle,
+  Video
 } from 'lucide-react';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 import { VideoChatPanel } from '@/components/video/VideoChatPanel';
@@ -95,7 +97,17 @@ const customStyles = `
 `;
 
 // Simple Call Interface using Stream's built-in components
-function CallInterface({ onLeave }: { onLeave: () => void }) {
+function CallInterface({ 
+  onLeave, 
+  onEndSession, 
+  isInstructor,
+  isEndingSession 
+}: { 
+  onLeave: () => void;
+  onEndSession?: () => Promise<void>;
+  isInstructor: boolean;
+  isEndingSession: boolean;
+}) {
   const call = useCall();
   const connectedUser = useConnectedUser();
   const { 
@@ -143,16 +155,24 @@ function CallInterface({ onLeave }: { onLeave: () => void }) {
   }
 
   if (callingState !== CallingState.JOINED) {
+    const isLeft = callingState === CallingState.LEFT;
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-white text-lg">Unable to join call</p>
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-white text-lg">
+            {isLeft ? 'You have left the call' : 'Unable to join call'}
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            {isLeft 
+              ? 'The session may still be active for other participants.' 
+              : 'The session may have ended or there was a connection issue.'}
+          </p>
           <button
             onClick={onLeave}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
-            Go Back
+            Return to Dashboard
           </button>
         </div>
       </div>
@@ -297,11 +317,34 @@ function CallInterface({ onLeave }: { onLeave: () => void }) {
         )}
       </div>
 
-      {/* Built-in Call Controls - Stream's default implementation */}
+      {/* Call Controls - centered to avoid overlap with AI assistant (bottom-right) */}
       <div className="flex-shrink-0 bg-gray-800 border-t border-gray-700 p-4">
-        <StreamTheme>
-          <CallControls onLeave={onLeave} />
-        </StreamTheme>
+        <div className="flex items-center justify-center gap-4">
+          {isInstructor && onEndSession && (
+            <button
+              onClick={() => onEndSession()}
+              disabled={isEndingSession}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-70 text-white rounded-lg transition-colors"
+            >
+              {isEndingSession ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Ending...
+                </>
+              ) : (
+                <>
+                  <PhoneOff className="w-4 h-4" />
+                  End Session for All
+                </>
+              )}
+            </button>
+          )}
+          <div className="flex items-center justify-center">
+            <StreamTheme>
+              <CallControls onLeave={onLeave} />
+            </StreamTheme>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -311,6 +354,7 @@ export default function VideoCallPage() {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   
   // Extract sessionId from params or pathname as fallback
@@ -329,8 +373,16 @@ export default function VideoCallPage() {
   const [call, setCall] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasLeft, setHasLeft] = useState(false);
 
   const joinSessionMutation = useJoinSession();
+  const endSessionMutation = useEndLiveSession();
+  const { data: session } = useLiveSession(String(sessionId));
+
+  // Determine role: from URL param (instructor nav) or from session (student nav)
+  const roleParam = searchParams.get('role');
+  const isInstructor = roleParam === 'instructor' || (!!session && session.instructorId === user?.id);
+  const joinRole = isInstructor ? 'INSTRUCTOR' : 'STUDENT';
 
   useEffect(() => {
     if (!user?.id || !sessionId || typeof sessionId !== 'string' || isInitializing) return;
@@ -339,15 +391,19 @@ export default function VideoCallPage() {
 
     const initializeCall = async () => {
       try {
+        // If we have session data and it's already ended, don't try to join
+        if (session?.status === 'COMPLETED' || session?.status === 'CANCELLED') {
+          if (isMounted) setError('This session has already ended.');
+          return;
+        }
+
         setIsInitializing(true);
         setError(null);
         
-        console.log('Joining session with ID:', sessionId);
-        
-        // Join session and get credentials
+        // Join session via GetStream - get token and call credentials
         const response = await joinSessionMutation.mutateAsync({
           sessionId: String(sessionId),
-          role: 'INSTRUCTOR'
+          role: joinRole
         });
 
         if (!isMounted) return;
@@ -357,31 +413,34 @@ export default function VideoCallPage() {
           apiKey: response.apiKey,
           user: {
             id: user.id,
-            name: `${user.firstName} ${user.lastName}`,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || user.id,
             image: user.profileImage || undefined
           },
           token: response.token,
           options: {
-            logLevel: 'warn',
+            logLevel: 'error', // suppress "Participant with sessionId not found" (harmless race when someone leaves)
           }
         });
 
-        // Create call instance
+        // Create call instance - use callId from response (format: session-{sessionId})
         const callInstance = videoClient.call(response.callData.callType, response.callData.callId);
         
-        // Join the call only once
+        // Role: "audience" is only valid for livestream calls. For "default" call type, use "speaker".
+        const callType = response.callData.callType || 'default';
+        const memberRole = isInstructor ? 'host' : (callType === 'livestream' ? 'audience' : 'speaker');
+        
+        // Join the call - create: true allows join even if timing race (creates if not exists)
         await callInstance.join({ 
           create: true,
           data: {
             members: [{
               user_id: user.id,
-              role: 'host'
+              role: memberRole
             }]
           }
         });
 
         if (!isMounted) {
-          // If component unmounted during join, clean up
           await callInstance.leave();
           await videoClient.disconnectUser();
           return;
@@ -393,9 +452,8 @@ export default function VideoCallPage() {
         console.error('Failed to join video call:', error);
         if (isMounted) {
           setError(error.message || 'Failed to join video call');
-          // Don't redirect immediately, let user see the error
           setTimeout(() => {
-            router.push('/instructor/dashboard/sessions');
+            router.push(isInstructor ? '/instructor/dashboard/sessions' : '/student/sessions');
           }, 3000);
         }
       } finally {
@@ -409,38 +467,73 @@ export default function VideoCallPage() {
 
     return () => {
       isMounted = false;
-      // Cleanup will happen in handleLeave or if component unmounts during join
     };
-  }, [sessionId, user?.id]);
+  }, [sessionId, user?.id, joinRole]);
 
   const handleLeave = async () => {
+    if (hasLeft) return;
+    setHasLeft(true);
     try {
-      // Leave call first, then disconnect client
-      if (call) {
-        await call.leave();
+      // CallControls' hang-up button already calls call.leave() before onLeave fires,
+      // so only attempt leave if the call hasn't been left yet.
+      if (call && call.state?.callingState !== 'left') {
+        try {
+          await call.leave();
+        } catch (_) {
+          // Already left — safe to ignore
+        }
       }
       if (client) {
-        await client.disconnectUser();
+        try {
+          await client.disconnectUser();
+        } catch (_) {
+          // Safe to ignore
+        }
       }
-    } catch (error) {
-      console.error('Error leaving call:', error);
     } finally {
-      // Always navigate back regardless of errors
+      router.push(isInstructor ? '/instructor/dashboard/sessions' : '/student/sessions');
+    }
+  };
+
+  const handleEndSession = async () => {
+    if (hasLeft) return;
+    setHasLeft(true);
+    try {
+      await endSessionMutation.mutateAsync({ id: String(sessionId) });
+      if (call && call.state?.callingState !== 'left') {
+        try {
+          await call.leave();
+        } catch (_) {
+          // Already left — safe to ignore
+        }
+      }
+      if (client) {
+        try {
+          await client.disconnectUser();
+        } catch (_) {
+          // Safe to ignore
+        }
+      }
+    } catch (err) {
+      console.error('End session error:', err);
+      setHasLeft(false);
+      return;
+    } finally {
       router.push('/instructor/dashboard/sessions');
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount - only if user didn't leave via button
   useEffect(() => {
     return () => {
-      if (call) {
-        call.leave().catch(console.error);
+      if (!hasLeft && call && call.state?.callingState !== 'left') {
+        call.leave().catch(() => {});
       }
-      if (client) {
-        client.disconnectUser().catch(console.error);
+      if (!hasLeft && client) {
+        client.disconnectUser().catch(() => {});
       }
     };
-  }, [call, client]);
+  }, [call, client, hasLeft]);
 
   if (error) {
     return (
@@ -453,7 +546,7 @@ export default function VideoCallPage() {
           <p className="text-white mb-4">{error}</p>
           <p className="text-gray-300 text-sm mb-6">Redirecting to dashboard in a few seconds...</p>
           <button
-            onClick={() => router.push('/instructor/dashboard/sessions')}
+            onClick={() => router.push(isInstructor ? '/instructor/dashboard/sessions' : '/student/sessions')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             Back to Dashboard
@@ -484,7 +577,12 @@ export default function VideoCallPage() {
       <style dangerouslySetInnerHTML={{ __html: customStyles }} />
       <StreamVideo client={client}>
         <StreamCall call={call}>
-          <CallInterface onLeave={handleLeave} />
+          <CallInterface 
+            onLeave={handleLeave}
+            onEndSession={isInstructor ? handleEndSession : undefined}
+            isInstructor={isInstructor}
+            isEndingSession={endSessionMutation.isPending}
+          />
         </StreamCall>
       </StreamVideo>
     </>

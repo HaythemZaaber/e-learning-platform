@@ -172,6 +172,7 @@ export function StripeConnectSetup({ onSetupComplete }: StripeConnectSetupProps)
         toast.error("Please fill in your first and last name");
         return;
       }
+      console.log('formData', formData);
       
       const data = await stripeConnectApi.createStripeConnectAccount(formData, token);
 

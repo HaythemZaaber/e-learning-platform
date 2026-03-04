@@ -21,22 +21,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Calendar,
   Clock,
   Users,
   DollarSign,
   Video,
   Plus,
-  Search,
-  Filter,
-  Play,
-  Pause,
-  X,
-  Edit,
-  Eye,
-  UserPlus,
-  BarChart3,
-  ExternalLink,
   RefreshCw,
   SortAsc,
   SortDesc,
@@ -47,6 +47,8 @@ import {
   Star,
   BookOpen,
   MessageSquare,
+  Edit,
+  AlertTriangle,
 } from "lucide-react";
 import {
   format,
@@ -80,6 +82,7 @@ import {
   useEndLiveSession,
   useCancelLiveSession,
   useUpdateLiveSession,
+  useRescheduleLiveSession,
 } from "../../hooks/useLiveSessions";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -154,39 +157,84 @@ export default function InstructorDashboard() {
   const endSessionMutation = useEndLiveSession();
   const cancelSessionMutation = useCancelLiveSession();
   const updateSessionMutation = useUpdateLiveSession();
+  const rescheduleSessionMutation = useRescheduleLiveSession();
+
+  // Modal state for session configuration
+  const [sessionForEdit, setSessionForEdit] = useState<any>(null);
+  const [sessionForCancel, setSessionForCancel] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   // Handle session actions
-  const handleSessionAction = async (action: string, sessionId: string) => {
-    setIsLoading(true);
+  const handleSessionAction = async (action: string, sessionId: string, session?: any) => {
+    if (action === "edit") {
+      setSessionForEdit(session || sessions?.find((s) => s.id === sessionId));
+      return;
+    }
+    if (action === "cancel") {
+      setSessionForCancel(session || sessions?.find((s) => s.id === sessionId));
+      setCancelReason("");
+      return;
+    }
+    if (action === "details") {
+      router.push(`/instructor/sessions/${sessionId}`);
+      return;
+    }
 
+    setIsLoading(true);
     try {
       switch (action) {
         case "start":
-          // Start session on backend
-          const result = await startSessionMutation.mutateAsync({
-            id: sessionId,
-          });
-
-          // Navigate to video call (assuming success if no error thrown)
-          router.push(`/sessions/${sessionId}/video-call`);
+          await startSessionMutation.mutateAsync({ id: sessionId });
+          router.push(`/sessions/${sessionId}/video-call?role=instructor`);
           break;
 
         case "end":
           await endSessionMutation.mutateAsync({ id: sessionId });
-          break;
-
-        case "cancel":
-          await cancelSessionMutation.mutateAsync({ id: sessionId });
+          refetchSessions();
           break;
 
         case "join":
-          // Direct join for already started sessions
-          router.push(`/sessions/${sessionId}/video-call`);
+          router.push(`/sessions/${sessionId}/video-call?role=instructor`);
           break;
       }
     } catch (error) {
       console.error("Session action error:", error);
       toast.error("Action failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!sessionForCancel) return;
+    setIsLoading(true);
+    try {
+      await cancelSessionMutation.mutateAsync({
+        id: sessionForCancel.id,
+        cancelData: { reason: cancelReason },
+      });
+      setSessionForCancel(null);
+      setCancelReason("");
+      refetchSessions();
+    } catch (error) {
+      toast.error("Failed to cancel session");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditConfirm = async (updates: { title?: string; description?: string; scheduledStart?: Date; scheduledEnd?: Date }) => {
+    if (!sessionForEdit) return;
+    setIsLoading(true);
+    try {
+      await updateSessionMutation.mutateAsync({
+        id: sessionForEdit.id,
+        updates,
+      });
+      setSessionForEdit(null);
+      refetchSessions();
+    } catch (error) {
+      toast.error("Failed to update session");
     } finally {
       setIsLoading(false);
     }
@@ -306,8 +354,8 @@ export default function InstructorDashboard() {
                       session={session}
                       onStart={() => handleSessionAction("start", session.id)}
                       onEnd={() => handleSessionAction("end", session.id)}
-                      onCancel={() => handleSessionAction("cancel", session.id)}
-                      onEdit={() => handleSessionAction("edit", session.id)}
+                      onCancel={() => handleSessionAction("cancel", session.id, session)}
+                      onEdit={() => handleSessionAction("edit", session.id, session)}
                       onManageParticipants={() =>
                         handleSessionAction("participants", session.id)
                       }
@@ -334,8 +382,8 @@ export default function InstructorDashboard() {
                       session={session}
                       onStart={() => handleSessionAction("start", session.id)}
                       onEnd={() => handleSessionAction("end", session.id)}
-                      onCancel={() => handleSessionAction("cancel", session.id)}
-                      onEdit={() => handleSessionAction("edit", session.id)}
+                      onCancel={() => handleSessionAction("cancel", session.id, session)}
+                      onEdit={() => handleSessionAction("edit", session.id, session)}
                       onManageParticipants={() =>
                         handleSessionAction("participants", session.id)
                       }
@@ -431,8 +479,148 @@ export default function InstructorDashboard() {
         <AIInsightsPanel insights={insights} />
       )}
 
-      {/* Notification Center - This would typically be a modal or sidebar */}
-      {/* <NotificationCenter isOpen={false} onClose={() => {}} notifications={[]} onMarkAllAsRead={() => {}} /> */}
+      {/* Cancel Session Modal */}
+      <Dialog open={!!sessionForCancel} onOpenChange={() => setSessionForCancel(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Cancel Session
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel &quot;{sessionForCancel?.title}&quot;? Participants will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason">Reason (optional)</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Let participants know why..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSessionForCancel(null)}>
+              Keep Session
+            </Button>
+            <Button variant="destructive" onClick={handleCancelConfirm} disabled={isLoading}>
+              {isLoading ? "Cancelling..." : "Cancel Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Session Modal */}
+      <Dialog open={!!sessionForEdit} onOpenChange={() => setSessionForEdit(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Session
+            </DialogTitle>
+            <DialogDescription>
+              Update session details. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+          {sessionForEdit && (
+            <SessionEditForm
+              session={sessionForEdit}
+              onSave={handleEditConfirm}
+              onCancel={() => setSessionForEdit(null)}
+              isLoading={isLoading}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function SessionEditForm({
+  session,
+  onSave,
+  onCancel,
+  isLoading,
+}: {
+  session: any;
+  onSave: (updates: any) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [title, setTitle] = useState(session.title || "");
+  const [description, setDescription] = useState(session.description || "");
+  const [scheduledStart, setScheduledStart] = useState(
+    format(new Date(session.scheduledStart), "yyyy-MM-dd'T'HH:mm")
+  );
+  const [scheduledEnd, setScheduledEnd] = useState(
+    session.scheduledEnd
+      ? format(new Date(session.scheduledEnd), "yyyy-MM-dd'T'HH:mm")
+      : ""
+  );
+
+  return (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="edit-title">Title</Label>
+        <Input
+          id="edit-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Session title"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="edit-description">Description</Label>
+        <Textarea
+          id="edit-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Session description"
+          rows={3}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-start">Start</Label>
+          <Input
+            id="edit-start"
+            type="datetime-local"
+            value={scheduledStart}
+            onChange={(e) => setScheduledStart(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-end">End</Label>
+          <Input
+            id="edit-end"
+            type="datetime-local"
+            value={scheduledEnd}
+            onChange={(e) => setScheduledEnd(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          onClick={() =>
+            onSave({
+              title,
+              description: description || undefined,
+              scheduledStart: new Date(scheduledStart),
+              scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : undefined,
+            })
+          }
+          disabled={isLoading}
+        >
+          {isLoading ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
     </div>
   );
 }

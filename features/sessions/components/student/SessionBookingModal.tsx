@@ -4,10 +4,17 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateSessionBooking } from "../../hooks/useSessionBooking";
-import { useCreatePaymentIntent, usePaymentValidation } from "../../hooks/useStripeConnect";
+import {
+  useCreatePaymentIntent,
+  usePaymentValidation,
+} from "../../hooks/useStripeConnect";
 import { PaymentForm } from "./PaymentForm";
 import { CreateSessionBookingDto } from "../../services/api/sessionBookingApi";
-import { SessionOffering, TimeSlot, BookingStatus } from "../../types/session.types";
+import {
+  SessionOffering,
+  TimeSlot,
+  BookingStatus,
+} from "../../types/session.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,7 +97,8 @@ export function SessionBookingModal({
   const router = useRouter();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
-  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
+  const [selectedOffering, setSelectedOffering] =
+    useState<SessionOffering | null>(null);
   const [bookingData, setBookingData] = useState<BookingFormData>({
     customTopic: "",
     studentMessage: "",
@@ -106,32 +114,35 @@ export function SessionBookingModal({
   // Mutations
   const createBookingMutation = useCreateSessionBooking();
   const createPaymentIntentMutation = useCreatePaymentIntent();
-  
+
   // Payment validation
   const { hasStripeAccount, isStripeComplete } = usePaymentValidation();
 
   // Get compatible offerings based on selected slot
   const getCompatibleOfferings = () => {
     if (!offeringsData) return [];
-    
-    const availableOfferings = offeringsData.filter(offering => offering.isActive);
-    
+
+    const availableOfferings = offeringsData.filter(
+      (offering) => offering.isActive
+    );
+
     // Filter offerings based on slot's maxBookings
     if (selectedSlot.maxBookings === 1) {
       // For slots with max 1 booking, only show individual session offerings
-      return availableOfferings.filter(offering => 
-        offering.sessionType === 'INDIVIDUAL'
+      return availableOfferings.filter(
+        (offering) => offering.sessionType === "INDIVIDUAL"
       );
     } else if (selectedSlot.maxBookings > 1) {
       // For slots with multiple bookings, only show group session offerings
-      return availableOfferings.filter(offering => 
-        offering.sessionType === 'SMALL_GROUP' || 
-        offering.sessionType === 'LARGE_GROUP' || 
-        offering.sessionType === 'WORKSHOP' || 
-        offering.sessionType === 'MASTERCLASS'
+      return availableOfferings.filter(
+        (offering) =>
+          offering.sessionType === "SMALL_GROUP" ||
+          offering.sessionType === "LARGE_GROUP" ||
+          offering.sessionType === "WORKSHOP" ||
+          offering.sessionType === "MASTERCLASS"
       );
     }
-    
+
     return availableOfferings;
   };
 
@@ -157,7 +168,7 @@ export function SessionBookingModal({
   // Update booking data when offering is selected
   useEffect(() => {
     if (selectedOffering) {
-      setBookingData(prev => ({
+      setBookingData((prev) => ({
         ...prev,
         agreedPrice: selectedOffering.basePrice,
         currency: selectedOffering.currency,
@@ -169,7 +180,10 @@ export function SessionBookingModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (selectedOffering?.topicType === "FLEXIBLE" && !bookingData.customTopic.trim()) {
+    if (
+      selectedOffering?.topicType === "FLEXIBLE" &&
+      !bookingData.customTopic.trim()
+    ) {
       newErrors.customTopic = "Please specify what you'd like to learn";
     }
 
@@ -181,13 +195,25 @@ export function SessionBookingModal({
       newErrors.agreedPrice = "Please enter a valid price";
     }
 
+    if (selectedOffering?.minAdvanceHours) {
+      const minAdvanceMs = selectedOffering.minAdvanceHours * 60 * 60 * 1000;
+      const now = Date.now();
+      const slotStart = new Date(selectedSlot.startTime).getTime();
+      if (slotStart - now < minAdvanceMs) {
+        newErrors.time = `This session requires at least ${selectedOffering.minAdvanceHours} hours notice.`;
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error("Please fix the form errors before continuing");
+      return;
+    }
     if (!user) {
       toast.error("Please sign in to book a session");
       return;
@@ -262,7 +288,9 @@ export function SessionBookingModal({
 
   // Calculate session duration
   const sessionDuration = Math.round(
-    (new Date(selectedSlot.endTime).getTime() - new Date(selectedSlot.startTime).getTime()) / (1000 * 60)
+    (new Date(selectedSlot.endTime).getTime() -
+      new Date(selectedSlot.startTime).getTime()) /
+      (1000 * 60)
   );
 
   // Format slot time
@@ -273,59 +301,59 @@ export function SessionBookingModal({
   // Get session type display info
   const getSessionTypeInfo = (sessionType: string) => {
     switch (sessionType) {
-      case 'INDIVIDUAL':
+      case "INDIVIDUAL":
         return {
           icon: User,
-          label: '1-on-1 Session',
-          description: 'Personalized one-on-one attention',
-          color: 'text-purple-600',
-          bgColor: 'bg-purple-50',
-          borderColor: 'border-purple-200'
+          label: "1-on-1 Session",
+          description: "Personalized one-on-one attention",
+          color: "text-purple-600",
+          bgColor: "bg-purple-50",
+          borderColor: "border-purple-200",
         };
-      case 'SMALL_GROUP':
+      case "SMALL_GROUP":
         return {
           icon: Users,
-          label: 'Small Group',
-          description: 'Learn with 2-8 other students',
-          color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200'
+          label: "Small Group",
+          description: "Learn with 2-8 other students",
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200",
         };
-      case 'LARGE_GROUP':
+      case "LARGE_GROUP":
         return {
           icon: Users,
-          label: 'Large Group',
-          description: 'Interactive group learning experience',
-          color: 'text-blue-600',
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-200'
+          label: "Large Group",
+          description: "Interactive group learning experience",
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+          borderColor: "border-blue-200",
         };
-      case 'WORKSHOP':
+      case "WORKSHOP":
         return {
           icon: BookOpen,
-          label: 'Workshop',
-          description: 'Hands-on practical learning',
-          color: 'text-orange-600',
-          bgColor: 'bg-orange-50',
-          borderColor: 'border-orange-200'
+          label: "Workshop",
+          description: "Hands-on practical learning",
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
+          borderColor: "border-orange-200",
         };
-      case 'MASTERCLASS':
+      case "MASTERCLASS":
         return {
           icon: Award,
-          label: 'Masterclass',
-          description: 'Expert-level deep dive',
-          color: 'text-amber-600',
-          bgColor: 'bg-amber-50',
-          borderColor: 'border-amber-200'
+          label: "Masterclass",
+          description: "Expert-level deep dive",
+          color: "text-amber-600",
+          bgColor: "bg-amber-50",
+          borderColor: "border-amber-200",
         };
       default:
         return {
           icon: Video,
-          label: 'Session',
-          description: 'Learning session',
-          color: 'text-gray-600',
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200'
+          label: "Session",
+          description: "Learning session",
+          color: "text-gray-600",
+          bgColor: "bg-gray-50",
+          borderColor: "border-gray-200",
         };
     }
   };
@@ -344,7 +372,9 @@ export function SessionBookingModal({
           <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Choose Your Session Type
           </h3>
-          <p className="text-gray-600">Select the perfect learning experience for this time slot</p>
+          <p className="text-gray-600">
+            Select the perfect learning experience for this time slot
+          </p>
         </div>
 
         {/* Enhanced Session Summary */}
@@ -356,14 +386,18 @@ export function SessionBookingModal({
                   <Video className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-blue-900 text-lg">Session with {instructorName}</p>
+                  <p className="font-semibold text-blue-900 text-lg">
+                    Session with {instructorName}
+                  </p>
                   <p className="text-sm text-blue-700 font-medium">
                     {formatSlotTime(new Date(selectedSlot.startTime))}
                   </p>
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-1">
                       <Timer className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm text-blue-700">{sessionDuration} min</span>
+                      <span className="text-sm text-blue-700">
+                        {sessionDuration} min
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       {isIndividualSlot ? (
@@ -372,7 +406,9 @@ export function SessionBookingModal({
                         <Users className="h-4 w-4 text-green-600" />
                       )}
                       <span className="text-sm text-blue-700">
-                        {isIndividualSlot ? 'Individual Slot' : `Group Slot (max ${selectedSlot.maxBookings})`}
+                        {isIndividualSlot
+                          ? "Individual Slot"
+                          : `Group Slot (max ${selectedSlot.maxBookings})`}
                       </span>
                     </div>
                   </div>
@@ -386,12 +422,24 @@ export function SessionBookingModal({
           </CardContent>
         </Card>
 
+        {errors.time && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-700">
+              {errors.time}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Enhanced Offering Selection */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-xl text-gray-800">Available Session Types</h4>
+            <h4 className="font-bold text-xl text-gray-800">
+              Available Session Types
+            </h4>
             <Badge variant="outline" className="text-sm">
-              {compatibleOfferings.length} option{compatibleOfferings.length !== 1 ? 's' : ''}
+              {compatibleOfferings.length} option
+              {compatibleOfferings.length !== 1 ? "s" : ""}
             </Badge>
           </div>
 
@@ -401,14 +449,14 @@ export function SessionBookingModal({
                 const typeInfo = getSessionTypeInfo(offering.sessionType);
                 const IconComponent = typeInfo.icon;
                 const isSelected = selectedOffering?.id === offering.id;
-                
+
                 return (
-                  <div 
-                    key={offering.id} 
+                  <div
+                    key={offering.id}
                     className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-xl ${
-                      isSelected 
-                        ? `${typeInfo.borderColor} ${typeInfo.bgColor} shadow-xl transform scale-105` 
-                        : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg hover:transform hover:scale-102'
+                      isSelected
+                        ? `${typeInfo.borderColor} ${typeInfo.bgColor} shadow-xl transform scale-105`
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg hover:transform hover:scale-102"
                     }`}
                     onClick={() => setSelectedOffering(offering)}
                   >
@@ -428,14 +476,20 @@ export function SessionBookingModal({
                       {/* Header */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-4">
-                          <div className={`w-14 h-14 ${typeInfo.bgColor} rounded-xl flex items-center justify-center shadow-md`}>
-                            <IconComponent className={`h-7 w-7 ${typeInfo.color}`} />
+                          <div
+                            className={`w-14 h-14 ${typeInfo.bgColor} rounded-xl flex items-center justify-center shadow-md`}
+                          >
+                            <IconComponent
+                              className={`h-7 w-7 ${typeInfo.color}`}
+                            />
                           </div>
                           <div>
                             <h4 className="font-bold text-xl text-gray-800 mb-1">
                               {offering.title}
                             </h4>
-                            <Badge className={`${typeInfo.bgColor} ${typeInfo.color} border-0 font-medium`}>
+                            <Badge
+                              className={`${typeInfo.bgColor} ${typeInfo.color} border-0 font-medium`}
+                            >
                               {typeInfo.label}
                             </Badge>
                           </div>
@@ -453,12 +507,16 @@ export function SessionBookingModal({
                         <div className="flex items-center gap-3">
                           <Target className="h-5 w-5 text-indigo-600" />
                           <div>
-                            <span className="font-medium text-gray-700">Topic: </span>
+                            <span className="font-medium text-gray-700">
+                              Topic:{" "}
+                            </span>
                             <span className="text-gray-600">
-                              {offering.topicType === 'FLEXIBLE' ? (
-                                <span className="text-green-600 font-medium">Flexible - Choose your own</span>
+                              {offering.topicType === "FLEXIBLE" ? (
+                                <span className="text-green-600 font-medium">
+                                  Flexible - Choose your own
+                                </span>
                               ) : (
-                                offering.fixedTopic || 'Structured curriculum'
+                                offering.fixedTopic || "Structured curriculum"
                               )}
                             </span>
                           </div>
@@ -469,25 +527,33 @@ export function SessionBookingModal({
                           <div className="flex items-center gap-2">
                             <Monitor className="h-4 w-4 text-blue-600" />
                             <span className="text-sm text-gray-600">
-                              {offering.screenShareEnabled ? 'Screen sharing' : 'Video only'}
+                              {offering.screenShareEnabled
+                                ? "Screen sharing"
+                                : "Video only"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-green-600" />
                             <span className="text-sm text-gray-600">
-                              {offering.whiteboardEnabled ? 'Whiteboard' : 'No whiteboard'}
+                              {offering.whiteboardEnabled
+                                ? "Whiteboard"
+                                : "No whiteboard"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <PlayCircle className="h-4 w-4 text-red-600" />
                             <span className="text-sm text-gray-600">
-                              {offering.recordingEnabled ? 'Recorded' : 'Live only'}
+                              {offering.recordingEnabled
+                                ? "Recorded"
+                                : "Live only"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MessageCircle className="h-4 w-4 text-purple-600" />
                             <span className="text-sm text-gray-600">
-                              {offering.chatEnabled ? 'Chat enabled' : 'No chat'}
+                              {offering.chatEnabled
+                                ? "Chat enabled"
+                                : "No chat"}
                             </span>
                           </div>
                         </div>
@@ -495,17 +561,22 @@ export function SessionBookingModal({
                         {/* Tags */}
                         {offering.tags && offering.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {offering.tags.slice(0, 4).map((tag: string, tagIndex: number) => (
-                              <Badge 
-                                key={tagIndex} 
-                                variant="outline" 
+                            {offering.tags
+                              .slice(0, 4)
+                              .map((tag: string, tagIndex: number) => (
+                                <Badge
+                                  key={tagIndex}
+                                  variant="outline"
+                                  className="text-xs border-gray-300 text-gray-600"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            {offering.tags.length > 4 && (
+                              <Badge
+                                variant="outline"
                                 className="text-xs border-gray-300 text-gray-600"
                               >
-                                {tag}
-                              </Badge>
-                            ))}
-                            {offering.tags.length > 4 && (
-                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
                                 +{offering.tags.length - 4} more
                               </Badge>
                             )}
@@ -513,27 +584,38 @@ export function SessionBookingModal({
                         )}
 
                         {/* Prerequisites */}
-                        {offering.prerequisites && offering.prerequisites.length > 0 && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <AlertCircle className="h-4 w-4 text-yellow-600" />
-                              <span className="text-sm font-medium text-yellow-800">Prerequisites</span>
+                        {offering.prerequisites &&
+                          offering.prerequisites.length > 0 && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                <span className="text-sm font-medium text-yellow-800">
+                                  Prerequisites
+                                </span>
+                              </div>
+                              <ul className="text-sm text-yellow-700 space-y-1">
+                                {offering.prerequisites
+                                  .slice(0, 2)
+                                  .map(
+                                    (prereq: string, prereqIndex: number) => (
+                                      <li
+                                        key={prereqIndex}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <div className="w-1 h-1 bg-yellow-600 rounded-full" />
+                                        {prereq}
+                                      </li>
+                                    )
+                                  )}
+                                {offering.prerequisites.length > 2 && (
+                                  <li className="text-yellow-600 font-medium">
+                                    +{offering.prerequisites.length - 2} more
+                                    requirements
+                                  </li>
+                                )}
+                              </ul>
                             </div>
-                            <ul className="text-sm text-yellow-700 space-y-1">
-                              {offering.prerequisites.slice(0, 2).map((prereq: string, prereqIndex: number) => (
-                                <li key={prereqIndex} className="flex items-center gap-2">
-                                  <div className="w-1 h-1 bg-yellow-600 rounded-full" />
-                                  {prereq}
-                                </li>
-                              ))}
-                              {offering.prerequisites.length > 2 && (
-                                <li className="text-yellow-600 font-medium">
-                                  +{offering.prerequisites.length - 2} more requirements
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                        )}
+                          )}
 
                         {/* Stats */}
                         <div className="flex items-center justify-between pt-2">
@@ -549,7 +631,7 @@ export function SessionBookingModal({
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Price */}
                           <div className="text-right">
                             <div className="text-3xl font-bold text-gray-800">
@@ -565,7 +647,9 @@ export function SessionBookingModal({
                         {isSelected && (
                           <div className="flex items-center justify-center gap-2 pt-4 border-t border-blue-200">
                             <CheckCircle className="h-5 w-5 text-blue-600" />
-                            <span className="font-medium text-blue-600">Selected</span>
+                            <span className="font-medium text-blue-600">
+                              Selected
+                            </span>
                           </div>
                         )}
                       </div>
@@ -579,10 +663,13 @@ export function SessionBookingModal({
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertCircle className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-gray-800">No Compatible Offerings</h3>
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                No Compatible Offerings
+              </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                No {isIndividualSlot ? 'individual' : 'group'} session offerings are available for this time slot.
-                The instructor may need to create offerings that match this slot type.
+                No {isIndividualSlot ? "individual" : "group"} session offerings
+                are available for this time slot. The instructor may need to
+                create offerings that match this slot type.
               </p>
               <div className="flex gap-3 justify-center">
                 <Button variant="outline" onClick={onClose}>
@@ -604,7 +691,7 @@ export function SessionBookingModal({
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={() => setCurrentStep(2)}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg px-8"
                 size="lg"
@@ -637,22 +724,49 @@ export function SessionBookingModal({
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 ${getSessionTypeInfo(selectedOffering?.sessionType || 'INDIVIDUAL').bgColor} rounded-xl flex items-center justify-center`}>
-                {React.createElement(getSessionTypeInfo(selectedOffering?.sessionType || 'INDIVIDUAL').icon, {
-                  className: `h-6 w-6 ${getSessionTypeInfo(selectedOffering?.sessionType || 'INDIVIDUAL').color}`
-                })}
+              <div
+                className={`w-12 h-12 ${
+                  getSessionTypeInfo(
+                    selectedOffering?.sessionType || "INDIVIDUAL"
+                  ).bgColor
+                } rounded-xl flex items-center justify-center`}
+              >
+                {React.createElement(
+                  getSessionTypeInfo(
+                    selectedOffering?.sessionType || "INDIVIDUAL"
+                  ).icon,
+                  {
+                    className: `h-6 w-6 ${
+                      getSessionTypeInfo(
+                        selectedOffering?.sessionType || "INDIVIDUAL"
+                      ).color
+                    }`,
+                  }
+                )}
               </div>
               <div>
-                <p className="font-semibold text-green-900">{selectedOffering?.title}</p>
-                <p className="text-sm text-green-700">{getSessionTypeInfo(selectedOffering?.sessionType || 'INDIVIDUAL').label}</p>
+                <p className="font-semibold text-green-900">
+                  {selectedOffering?.title}
+                </p>
+                <p className="text-sm text-green-700">
+                  {
+                    getSessionTypeInfo(
+                      selectedOffering?.sessionType || "INDIVIDUAL"
+                    ).label
+                  }
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-green-900">${selectedOffering?.basePrice}</div>
-              <div className="text-sm text-green-700">{selectedOffering?.duration} minutes</div>
+              <div className="text-2xl font-bold text-green-900">
+                ${selectedOffering?.basePrice}
+              </div>
+              <div className="text-sm text-green-700">
+                {selectedOffering?.duration} minutes
+              </div>
             </div>
           </div>
-          
+
           {/* Session Features Preview */}
           <div className="grid grid-cols-2 gap-3 pt-4 border-t border-green-200">
             {selectedOffering?.recordingEnabled && (
@@ -683,6 +797,16 @@ export function SessionBookingModal({
         </CardContent>
       </Card>
 
+      {/* Validation errors */}
+      {(errors.agreedPrice || errors.time) && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            {errors.agreedPrice || errors.time}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Enhanced Form Fields */}
       <div className="space-y-6">
         {/* Custom Topic (if flexible) */}
@@ -699,7 +823,12 @@ export function SessionBookingModal({
                 id="customTopic"
                 placeholder="e.g., Advanced React hooks and custom patterns, Data structures and algorithms, Machine learning fundamentals..."
                 value={bookingData.customTopic}
-                onChange={(e) => setBookingData(prev => ({ ...prev, customTopic: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    customTopic: e.target.value,
+                  }))
+                }
                 className="min-h-[120px] border-indigo-200 focus:border-indigo-400 bg-white"
               />
               <p className="text-sm text-indigo-600">
@@ -728,7 +857,12 @@ export function SessionBookingModal({
               id="studentMessage"
               placeholder="Hi! I'm excited to learn with you. Here's what I'm hoping to achieve in our session..."
               value={bookingData.studentMessage}
-              onChange={(e) => setBookingData(prev => ({ ...prev, studentMessage: e.target.value }))}
+              onChange={(e) =>
+                setBookingData((prev) => ({
+                  ...prev,
+                  studentMessage: e.target.value,
+                }))
+              }
               className="min-h-[100px]"
             />
             {errors.studentMessage && (
@@ -746,7 +880,12 @@ export function SessionBookingModal({
             id="customRequirements"
             placeholder="Any specific requirements, learning style preferences, or accessibility needs..."
             value={bookingData.customRequirements}
-            onChange={(e) => setBookingData(prev => ({ ...prev, customRequirements: e.target.value }))}
+            onChange={(e) =>
+              setBookingData((prev) => ({
+                ...prev,
+                customRequirements: e.target.value,
+              }))
+            }
             className="min-h-[80px]"
           />
         </div>
@@ -759,7 +898,9 @@ export function SessionBookingModal({
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Session Price</span>
-              <span className="font-medium">${selectedOffering?.basePrice || 0}</span>
+              <span className="font-medium">
+                ${selectedOffering?.basePrice || 0}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Duration</span>
@@ -780,8 +921,8 @@ export function SessionBookingModal({
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={createBookingMutation.isPending}
             className="flex-1"
           >
@@ -819,11 +960,13 @@ export function SessionBookingModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-yellow-600" />
-              <span className="font-medium text-yellow-800">Booking Request Sent</span>
+              <span className="font-medium text-yellow-800">
+                Booking Request Sent
+              </span>
             </div>
             <p className="text-sm text-yellow-700">
-              Your booking request has been sent to {instructorName}. 
-              You'll receive a notification once they respond.
+              Your booking request has been sent to {instructorName}. You'll
+              receive a notification once they respond.
             </p>
           </div>
         </CardContent>
@@ -860,8 +1003,9 @@ export function SessionBookingModal({
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Next Steps:</strong> The instructor will review your request and respond within 24 hours. 
-          You'll receive an email notification with their decision.
+          <strong>Next Steps:</strong> The instructor will review your request
+          and respond within 24 hours. You'll receive an email notification with
+          their decision.
         </AlertDescription>
       </Alert>
 
@@ -870,7 +1014,10 @@ export function SessionBookingModal({
         <Button variant="outline" onClick={onClose} className="flex-1">
           Close
         </Button>
-        <Button onClick={() => router.push('/student/bookings')} className="flex-1">
+        <Button
+          onClick={() => router.push("/student/bookings")}
+          className="flex-1"
+        >
           View My Bookings
         </Button>
       </div>
@@ -887,7 +1034,9 @@ export function SessionBookingModal({
               <CreditCard className="h-8 w-8 text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Complete Payment</h3>
-            <p className="text-gray-600">You'll be redirected to Stripe to complete your payment</p>
+            <p className="text-gray-600">
+              You'll be redirected to Stripe to complete your payment
+            </p>
           </div>
 
           {/* Payment Summary */}
@@ -902,11 +1051,15 @@ export function SessionBookingModal({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Session:</span>
-                  <span className="font-medium text-blue-900">{selectedOffering?.title || 'N/A'}</span>
+                  <span className="font-medium text-blue-900">
+                    {selectedOffering?.title || "N/A"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Instructor:</span>
-                  <span className="font-medium text-blue-900">{instructorName}</span>
+                  <span className="font-medium text-blue-900">
+                    {instructorName}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -916,17 +1069,22 @@ export function SessionBookingModal({
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              Your payment is processed securely by Stripe. We never store your payment information.
+              Your payment is processed securely by Stripe. We never store your
+              payment information.
             </AlertDescription>
           </Alert>
 
           {/* Action Buttons */}
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handlePaymentCancel} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handlePaymentCancel}
+              className="flex-1"
+            >
               Cancel
             </Button>
-            <Button 
-              onClick={() => window.location.href = checkoutSession.url}
+            <Button
+              onClick={() => (window.location.href = checkoutSession.url)}
               className="flex-1"
             >
               <CreditCard className="h-4 w-4 mr-2" />
@@ -962,10 +1120,12 @@ export function SessionBookingModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">Payment Successful</span>
+              <span className="font-medium text-green-800">
+                Payment Successful
+              </span>
             </div>
             <p className="text-sm text-green-700">
-              Your payment has been processed and your session is confirmed. 
+              Your payment has been processed and your session is confirmed.
               You'll receive a confirmation email with meeting details.
             </p>
           </div>
@@ -1003,8 +1163,9 @@ export function SessionBookingModal({
       <Alert>
         <Video className="h-4 w-4" />
         <AlertDescription>
-          <strong>Next Steps:</strong> You'll receive an email with the meeting link 15 minutes before your session. 
-          Make sure to test your audio and video beforehand.
+          <strong>Next Steps:</strong> You'll receive an email with the meeting
+          link 15 minutes before your session. Make sure to test your audio and
+          video beforehand.
         </AlertDescription>
       </Alert>
 
@@ -1013,9 +1174,9 @@ export function SessionBookingModal({
         <Button onClick={onClose} className="flex-1">
           Done
         </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => router.push('/student/bookings')} 
+        <Button
+          variant="outline"
+          onClick={() => router.push("/student/bookings")}
           className="flex-1"
         >
           View My Sessions
@@ -1041,8 +1202,8 @@ export function SessionBookingModal({
 
         <div className="mt-6">
           {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && selectedOffering && renderStep2()}
-          {currentStep === 2 && !selectedOffering && renderStep2Submitted()}
+          {currentStep === 2 && createdBooking && renderStep2Submitted()}
+          {currentStep === 2 && !createdBooking && selectedOffering && renderStep2()}
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
         </div>

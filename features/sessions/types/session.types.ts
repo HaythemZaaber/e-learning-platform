@@ -430,6 +430,15 @@ export interface SessionOffering {
   isPublic: boolean;
   requiresApproval: boolean;
   
+  // NEW: Buffer time and minimum notice (for Individual offerings)
+  bufferMinutes?: number; // Minutes between sessions (default: 15)
+  minAdvanceHours?: number; // Minimum hours notice required (default: 24)
+  
+  // NEW: Auto-cancel settings (for Group offerings)
+  autoCancelEnabled?: boolean; // Enable auto-cancel if minimum not met
+  autoCancelHoursBefore?: number; // Hours before session to check (default: 2)
+  autoCancelRefund?: boolean; // Whether to refund on auto-cancel (default: true)
+  
   // Content
   materials: string[];
   prerequisites: string[];
@@ -445,6 +454,9 @@ export interface SessionOffering {
   totalBookings: number;
   totalRevenue: number;
   averageRating: number;
+  
+  // NEW: Relations
+  groupInstances?: GroupOfferingInstance[]; // For GROUP/WORKSHOP offerings
   
   createdAt: Date;
   updatedAt: Date;
@@ -462,13 +474,17 @@ export interface BookingRequest {
   // Booking approach
   bookingMode: BookingMode;
   
-  // Request-based booking
+  // Request-based booking (for INDIVIDUAL offerings)
   preferredDate?: Date;
   preferredTime?: string;
   alternativeDates: Date[];
   
-  // Direct slot booking
+  // Direct slot booking (for INDIVIDUAL offerings)
   timeSlotId?: string;
+  
+  // NEW: For GROUP offerings - link to specific instance
+  groupInstanceId?: string;
+  groupInstance?: GroupOfferingInstance;
   
   // Custom requirements
   customTopic?: string;
@@ -507,6 +523,32 @@ export interface BookingRequest {
   sessionType?: SessionType;
 
   timeSlot?: TimeSlot;
+
+  // Relations populated by API includes
+  offering?: SessionOffering & {
+    instructor?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      profileImage?: string;
+      email?: string;
+    };
+  };
+  student?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImage?: string;
+    email?: string;
+  };
+  liveSession?: {
+    id: string;
+    title?: string;
+    status: SessionStatus;
+    scheduledStart?: Date;
+    scheduledEnd?: Date;
+    meetingLink?: string;
+  };
   
   createdAt: Date;
   updatedAt: Date;
@@ -550,6 +592,135 @@ export interface SessionReservation {
 }
 
 // =============================================================================
+// GROUP OFFERING INSTANCES (Scheduled instances of Group Offerings)
+// =============================================================================
+
+export enum InstanceStatus {
+  SCHEDULED = 'SCHEDULED',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED'
+}
+
+export interface GroupOfferingInstance {
+  id: string;
+  offeringId: string;
+  instructorId: string;
+  
+  // Scheduled date/time (fixed for group sessions)
+  scheduledStart: Date;
+  scheduledEnd: Date;
+  
+  // Enrollment status
+  currentEnrollments: number;
+  maxEnrollments: number;
+  minEnrollments: number;
+  
+  // Status
+  status: InstanceStatus;
+  isPublic: boolean; // Whether visible to students
+  isBookable: boolean; // Whether accepting new enrollments
+  
+  // Auto-cancel tracking
+  autoCancelChecked: boolean; // Whether we've checked for auto-cancel
+  autoCancelAt?: Date; // When to check for auto-cancel
+  
+  // Meeting details (generated when first booking is made)
+  meetingRoomId?: string;
+  meetingLink?: string;
+  
+  // Cancellation info
+  cancelledAt?: Date;
+  cancelReason?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Relations
+  bookings?: BookingRequest[]; // Bookings for this specific instance
+  liveSession?: LiveSession; // The actual session when it starts
+  offering?: SessionOffering; // The template offering
+}
+
+// =============================================================================
+// RECURRING AVAILABILITY RULES
+// =============================================================================
+
+export enum AvailabilityOverrideType {
+  BLOCK = 'BLOCK',
+  MODIFY = 'MODIFY'
+}
+
+export interface RecurringAvailabilityRule {
+  id: string;
+  instructorId: string;
+  
+  // Recurring pattern
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime: string; // HH:MM format
+  endTime: string; // HH:MM format
+  
+  // Date range
+  startDate: Date; // When this rule starts applying
+  endDate?: Date; // When this rule stops applying (null = indefinite)
+  
+  // Settings
+  isActive: boolean;
+  maxSessionsInSlot: number;
+  defaultSlotDuration: number;
+  minAdvanceHours: number; // Minimum notice (24 hours default)
+  maxAdvanceHours?: number; // 30 days default
+  bufferMinutes: number;
+  autoAcceptBookings: boolean;
+  
+  // Pricing overrides
+  priceOverride?: number;
+  currency?: string;
+  
+  // Metadata
+  timezone: string;
+  notes?: string;
+  title?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Relations
+  dateOverrides?: AvailabilityDateOverride[];
+}
+
+// =============================================================================
+// DATE OVERRIDES (Block specific dates or modify specific dates)
+// =============================================================================
+
+export interface AvailabilityDateOverride {
+  id: string;
+  instructorId: string;
+  recurringRuleId?: string;
+  
+  // Override details
+  specificDate: Date; // The date being overridden
+  overrideType: AvailabilityOverrideType; // BLOCK or MODIFY
+  
+  // If MODIFY, these fields apply
+  startTime?: string; // HH:MM format
+  endTime?: string; // HH:MM format
+  isActive?: boolean; // Override active status
+  maxSessionsInSlot?: number;
+  bufferMinutes?: number;
+  
+  // Reason for override
+  reason?: string; // e.g., "Vacation", "Holiday", "Special event"
+  
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Relations
+  recurringRule?: RecurringAvailabilityRule;
+}
+
+// =============================================================================
 // LIVE SESSIONS
 // =============================================================================
 
@@ -560,6 +731,10 @@ export interface LiveSession {
   bookingRequestId?: string;
   offeringId: string;
   instructorId: string;
+  
+  // NEW: For group sessions - link to instance
+  groupInstanceId?: string;
+  groupInstance?: GroupOfferingInstance;
   
   // Flexibility: Course-based OR Custom
   sessionType: LiveSessionType;
@@ -1024,11 +1199,29 @@ export interface StartLiveSessionDto {
   instructorNotes?: string;
 }
 
+export interface StartLiveSessionResponse {
+  success: boolean;
+  message: string;
+  session: LiveSession;
+  callData: {
+    callId: string;
+    callType: string;
+    meetingLink: string;
+    apiKey: string;
+  };
+}
+
 export interface EndLiveSessionDto {
   notes?: string;
   summary?: string;
   recordingUrl?: string;
   sessionArtifacts?: string[];
+}
+
+export interface EndLiveSessionResponse {
+  success: boolean;
+  session: LiveSession;
+  paymentCaptured: boolean;
 }
 
 export interface CancelLiveSessionDto {

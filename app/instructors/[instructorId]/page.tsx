@@ -3,7 +3,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useMemo } from "react";
 import {
   Star,
   Users,
@@ -40,6 +40,8 @@ import {
   Settings,
   Plus,
   DollarSign,
+  CreditCard,
+  CheckCircle2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -75,7 +77,12 @@ import {
   useInstructorAvailability,
 } from "@/features/instructors/hooks/useInstructorProfile";
 import { useInstructorSummaryUpdate } from "@/hooks/useInstructorSummaryUpdate";
-import { useSessionOfferings } from "@/features/sessions/hooks/useLiveSessions";
+import {
+  useSessionOfferings,
+  useCreateBookingRequest,
+} from "@/features/sessions/hooks/useLiveSessions";
+import { useRetryBookingPayment } from "@/features/sessions/hooks/useSessionBooking";
+import { useGroupInstances } from "@/features/sessions/hooks/useGroupInstances";
 import { instructorProfileService } from "@/features/instructors/services/instructorProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow, format } from "date-fns";
@@ -112,6 +119,10 @@ export default function InstructorPage({ params }: InstructorPageProps) {
     useInstructorAvailability(instructorId);
   const { data: offeringsData, isLoading: offeringsLoading } =
     useSessionOfferings({ instructorId });
+  const { data: groupInstancesData, isLoading: groupInstancesLoading } =
+    useGroupInstances(undefined, instructorId);
+  const createBookingRequestMutation = useCreateBookingRequest();
+  const retryPaymentMutation = useRetryBookingPayment();
   const { user, getToken } = useAuth();
 
   // State for dynamic summary updates
@@ -221,7 +232,7 @@ export default function InstructorPage({ params }: InstructorPageProps) {
 
       try {
         setIsLoadingContent(true);
-        const token = await getToken();
+        const token = await getToken().catch(() => null);
         const feed = await storiesReelsService.getInstructorFeed(
           instructorId,
           token || undefined
@@ -264,6 +275,27 @@ export default function InstructorPage({ params }: InstructorPageProps) {
 
     loadContent();
   }, [instructorId, instructorData, getToken]);
+
+  // Memoized values - must be called before any conditional returns (Rules of Hooks)
+  const groupOfferings = useMemo(() => {
+    if (!offeringsData) return [];
+    return offeringsData.filter(
+      (offering) => offering.isActive && offering.sessionType !== "INDIVIDUAL"
+    );
+  }, [offeringsData]);
+
+  const groupInstancesByOffering = useMemo(() => {
+    const instances = Array.isArray(groupInstancesData)
+      ? groupInstancesData
+      : groupInstancesData?.instances || [];
+    return instances.reduce((acc: Record<string, any[]>, instance: any) => {
+      const offeringId = instance.offeringId || instance.offering?.id;
+      if (!offeringId) return acc;
+      if (!acc[offeringId]) acc[offeringId] = [];
+      acc[offeringId].push(instance);
+      return acc;
+    }, {});
+  }, [groupInstancesData]);
 
   // Show skeleton while loading
   if (detailsLoading) {
@@ -343,6 +375,42 @@ export default function InstructorPage({ params }: InstructorPageProps) {
     }
 
     return availableOfferings;
+  };
+
+  const handleJoinGroupInstance = async (instance: any, offering: any) => {
+    if (!user?.id) {
+      toast.error("Please sign in to join a session");
+      return;
+    }
+    if (!instance.isBookable || instance.status === "CANCELLED") {
+      toast.error("This session is not accepting new enrollments");
+      return;
+    }
+    if (instance.currentEnrollments >= instance.maxEnrollments) {
+      toast.error("This session is full");
+      return;
+    }
+
+    try {
+      const payload = {
+        offeringId: offering.id,
+        studentId: user.id,
+        bookingMode: "DIRECT",
+        groupInstanceId: instance.id,
+        offeredPrice: offering.basePrice,
+        currency: offering.currency || "USD",
+        priority: 1,
+        rescheduleCount: 0,
+        alternativeDates: [],
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      } as any;
+
+      await createBookingRequestMutation.mutateAsync(payload);
+      toast.success("Successfully joined the session");
+    } catch (error) {
+      console.error("Join session error:", error);
+      toast.error("Failed to join the session");
+    }
   };
 
   // Helper function to generate calendar data
@@ -843,6 +911,125 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                           </div>
                         ) : availability?.availabilities?.length > 0 ? (
                           <div className="space-y-8">
+                            {groupOfferings.length > 0 && (
+                              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                                  <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-amber-600" />
+                                    Group Sessions & Workshops
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    Join a scheduled group session or workshop
+                                  </p>
+                                </div>
+                                <div className="p-6 space-y-6">
+                                  {groupInstancesLoading ? (
+                                    <div className="flex items-center justify-center py-6">
+                                      <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                                      <span className="ml-2 text-gray-600">
+                                        Loading group sessions...
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    groupOfferings.map((offering) => {
+                                      const instances =
+                                        groupInstancesByOffering[offering.id] ||
+                                        [];
+                                      return (
+                                        <div
+                                          key={offering.id}
+                                          className="border border-gray-200 rounded-xl p-4"
+                                        >
+                                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                            <div>
+                                              <h5 className="font-semibold text-gray-900">
+                                                {offering.title}
+                                              </h5>
+                                              <div className="text-sm text-gray-600">
+                                                {offering.duration} mins • $
+                                                {offering.basePrice} per seat
+                                              </div>
+                                            </div>
+                                            <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                                              {offering.sessionType
+                                                .replace("_", " ")
+                                                .toLowerCase()}
+                                            </Badge>
+                                          </div>
+
+                                          {instances.length === 0 ? (
+                                            <div className="text-sm text-gray-500 mt-4">
+                                              No upcoming instances scheduled.
+                                            </div>
+                                          ) : (
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                              {instances.map(
+                                                (instance: any) => {
+                                                  const seatsLeft =
+                                                    instance.maxEnrollments -
+                                                    instance.currentEnrollments;
+                                                  const isFull = seatsLeft <= 0;
+                                                  const isBookable =
+                                                    instance.isBookable &&
+                                                    instance.status !==
+                                                      "CANCELLED";
+                                                  return (
+                                                    <div
+                                                      key={instance.id}
+                                                      className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
+                                                    >
+                                                      <div className="space-y-1">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                          {format(
+                                                            new Date(
+                                                              instance.scheduledStart
+                                                            ),
+                                                            "MMM d, yyyy h:mm a"
+                                                          )}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">
+                                                          {seatsLeft} seats left
+                                                          •{" "}
+                                                          {
+                                                            instance.currentEnrollments
+                                                          }
+                                                          /
+                                                          {
+                                                            instance.maxEnrollments
+                                                          }{" "}
+                                                          enrolled
+                                                        </div>
+                                                      </div>
+                                                      <Button
+                                                        size="sm"
+                                                        disabled={
+                                                          !isBookable || isFull
+                                                        }
+                                                        onClick={() =>
+                                                          handleJoinGroupInstance(
+                                                            instance,
+                                                            offering
+                                                          )
+                                                        }
+                                                      >
+                                                        {isFull
+                                                          ? "Full"
+                                                          : "Join"}
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                }
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Step 1: Choose Your Date */}
                             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -1083,11 +1270,37 @@ export default function InstructorPage({ params }: InstructorPageProps) {
                                               }
                                             ) || [];
 
+                                          const studentPendingBooking = (slot as any).bookingRequests?.find(
+                                            (br: any) =>
+                                              br.studentId === user?.id &&
+                                              (br.paymentStatus === "PENDING" || br.paymentStatus === "EXPIRED")
+                                          );
+                                          const studentPaidBooking = (slot as any).bookingRequests?.find(
+                                            (br: any) =>
+                                              br.studentId === user?.id &&
+                                              br.paymentStatus === "PAID"
+                                          );
+
                                           return (
                                             <div
                                               key={slot.id}
-                                              className="group relative bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-6 hover:border-blue-300 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
+                                              className={`group relative bg-gradient-to-br ${
+                                                studentPaidBooking
+                                                  ? "from-green-50 to-emerald-50 border-2 border-green-300"
+                                                  : studentPendingBooking
+                                                    ? "from-amber-50 to-orange-50 border-2 border-amber-300"
+                                                    : "from-white to-gray-50 border-2 border-gray-200"
+                                              } rounded-2xl p-6 hover:border-blue-300 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden`}
                                               onClick={() => {
+                                                if (studentPaidBooking) return;
+                                                if (studentPendingBooking) {
+                                                  retryPaymentMutation.mutate({
+                                                    bookingId: studentPendingBooking.id,
+                                                    returnUrl: `${window.location.origin}/payment/success`,
+                                                    cancelUrl: window.location.href,
+                                                  });
+                                                  return;
+                                                }
                                                 setSelectedSlot(slot);
                                                 handleBookingCardClick(slot);
                                               }}
@@ -1097,17 +1310,29 @@ export default function InstructorPage({ params }: InstructorPageProps) {
 
                                               {/* Status Badge */}
                                               <div className="absolute top-4 right-4 z-10">
-                                                <Badge
-                                                  className={`${
-                                                    availabilityData?.autoAcceptBookings
-                                                      ? "bg-green-100 text-green-700 border-green-200"
-                                                      : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                                                  }`}
-                                                >
-                                                  {availabilityData?.autoAcceptBookings
-                                                    ? "Instant Book"
-                                                    : "Approval Needed"}
-                                                </Badge>
+                                                {studentPaidBooking ? (
+                                                  <Badge className="bg-green-100 text-green-700 border-green-200">
+                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                    Booked
+                                                  </Badge>
+                                                ) : studentPendingBooking ? (
+                                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                                                    <CreditCard className="h-3 w-3 mr-1" />
+                                                    Payment Pending
+                                                  </Badge>
+                                                ) : (
+                                                  <Badge
+                                                    className={`${
+                                                      availabilityData?.autoAcceptBookings
+                                                        ? "bg-green-100 text-green-700 border-green-200"
+                                                        : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                                                    }`}
+                                                  >
+                                                    {availabilityData?.autoAcceptBookings
+                                                      ? "Instant Book"
+                                                      : "Approval Needed"}
+                                                  </Badge>
+                                                )}
                                               </div>
 
                                               <div className="relative z-10 space-y-4">
@@ -1215,20 +1440,45 @@ export default function InstructorPage({ params }: InstructorPageProps) {
 
                                               {/* Book Button */}
                                               <Button
-                                                className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg group-hover:shadow-xl transition-all duration-300"
+                                                className={`w-full mt-6 ${
+                                                  studentPaidBooking
+                                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                                    : studentPendingBooking
+                                                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                                      : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                                                } shadow-lg group-hover:shadow-xl transition-all duration-300`}
                                                 size="lg"
                                                 disabled={
-                                                  compatibleOfferings.length ===
-                                                  0
+                                                  studentPaidBooking ||
+                                                  (!studentPendingBooking && compatibleOfferings.length === 0) ||
+                                                  retryPaymentMutation.isPending
                                                 }
                                                 onClick={(e) => {
                                                   e.stopPropagation();
+                                                  if (studentPaidBooking) return;
+                                                  if (studentPendingBooking) {
+                                                    retryPaymentMutation.mutate({
+                                                      bookingId: studentPendingBooking.id,
+                                                      returnUrl: `${window.location.origin}/payment/success`,
+                                                      cancelUrl: window.location.href,
+                                                    });
+                                                    return;
+                                                  }
                                                   setSelectedSlot(slot);
                                                   handleBookingCardClick(slot);
                                                 }}
                                               >
-                                                {compatibleOfferings.length ===
-                                                0 ? (
+                                                {studentPaidBooking ? (
+                                                  <>
+                                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                                    Already Booked
+                                                  </>
+                                                ) : studentPendingBooking ? (
+                                                  <>
+                                                    <CreditCard className="h-4 w-4 mr-2" />
+                                                    {retryPaymentMutation.isPending ? "Redirecting..." : "Complete Payment"}
+                                                  </>
+                                                ) : compatibleOfferings.length === 0 ? (
                                                   <>
                                                     <AlertCircle className="h-4 w-4 mr-2" />
                                                     No Offerings Available

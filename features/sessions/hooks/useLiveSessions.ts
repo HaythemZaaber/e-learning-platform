@@ -42,7 +42,9 @@ import {
   AttendanceStatus,
   LiveSessionType,
   StartLiveSessionDto,
+  StartLiveSessionResponse,
   EndLiveSessionDto,
+  EndLiveSessionResponse,
   CancelLiveSessionDto,
   RescheduleLiveSessionDto,
   LiveSessionFilterDto,
@@ -229,9 +231,11 @@ export const useStartLiveSession = () => {
       const api = getAuthenticatedLiveSessionsApi(token);
       return api.startLiveSession(id, startData);
     },
-    onSuccess: (data) => {
-      // Update cache
-      queryClient.setQueryData(liveSessionsKeys.liveSession(data.id), data);
+    onSuccess: (data: StartLiveSessionResponse) => {
+      // Update cache with session data
+      if (data.session) {
+        queryClient.setQueryData(liveSessionsKeys.liveSession(data.session.id), data.session);
+      }
       // Invalidate lists and stats
       queryClient.invalidateQueries({
         queryKey: liveSessionsKeys.liveSessions(),
@@ -263,10 +267,10 @@ export const useEndLiveSession = () => {
       const api = getAuthenticatedLiveSessionsApi(token);
       return api.endLiveSession(id, endData);
     },
-    onSuccess: (data) => {
-      // Update cache
-      queryClient.setQueryData(liveSessionsKeys.liveSession(data.id), data);
-      // Invalidate lists and stats
+    onSuccess: (data: EndLiveSessionResponse) => {
+      if (data.session) {
+        queryClient.setQueryData(liveSessionsKeys.liveSession(data.session.id), data.session);
+      }
       queryClient.invalidateQueries({
         queryKey: liveSessionsKeys.liveSessions(),
       });
@@ -869,22 +873,18 @@ export const useSessionOfferings = (filters?: {
   category?: string;
   search?: string;
 }) => {
-  const { getToken, isAuthenticated } = useAuth();
-  
+  const { getToken } = useAuth();
 
-  
   return useQuery({
     queryKey: liveSessionsKeys.instructorOfferings(filters?.instructorId, filters),
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-      const api = getAuthenticatedLiveSessionsApi(token);
+      // Offerings endpoint is public — token is optional
+      const token = await getToken().catch(() => null);
+      const api = getAuthenticatedLiveSessionsApi(token || '');
       return api.getSessionOfferings(filters);
     },
-    enabled: !!filters?.instructorId && isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!filters?.instructorId,
+    staleTime: 5 * 60 * 1000,
   });
 };
 

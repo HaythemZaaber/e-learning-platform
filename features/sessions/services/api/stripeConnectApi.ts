@@ -1,4 +1,4 @@
-import { ApiError } from './sessionBookingApi';
+import { ApiError } from "./sessionBookingApi";
 
 // =============================================================================
 // STRIPE CONNECT TYPES
@@ -19,7 +19,7 @@ export interface StripeConnectAccount {
 export interface CreateStripeConnectAccountRequest {
   country: string;
   email: string;
-  businessType: 'individual' | 'company';
+  businessType: "individual" | "company";
   individual?: {
     firstName: string;
     lastName: string;
@@ -73,7 +73,7 @@ export class StripeConnectApiService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
   }
 
   // =============================================================================
@@ -81,19 +81,50 @@ export class StripeConnectApiService {
   // =============================================================================
 
   private convertToStripeFormat(data: any): any {
-    if (typeof data !== 'object' || data === null) {
+    if (typeof data !== "object" || data === null) {
       return data;
     }
 
     if (Array.isArray(data)) {
-      return data.map(item => this.convertToStripeFormat(item));
+      return data.map((item) => this.convertToStripeFormat(item));
     }
 
     const converted: any = {};
     for (const [key, value] of Object.entries(data)) {
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      converted[snakeKey] = this.convertToStripeFormat(value);
-      
+      // Skip undefined or null values
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      // Convert key to snake_case
+      const snakeKey = key.replace(
+        /[A-Z]/g,
+        (letter) => `_${letter.toLowerCase()}`
+      );
+
+      // Handle objects
+      if (typeof value === "object" && !Array.isArray(value)) {
+        const cleanedValue = this.convertToStripeFormat(value);
+
+        // Check if the cleaned object is effectively empty
+        // (no properties or all properties are empty strings)
+        const hasNonEmptyValues = Object.values(cleanedValue).some(
+          (val) => val !== "" && val !== null && val !== undefined
+        );
+
+        // Only include if the cleaned object has meaningful data
+        if (Object.keys(cleanedValue).length === 0 || !hasNonEmptyValues) {
+          continue;
+        }
+        converted[snakeKey] = cleanedValue;
+      } else {
+        // Skip empty strings for optional fields
+        if (value === "") {
+          continue;
+        }
+        converted[snakeKey] = value;
+      }
+
       // Debug logging for key conversions
       if (key !== snakeKey) {
         console.log(`Converting key: ${key} -> ${snakeKey}`);
@@ -107,10 +138,10 @@ export class StripeConnectApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -118,7 +149,7 @@ export class StripeConnectApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new ApiError(
@@ -134,7 +165,7 @@ export class StripeConnectApiService {
         throw error;
       }
       throw new ApiError(
-        error instanceof Error ? error.message : 'Network error',
+        error instanceof Error ? error.message : "Network error",
         0
       );
     }
@@ -148,38 +179,124 @@ export class StripeConnectApiService {
     accountData: CreateStripeConnectAccountRequest,
     token: string
   ): Promise<StripeConnectAccountResponse> {
-    // Convert camelCase to snake_case for Stripe API
-    const stripeData = this.convertToStripeFormat(accountData);
-    
+    // Deep clone to avoid mutating original data
+    const cleanedData = JSON.parse(JSON.stringify(accountData));
+
+    // Remove empty company object if businessType is individual
+    if (cleanedData.businessType === "individual" && cleanedData.company) {
+      delete cleanedData.company;
+    }
+    // Remove empty individual object if businessType is company
+    if (cleanedData.businessType === "company" && cleanedData.individual) {
+      delete cleanedData.individual;
+    }
+
+    // Clean up empty nested objects in individual
+    if (cleanedData.individual) {
+      if (cleanedData.individual.address) {
+        const address = cleanedData.individual.address;
+        const hasData =
+          address.line1 || address.city || address.state || address.postalCode;
+        if (!hasData) {
+          delete cleanedData.individual.address;
+        } else {
+          Object.keys(address).forEach((key) => {
+            if (
+              address[key] === "" ||
+              address[key] === null ||
+              address[key] === undefined
+            ) {
+              delete address[key];
+            }
+          });
+          if (Object.keys(address).length === 0) {
+            delete cleanedData.individual.address;
+          }
+        }
+      }
+
+      if (
+        cleanedData.individual.dob &&
+        cleanedData.individual.dob.day === 1 &&
+        cleanedData.individual.dob.month === 1 &&
+        cleanedData.individual.dob.year === 1990
+      ) {
+        delete cleanedData.individual.dob;
+      }
+
+      if (
+        cleanedData.individual.phone === "" ||
+        cleanedData.individual.phone === null
+      ) {
+        delete cleanedData.individual.phone;
+      }
+    }
+
+    // Ensure required top-level fields are present
+    if (
+      !cleanedData.country ||
+      !cleanedData.email ||
+      !cleanedData.businessType
+    ) {
+      throw new ApiError(
+        "Missing required fields: country, email, and businessType are required",
+        400
+      );
+    }
+
     // Debug logging
-    console.log('API Service: Original data:', accountData);
-    console.log('API Service: Converted data:', stripeData);
-    
-    return this.request<StripeConnectAccountResponse>('/payments/connect/accounts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(stripeData),
-    });
+    console.log("=== FRONTEND API SERVICE DEBUG ===");
+    console.log("API Service: Original data:", accountData);
+    console.log("API Service: Cleaned data:", cleanedData);
+    console.log(
+      "API Service: Final payload:",
+      JSON.stringify(cleanedData, null, 2)
+    );
+    console.log("API Service: Token present:", !!token);
+    console.log("==================================");
+
+    const requestBody = JSON.stringify(cleanedData);
+    console.log("Request body string:", requestBody);
+    console.log("Request body length:", requestBody.length);
+
+    return this.request<StripeConnectAccountResponse>(
+      "/payments/connect/accounts",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // Explicitly set
+        },
+        body: requestBody,
+      }
+    );
+  }
+  async getStripeConnectAccount(
+    token: string
+  ): Promise<StripeConnectAccountResponse> {
+    return this.request<StripeConnectAccountResponse>(
+      "/payments/connect/accounts",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   }
 
-  async getStripeConnectAccount(token: string): Promise<StripeConnectAccountResponse> {
-    return this.request<StripeConnectAccountResponse>('/payments/connect/accounts', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-  }
-
-  async createStripeConnectAccountLink(token: string): Promise<StripeConnectAccountLinkResponse> {
-    return this.request<StripeConnectAccountLinkResponse>('/payments/connect/accounts/links', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+  async createStripeConnectAccountLink(
+    token: string
+  ): Promise<StripeConnectAccountLinkResponse> {
+    return this.request<StripeConnectAccountLinkResponse>(
+      "/payments/connect/accounts/links",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   }
 
   // =============================================================================
@@ -211,10 +328,10 @@ export class StripeConnectApiService {
     };
     error?: string;
   }> {
-    return this.request('/payments/intents', {
-      method: 'POST',
+    return this.request("/payments/intents", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(bookingData),
     });
@@ -234,10 +351,10 @@ export class StripeConnectApiService {
     };
     error?: string;
   }> {
-    return this.request('/payments/confirm', {
-      method: 'POST',
+    return this.request("/payments/confirm", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         paymentIntentId,
@@ -261,9 +378,9 @@ export class StripeConnectApiService {
     error?: string;
   }> {
     return this.request(`/payments/intents/${paymentIntentId}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -286,10 +403,10 @@ export class StripeConnectApiService {
     }>;
     error?: string;
   }> {
-    return this.request('/payments/methods', {
-      method: 'GET',
+    return this.request("/payments/methods", {
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -305,10 +422,10 @@ export class StripeConnectApiService {
     };
     error?: string;
   }> {
-    return this.request('/payments/methods', {
-      method: 'POST',
+    return this.request("/payments/methods", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ paymentMethodId }),
     });
@@ -322,9 +439,9 @@ export class StripeConnectApiService {
     error?: string;
   }> {
     return this.request(`/payments/methods/${paymentMethodId}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -363,9 +480,9 @@ export class StripeConnectApiService {
     });
 
     return this.request(`/payments/history?${params.toString()}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -390,10 +507,10 @@ export class StripeConnectApiService {
     };
     error?: string;
   }> {
-    return this.request('/payments/refunds', {
-      method: 'POST',
+    return this.request("/payments/refunds", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         paymentIntentId,
@@ -419,9 +536,9 @@ export class StripeConnectApiService {
     error?: string;
   }> {
     return this.request(`/payments/refunds/${refundId}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -444,10 +561,10 @@ export class StripeConnectApiService {
     };
     error?: string;
   }> {
-    return this.request('/payments/transfers', {
-      method: 'POST',
+    return this.request("/payments/transfers", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         sessionId,
@@ -487,9 +604,9 @@ export class StripeConnectApiService {
     });
 
     return this.request(`/payments/earnings?${params.toString()}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }
@@ -526,9 +643,9 @@ export class StripeConnectApiService {
     });
 
     return this.request(`/payments/spending?${params.toString()}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
   }

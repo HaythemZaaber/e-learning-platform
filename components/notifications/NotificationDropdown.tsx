@@ -71,6 +71,10 @@ const getNotificationIcon = (type: NotificationType) => {
     case NotificationType.SESSION_REMINDER:
     case NotificationType.SESSION_STARTING:
     case NotificationType.SESSION_COMPLETED:
+    case NotificationType.SESSION_LIVE:
+    case NotificationType.SESSION_ENDED:
+    case NotificationType.SESSION_CANCELLED:
+    case NotificationType.SESSION_RESCHEDULED:
       return Clock;
     case NotificationType.PAYMENT_RECEIVED:
     case NotificationType.PAYOUT_PROCESSED:
@@ -104,12 +108,12 @@ export const NotificationDropdown = ({
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Load notifications when dropdown opens
+  // Load notifications when dropdown opens (always fetch fresh)
   useEffect(() => {
-    if (isOpen && notifications.length === 0) {
+    if (isOpen) {
       fetchNotifications(1, 10);
     }
-  }, [isOpen, notifications.length, fetchNotifications]);
+  }, [isOpen, fetchNotifications]);
 
   const recentNotifications = notifications.slice(0, maxItems);
   const hasMore = notifications.length > maxItems;

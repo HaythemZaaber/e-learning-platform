@@ -70,7 +70,9 @@ export const useSessionBookings = (filters: SessionBookingFilterDto = {}) => {
       return api.getSessionBookings(filters, token);
     },
     enabled: (!!filters.instructorId || !!filters.studentId) && isAuthenticated,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 1 * 60 * 1000,
+    // Poll every 8s for students to detect when sessions go live (instructor starts = IN_PROGRESS)
+    refetchInterval: filters.studentId ? 8 * 1000 : false,
   });
 };
 
@@ -112,11 +114,6 @@ export const useCreateSessionBooking = () => {
       return api.createSessionBooking(bookingData, token);
     },
     onSuccess: (data) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({
-        queryKey: sessionBookingKeys.lists(),
-      });
-      // Invalidate all instructor bookings since we don't have the instructor ID in the response
       queryClient.invalidateQueries({
         queryKey: sessionBookingKeys.lists(),
       });
@@ -125,7 +122,11 @@ export const useCreateSessionBooking = () => {
       });
       
       if (data.success) {
-        toast.success('Session booking created successfully');
+        if ((data as any).existingBooking) {
+          toast.info((data as any).message || 'You already have a booking for this slot. Redirecting to payment...');
+        } else {
+          toast.success('Session booking created successfully');
+        }
       } else {
         toast.error(data.error || 'Failed to create session booking');
       }
@@ -399,6 +400,44 @@ export const useRescheduleSession = () => {
   });
 };
 
+/**
+ * Retry / resume payment for an unpaid booking
+ */
+export const useRetryBookingPayment = () => {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      returnUrl,
+      cancelUrl,
+    }: {
+      bookingId: string;
+      returnUrl: string;
+      cancelUrl: string;
+    }) => {
+      const token = await getToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      const api = getAuthenticatedSessionBookingApi(token);
+      return api.retryBookingPayment(bookingId, returnUrl, cancelUrl, token);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: sessionBookingKeys.lists() });
+      if (data.checkoutSession?.url) {
+        window.location.href = data.checkoutSession.url;
+      } else {
+        toast.success('Payment session created — redirecting...');
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create payment session');
+    },
+  });
+};
+
 // =============================================================================
 // SESSION MANAGEMENT HOOKS
 // =============================================================================
@@ -461,10 +500,9 @@ export const useJoinSession = () => {
       const api = getAuthenticatedSessionBookingApi(token);
       return api.joinSession(sessionId, token);
     },
-    onSuccess: (data) => {
-      // Invalidate participants query
+    onSuccess: (data, sessionId) => {
       queryClient.invalidateQueries({
-        queryKey: sessionBookingKeys.participants(data.meetingLink.split('/').pop() || ''),
+        queryKey: sessionBookingKeys.participants(sessionId || data.session?.id || ''),
       });
       
       if (data.success) {

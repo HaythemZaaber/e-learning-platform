@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { toast } from "sonner";
 import {
   Notification,
   NotificationType,
@@ -205,7 +206,7 @@ export const useNotificationStore = create<NotificationState>()(
                 // Convert WebSocket notification to our Notification type
                 const newNotification: Notification = {
                   id: notification.id || `ws_${Date.now()}_${Math.random()}`,
-                  userId: "", // Will be set by the backend
+                  userId: "",
                   type: notification.type,
                   title: notification.title,
                   message: notification.message,
@@ -218,6 +219,32 @@ export const useNotificationStore = create<NotificationState>()(
                 };
 
                 get().addNotification(newNotification);
+
+                // Show a sonner toast so the user sees the notification immediately
+                const isHighPriority =
+                  notification.priority === "HIGH" ||
+                  notification.type === NotificationType.SESSION_LIVE ||
+                  notification.type === NotificationType.SESSION_STARTING;
+
+                if (isHighPriority) {
+                  toast.info(notification.title, {
+                    description: notification.message,
+                    duration: 8000,
+                    action: notification.actionUrl
+                      ? {
+                          label: "Open",
+                          onClick: () => {
+                            window.location.href = notification.actionUrl!;
+                          },
+                        }
+                      : undefined,
+                  });
+                } else {
+                  toast(notification.title, {
+                    description: notification.message,
+                    duration: 5000,
+                  });
+                }
               }
             );
 

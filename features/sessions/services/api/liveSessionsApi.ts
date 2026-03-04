@@ -37,7 +37,9 @@ import {
   LiveSessionType,
   SessionMode,
   StartLiveSessionDto,
+  StartLiveSessionResponse,
   EndLiveSessionDto,
+  EndLiveSessionResponse,
   CancelLiveSessionDto,
   RescheduleLiveSessionDto,
   LiveSessionFilterDto,
@@ -471,12 +473,12 @@ class LiveSessionsApiService {
     return this.http.patch<LiveSession>(`/live-sessions/${id}`, updates, this.token);
   }
 
-  async startLiveSession(id: string, startData?: StartLiveSessionDto): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/start`, startData, this.token);
+  async startLiveSession(id: string, startData?: StartLiveSessionDto): Promise<StartLiveSessionResponse> {
+    return this.http.patch<StartLiveSessionResponse>(`/live-sessions/${id}/start`, startData, this.token);
   }
 
-  async endLiveSession(id: string, endData?: EndLiveSessionDto): Promise<LiveSession> {
-    return this.http.patch<LiveSession>(`/live-sessions/${id}/end`, endData, this.token);
+  async endLiveSession(id: string, endData?: EndLiveSessionDto): Promise<EndLiveSessionResponse> {
+    return this.http.patch<EndLiveSessionResponse>(`/live-sessions/${id}/end`, endData, this.token);
   }
 
   async cancelLiveSession(id: string, cancelData?: CancelLiveSessionDto): Promise<LiveSession> {

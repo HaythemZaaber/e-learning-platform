@@ -6,9 +6,9 @@ import {
   useStudentBookings, 
   useCancelSessionBooking,
   useMeetingInfo,
-  useJoinSession,
   useLeaveSession,
-  useRescheduleSession
+  useRescheduleSession,
+  useRetryBookingPayment,
 } from "../../hooks/useSessionBooking";
 import { BookingStatus, SessionStatus } from "../../types/session.types";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow, isBefore, isAfter, addMinutes, differenceInMinutes, differenceInHours, startOfDay, endOfDay, isToday, isTomorrow, isPast, isFuture } from "date-fns";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface StudentBookingDashboardProps {
   studentId: string;
@@ -124,6 +125,7 @@ interface FilterState {
 
 export function StudentBookingDashboard({ studentId }: StudentBookingDashboardProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -147,9 +149,9 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
 
   // Mutations
   const cancelBookingMutation = useCancelSessionBooking();
-  const joinSessionMutation = useJoinSession();
   const leaveSessionMutation = useLeaveSession();
   const rescheduleSessionMutation = useRescheduleSession();
+  const retryPaymentMutation = useRetryBookingPayment();
 
   // Auto-refresh every 30 seconds for live sessions
   useEffect(() => {
@@ -261,57 +263,84 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
 
   // Group bookings by status for stats
   const bookingStats = useMemo(() => {
-    if (!bookings) return {
+    const defaultStats = {
       total: 0,
       pending: 0,
       accepted: 0,
       completed: 0,
       cancelled: 0,
       rejected: 0,
+      expired: 0,
       totalSpent: 0,
       upcomingSessions: 0,
-      sessionsTaken: 0
+      liveSessions: 0,
     };
 
-    const stats = bookings.reduce((acc, booking) => {
-      acc.total++;
-      acc[booking.status.toLowerCase() as keyof typeof acc]++;
-      
-      if (booking.status === BookingStatus.COMPLETED) {
-        acc.totalSpent += booking.finalPrice || booking.offeredPrice || 0;
-        acc.sessionsTaken++;
-      }
-      
-      if (booking.status === BookingStatus.ACCEPTED && 
-          booking.timeSlot && 
-          isFuture(new Date(booking.timeSlot.startTime))) {
-        acc.upcomingSessions++;
-      }
-      
-      return acc;
-    }, {
-      total: 0,
-      pending: 0,
-      accepted: 0,
-      completed: 0,
-      cancelled: 0,
-      rejected: 0,
-      totalSpent: 0,
-      upcomingSessions: 0,
-      sessionsTaken: 0
-    });
+    if (!bookings || !Array.isArray(bookings) || bookings.length === 0) return defaultStats;
 
-    return stats;
+    return bookings.reduce((acc, booking) => {
+      const status = (booking.status || '').toUpperCase();
+      acc.total++;
+
+      // Count per status (case-insensitive to handle any backend casing)
+      if (status === BookingStatus.PENDING) {
+        acc.pending++;
+      } else if (status === BookingStatus.ACCEPTED) {
+        acc.accepted++;
+      } else if (status === BookingStatus.COMPLETED) {
+        acc.completed++;
+        acc.totalSpent += Number(booking.finalPrice) || Number(booking.offeredPrice) || 0;
+      } else if (status === BookingStatus.CANCELLED) {
+        acc.cancelled++;
+      } else if (status === BookingStatus.REJECTED) {
+        acc.rejected++;
+      } else if (status === BookingStatus.EXPIRED) {
+        acc.expired++;
+      }
+
+      // Count upcoming: accepted bookings with a future time slot
+      if (status === BookingStatus.ACCEPTED && booking.timeSlot) {
+        try {
+          const startTime = new Date(booking.timeSlot.startTime);
+          if (isFuture(startTime)) {
+            acc.upcomingSessions++;
+          }
+        } catch {
+          // Invalid date — skip
+        }
+      }
+
+      // Count currently live sessions
+      if (
+        status === BookingStatus.ACCEPTED &&
+        booking.liveSession?.status === SessionStatus.IN_PROGRESS
+      ) {
+        acc.liveSessions++;
+      }
+
+      return acc;
+    }, { ...defaultStats });
   }, [bookings]);
 
-  // Get urgent notifications
+  // Get urgent notifications (includes live sessions - works even without WebSocket)
   const urgentNotifications = useMemo(() => {
     if (!bookings) return [];
     
-    const notifications = [];
+    const notifications: Array<{ type: string; booking: any; message: string; urgent: boolean }> = [];
     const now = new Date();
     
     bookings.forEach(booking => {
+      // Session is LIVE - most important, show first
+      if (booking.status === BookingStatus.ACCEPTED && booking.liveSession?.status === SessionStatus.IN_PROGRESS) {
+        notifications.unshift({
+          type: 'session_live',
+          booking,
+          message: 'Your session is live! Join now to participate.',
+          urgent: true
+        });
+        return;
+      }
+      
       if (booking.status === BookingStatus.ACCEPTED && booking.timeSlot) {
         const sessionTime = new Date(booking.timeSlot.startTime);
         const minutesUntil = differenceInMinutes(sessionTime, now);
@@ -447,24 +476,12 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
     }
   };
 
-  const handleJoinSession = async (sessionId: string) => {
-    try {
-      const result = await joinSessionMutation.mutateAsync(sessionId);
-      if (result.success && result.meetingLink) {
-        window.open(result.meetingLink, '_blank');
-        toast.success("Joining session...", {
-          description: "Opening meeting link in new tab"
-        });
-      } else {
-        toast.error("Unable to join session", {
-          description: result.error || "Please contact support"
-        });
-      }
-    } catch (error: any) {
-      toast.error("Failed to join session", {
-        description: error.message || "Please try again"
-      });
-    }
+  const handleJoinSession = (sessionId: string) => {
+    toast.success("Joining session...", {
+      description: "Connecting you to the live session"
+    });
+    // Navigate to GetStream video call page - same experience as instructor
+    router.push(`/sessions/${sessionId}/video-call`);
   };
 
   const handleReschedule = (booking: any) => {
@@ -472,11 +489,11 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
     setIsRescheduleModalOpen(true);
   };
 
-  const copyMeetingLink = (booking: any) => {
-    if (booking.liveSession?.meetingLink) {
-      navigator.clipboard.writeText(booking.liveSession.meetingLink);
-      toast.success("Meeting link copied to clipboard");
-    }
+  const copyJoinLink = (sessionId: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const joinUrl = `${baseUrl}/sessions/${sessionId}/video-call`;
+    navigator.clipboard.writeText(joinUrl);
+    toast.success("Join link copied to clipboard");
   };
 
   // Status badge components
@@ -507,6 +524,11 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
         icon: XCircle, 
         label: "Cancelled" 
       },
+      [BookingStatus.EXPIRED]: { 
+        className: "border-orange-200 bg-orange-50 text-orange-700", 
+        icon: Clock, 
+        label: "Expired" 
+      },
     };
 
     const variant = variants[status];
@@ -527,6 +549,11 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
         className: "border-blue-200 bg-blue-50 text-blue-700", 
         icon: Calendar, 
         label: "Scheduled" 
+      },
+      [SessionStatus.CONFIRMED]: { 
+        className: "border-teal-200 bg-teal-50 text-teal-700", 
+        icon: CheckCircle, 
+        label: "Confirmed" 
       },
       [SessionStatus.IN_PROGRESS]: { 
         className: "border-green-200 bg-green-50 text-green-700 animate-pulse", 
@@ -563,6 +590,9 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
       PAID: { className: "border-green-200 bg-green-50 text-green-700", label: "Paid" },
       FAILED: { className: "border-red-200 bg-red-50 text-red-700", label: "Payment Failed" },
       REFUNDED: { className: "border-gray-200 bg-gray-50 text-gray-600", label: "Refunded" },
+      EXPIRED: { className: "border-orange-200 bg-orange-50 text-orange-700", label: "Payment Expired" },
+      CANCELED: { className: "border-gray-200 bg-gray-50 text-gray-600", label: "Cancelled" },
+      FREE: { className: "border-blue-200 bg-blue-50 text-blue-700", label: "Free" },
     };
 
     const variant = variants[paymentStatus as keyof typeof variants];
@@ -873,6 +903,26 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
                 Details
               </Button>
 
+              {/* Complete Payment button for unpaid bookings */}
+              {(booking.paymentStatus === "PENDING" || booking.paymentStatus === "EXPIRED") &&
+                booking.status !== "REJECTED" && booking.status !== "CANCELLED" && (
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  disabled={retryPaymentMutation.isPending}
+                  onClick={() =>
+                    retryPaymentMutation.mutate({
+                      bookingId: booking.id,
+                      returnUrl: `${window.location.origin}/payment/success`,
+                      cancelUrl: `${window.location.origin}/student/sessions`,
+                    })
+                  }
+                >
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  {retryPaymentMutation.isPending ? "Redirecting..." : "Complete Payment"}
+                </Button>
+              )}
+
               {/* Join session button */}
               {canJoin && (
                 <Button
@@ -881,13 +931,8 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
                     ? "bg-green-600 hover:bg-green-700" 
                     : ""}
                   onClick={() => handleJoinSession(booking.liveSession.id)}
-                  disabled={joinSessionMutation.isPending}
                 >
-                  {joinSessionMutation.isPending ? (
-                    <LoadingSpinner size="sm" className="mr-1" />
-                  ) : (
-                    <Video className="h-4 w-4 mr-1" />
-                  )}
+                  <Video className="h-4 w-4 mr-1" />
                   {booking.liveSession?.status === SessionStatus.IN_PROGRESS ? "Join Live" : "Join Session"}
                 </Button>
               )}
@@ -900,10 +945,10 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {booking.liveSession?.meetingLink && (
-                    <DropdownMenuItem onClick={() => copyMeetingLink(booking)}>
+                  {canJoin && booking.liveSession && (
+                    <DropdownMenuItem onClick={() => copyJoinLink(booking.liveSession.id)}>
                       <Copy className="h-4 w-4 mr-2" />
-                      Copy Meeting Link
+                      Copy Join Link
                     </DropdownMenuItem>
                   )}
                   
@@ -1020,7 +1065,7 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
                   <Bell className={`h-4 w-4 ${notification.urgent ? 'text-red-600' : 'text-amber-600'}`} />
                   <AlertDescription className={notification.urgent ? 'text-red-800' : 'text-amber-800'}>
                     <strong>{notification.booking.offering?.title}:</strong> {notification.message}
-                    {notification.type === 'session_starting' && canJoinSession(notification.booking) && (
+                    {(notification.type === 'session_live' || canJoinSession(notification.booking)) && (
                       <Button 
                         size="sm" 
                         className="ml-2"
@@ -1039,20 +1084,32 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
         {/* Stats summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{bookingStats.upcomingSessions}</div>
-            <div className="text-sm text-blue-700">Upcoming</div>
+            <div className="text-2xl font-bold text-blue-600">{bookingStats.total}</div>
+            <div className="text-sm text-blue-700">Total Sessions</div>
           </div>
           <div className="bg-green-50 p-3 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{bookingStats.sessionsTaken}</div>
-            <div className="text-sm text-green-700">Completed</div>
+            <div className="text-2xl font-bold text-green-600">
+              {bookingStats.liveSessions > 0
+                ? bookingStats.liveSessions
+                : bookingStats.upcomingSessions > 0
+                ? bookingStats.upcomingSessions
+                : bookingStats.accepted}
+            </div>
+            <div className="text-sm text-green-700">
+              {bookingStats.liveSessions > 0
+                ? "Live Now"
+                : bookingStats.upcomingSessions > 0
+                ? "Upcoming"
+                : "Accepted"}
+            </div>
           </div>
           <div className="bg-amber-50 p-3 rounded-lg">
             <div className="text-2xl font-bold text-amber-600">{bookingStats.pending}</div>
             <div className="text-sm text-amber-700">Pending</div>
           </div>
           <div className="bg-purple-50 p-3 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600">${bookingStats.totalSpent.toFixed(2)}</div>
-            <div className="text-sm text-purple-700">Total Spent</div>
+            <div className="text-2xl font-bold text-purple-600">{bookingStats.completed}</div>
+            <div className="text-sm text-purple-700">Completed</div>
           </div>
         </div>
       </div>
@@ -1269,24 +1326,42 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
           {selectedBooking && (
             <div className="space-y-6">
               {/* Quick actions bar */}
-              <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+              <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg">
+                {/* Complete Payment button in detail modal */}
+                {(selectedBooking.paymentStatus === "PENDING" || selectedBooking.paymentStatus === "EXPIRED") &&
+                  selectedBooking.status !== "REJECTED" && selectedBooking.status !== "CANCELLED" && (
+                  <Button
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    disabled={retryPaymentMutation.isPending}
+                    onClick={() =>
+                      retryPaymentMutation.mutate({
+                        bookingId: selectedBooking.id,
+                        returnUrl: `${window.location.origin}/payment/success`,
+                        cancelUrl: `${window.location.origin}/student/sessions`,
+                      })
+                    }
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    {retryPaymentMutation.isPending ? "Redirecting..." : "Complete Payment"}
+                  </Button>
+                )}
+
                 {canJoinSession(selectedBooking) && (
                   <Button
                     onClick={() => handleJoinSession(selectedBooking.liveSession.id)}
-                    disabled={joinSessionMutation.isPending}
                   >
                     <Video className="h-4 w-4 mr-2" />
                     Join Session
                   </Button>
                 )}
                 
-                {selectedBooking.liveSession?.meetingLink && (
+                {canJoinSession(selectedBooking) && selectedBooking.liveSession && (
                   <Button
                     variant="outline"
-                    onClick={() => copyMeetingLink(selectedBooking)}
+                    onClick={() => copyJoinLink(selectedBooking.liveSession.id)}
                   >
                     <Copy className="h-4 w-4 mr-2" />
-                    Copy Link
+                    Copy Join Link
                   </Button>
                 )}
                 
@@ -1572,30 +1647,28 @@ export function StudentBookingDashboard({ studentId }: StudentBookingDashboardPr
                           </div>
                         </div>
 
-                        {selectedBooking.liveSession.meetingLink && (
+                        {canJoinSession(selectedBooking) && selectedBooking.liveSession && (
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Meeting Link</Label>
+                            <Label className="text-sm font-medium text-gray-600">Join Session</Label>
                             <div className="flex items-center gap-2 mt-1">
-                              <Input 
-                                value={selectedBooking.liveSession.meetingLink} 
-                                readOnly 
-                                className="font-mono text-sm"
-                              />
+                              <Button 
+                                className="flex-1"
+                                onClick={() => handleJoinSession(selectedBooking.liveSession.id)}
+                              >
+                                <Video className="h-4 w-4 mr-2" />
+                                Join In-App Video Call
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => copyMeetingLink(selectedBooking)}
+                                onClick={() => copyJoinLink(selectedBooking.liveSession.id)}
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => window.open(selectedBooking.liveSession.meetingLink, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
                             </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              All sessions run in-app for better tracking and experience
+                            </p>
                           </div>
                         )}
 

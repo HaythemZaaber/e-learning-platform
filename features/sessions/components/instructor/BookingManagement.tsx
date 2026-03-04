@@ -78,6 +78,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface BookingManagementProps {
   instructorId: string;
@@ -85,6 +86,7 @@ interface BookingManagementProps {
 
 export function BookingManagement({ instructorId }: BookingManagementProps) {
   const { user, getToken } = useAuth();
+  const router = useRouter();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
@@ -189,8 +191,8 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
     }
   };
 
-  const handleJoinSession = (meetingLink: string) => {
-    window.open(meetingLink, '_blank');
+  const handleJoinSession = (sessionId: string) => {
+    router.push(`/sessions/${sessionId}/video-call?role=instructor`);
   };
 
   // Get status badge color
@@ -347,7 +349,7 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
                   <>
                     <Button
                       size="sm"
-                      onClick={() => handleJoinSession(booking.liveSession.meetingLink)}
+                      onClick={() => handleJoinSession(booking.liveSession.id)}
                     >
                       <Video className="h-4 w-4 mr-1" />
                       Join Session
@@ -788,16 +790,16 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
                       {getSessionStatusBadge(selectedBooking.liveSession.status)}
                     </div>
                     
-                    {meetingInfo && (
+                    {selectedBooking.liveSession?.status === SessionStatus.IN_PROGRESS && (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-600">Meeting Link</p>
+                        <p className="text-sm font-medium text-gray-600">Join Session</p>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleJoinSession(meetingInfo.meetingLink)}
+                          onClick={() => handleJoinSession(selectedBooking.liveSession.id)}
                         >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Join Meeting
+                          <Video className="h-4 w-4 mr-2" />
+                          Join In-App Video Call
                         </Button>
                       </div>
                     )}
@@ -872,7 +874,7 @@ export function BookingManagement({ instructorId }: BookingManagementProps) {
                     {selectedBooking.liveSession.status === SessionStatus.IN_PROGRESS && (
                       <>
                         <Button
-                          onClick={() => handleJoinSession(selectedBooking.liveSession.meetingLink)}
+                          onClick={() => handleJoinSession(selectedBooking.liveSession.id)}
                         >
                           <Video className="h-4 w-4 mr-2" />
                           Join Session

@@ -420,6 +420,22 @@ export class SessionBookingApi {
     );
   }
 
+  /**
+   * Retry / resume payment for an unpaid booking
+   */
+  async retryBookingPayment(
+    bookingId: string,
+    returnUrl: string,
+    cancelUrl: string,
+    token: string,
+  ): Promise<{ success: boolean; checkoutSession: any; bookingId: string }> {
+    return this.http.post<{ success: boolean; checkoutSession: any; bookingId: string }>(
+      `/session-bookings/${bookingId}/retry-payment`,
+      { returnUrl, cancelUrl },
+      token,
+    );
+  }
+
   // =============================================================================
   // WEBHOOK HANDLERS
   // =============================================================================
